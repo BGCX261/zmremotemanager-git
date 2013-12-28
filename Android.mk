@@ -4,6 +4,10 @@ include $(CLEAR_VARS)
 LOCAL_MODULE_TAGS := optional
 
 LOCAL_SRC_FILES := $(call all-java-files-under, src) #\../../../ex/carousel/java/com/android/ex/carousel/carousel.rs
+LOCAL_SRC_FILE += \
+              src/com/android/remotemanager/plugins/IPackageDeleteObserver.aidl \
+              src/com/android/remotemanager/plugins/IPackageInstallObserver.aidl  \
+              src/com/android/remotemanager/plugins/IPackageManager.aidl
 
 #LOCAL_JAVA_LIBRARIES := services telephony-common
 
