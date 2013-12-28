@@ -51,7 +51,7 @@ public class RemoteManagerService extends Service {
     }
     
     private void init(){
-        mXmppClient = XmppClient.getXmppClientInstance();
+        mXmppClient = XmppClient.getXmppClientInstance(getApplicationContext());
         mLogManager = LogManager.getLogManagerInstance();
     }
 }

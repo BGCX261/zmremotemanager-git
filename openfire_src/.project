@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>openfire_src</name>
+	<comment></comment>
+	<projects>
+	</projects>
+	<buildSpec>
+		<buildCommand>
+			<name>org.eclipse.jdt.core.javabuilder</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
+	</buildSpec>
+	<natures>
+		<nature>org.eclipse.jdt.core.javanature</nature>
+	</natures>
+	<linkedResources>
+		<link>
+			<name>remoteDeviceControl</name>
+			<type>2</type>
+			<location>/thunderst/disk2/android-4.2/packages/apps/RemoteManager/openfire_src/src/plugins/remoteDeviceControl</location>
+		</link>
+	</linkedResources>
+</projectDescription>
