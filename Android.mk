@@ -14,6 +14,7 @@ LOCAL_PACKAGE_NAME := RemoteManager
 LOCAL_CERTIFICATE := platform
 
 #LOCAL_PROGUARD_FLAG_FILES := proguard.flags
+LOCAL_PROGUARD_ENABLED := disabled
 
 include $(BUILD_PACKAGE)
 
