@@ -62,8 +62,10 @@ public class RemotePkgsManager {
         if(pkgName == null)
             return false;
         try {
+        	//simulate it as pm command
             mPm.setApplicationEnabledSetting(pkgName, 
-                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED, 0,0);
+                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED, 0,0,
+                    "shell:" + android.os.Process.myUid());
         } catch (Exception e) {
             return false;
         }
@@ -72,8 +74,10 @@ public class RemotePkgsManager {
     
     public boolean disablePkg(String pkgName){
         try {
+        	//simulate it as pm command
             mPm.setApplicationEnabledSetting(pkgName, 
-                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED, 0,0);
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED, 0,0,
+                    "shell:" + android.os.Process.myUid());
         } catch (Exception e) {
             return false;
         }
@@ -91,7 +95,7 @@ public class RemotePkgsManager {
             return false;
         PackageDeleteObserver obs = new PackageDeleteObserver();
         try {
-            mPm.deletePackage(pkgName, obs, 0);
+            mPm.deletePackageAsUser(pkgName, obs, 0,0);
 
             synchronized (obs) {
                 while (!obs.finished) {
