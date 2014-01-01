@@ -1,6 +1,7 @@
 package com.android.remotemanager.plugins;
 import java.util.ArrayList;
 
+import com.android.remotemanager.plugins.xmpp.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.filter.PacketFilter;
 import org.jivesoftware.smack.packet.*;
@@ -14,9 +15,9 @@ import android.util.Log;
 public class XmppClient {
     static private String TAG ="XmppClient";
     
-    private final String XMPP_NAMESPACE = "com.zm.epad.xmpp";
-    private final String XMPP_RMDEVICE = "remotedevice";
-    private final String XMPP_RMPACKAGE= "remotepackage";
+    static public final String XMPP_NAMESPACE = "com.zm.epad.xmpp";
+    static public final String XMPP_RMDEVICE = "remotedevice";
+    static public final String XMPP_RMPACKAGE= "remotepackage";
     
     static private XmppClient mXmppClient = null;
     
@@ -72,139 +73,8 @@ public class XmppClient {
          }
     }
     
-    class RemoteDeviceIQ extends IQ{
-
-        @Override
-        public String getChildElementXML() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-        public boolean parse(XmlPullParser xmlPullParser){
-            boolean done = false;
-            return done;
-        }
-        public Packet buildResultPacket(){
-            return null;
-        }
-    }
-    class RemotePackageIQ extends IQ{
-        
-        private final String[] CMD_STR_ARRAYS = {
-            "update","enable","disable","uninstall","install"};
-        
-        static public final int CMD_INT_UPDATE = 0;
-        static public final int CMD_INT_ENABLE = 1;
-        static public final int CMD_INT_DISABLE = 2;
-        static public final int CMD_INT_UNINSTALL = 3;
-        static public final int CMD_INT_INSTALL = 4;
-        
-        
-        private int mCmdType = -1;
-        private int mCmdArgsCount = 0;
-        
-        private int mStatus = 0; //0 means unhandled, 1 means handled
-        private boolean mResult = false;
-        private ArrayList<String> mCmdArgs = new ArrayList<String>();
-        
-        public int getCmdType(){
-            return mCmdType;
-        }
-        private void setCmdType(String cmdString){
-            mCmdType = -1;
-            for (String strCmd:CMD_STR_ARRAYS){
-                mCmdType++;
-                if(strCmd.equals(cmdString)){
-                    break;
-                }
-            }
-            
-            return;
-        }
-        
-        private void setCmdArgs(String cmdArgs){
-            String[] args = cmdArgs.split(";");
-            for(String arg:args)
-                mCmdArgs.add(arg);
-            return;
-        }
-        
-        public final ArrayList<String> getCmdArgs(){
-            return mCmdArgs;
-        }
-        
-        /*
-        <remotepackage xmlns="com.zm.epad.xmpp">
-            <cmdtype>install</cmdtype>
-            <cmdargs>com.android.email;com.android.browser</cmdargs>
-            <result>false;true<result>   //only for result packet
-        </remotepackage>
-        */
-        @Override
-        public String getChildElementXML() {
-            // TODO Auto-generated method stub
-            if(mStatus == 0) // unhandled, return null
-                return null;
-            else if(mStatus == 1){
-                StringBuilder buf = new StringBuilder();
-                buf.append("<" + XMPP_RMPACKAGE);
-                if (getXmlns() != null) {
-                    buf.append(" xmlns=\"").append(getXmlns()).append("\"");
-                }
-                buf.append(">");
-                
-                buf.append("<cmdtype>");
-                buf.append(CMD_STR_ARRAYS[mCmdType]);
-                buf.append("</cmdtype>");
-                
-                buf.append("<cmdargs>");
-                for(int arg = 0; arg<mCmdArgs.size(); arg++){
-                    buf.append(mCmdArgs.get(arg));
-                    buf.append(";");
-                }
-                buf.append("</cmdargs>");
-                
-                buf.append("<result>");
-                buf.append(mResult?"1":"0");
-                buf.append("</result>");
-                
-                buf.append("/" + XMPP_RMPACKAGE + ">");
-                return buf.toString();
-            }
-            else
-                return null;
-        }
-        public boolean parse(XmlPullParser parser){
-            boolean done = false;
-            try{
-                while (!done) {
-                    int eventType = parser.next();
-                    if (eventType == XmlPullParser.START_TAG) {
-                        if (parser.getName().equals("cmdtype")) {
-                            setCmdType(parser.nextText());
-                        }
-                        //cmdargs="arg1;arg2;arg3"
-                        else if (parser.getName().equals("cmdargs")) {
-                            setCmdArgs(parser.nextText());
-                        }
-                    }
-                    else if (eventType == XmlPullParser.END_TAG) {
-                             done = true;
-                    }
-                }
-            }catch (Exception e) {
-                Log.e(TAG,"RemotePackageIQ parse fail: " + e.getMessage());
-                return false;
-            }
-           
-            return done;
-        }
-        
-        public Packet buildResultPacket(boolean bResult){
-            mResult = bResult;
-            mStatus = 1;
-            return this;
-        }
-    }
+   
+    
     
     public void destroy(){
         if(mXmppConnection != null)
