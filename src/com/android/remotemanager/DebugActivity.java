@@ -1,5 +1,6 @@
 package com.android.remotemanager;
 
+import com.android.remotemanager.plugins.RemotePkgsManager;
 import com.android.remotemanager.plugins.XmppClient;
 
 import android.app.Activity;
@@ -30,8 +31,9 @@ public class DebugActivity extends Activity {
             public void run() {
                 // TODO Auto-generated method stub
                 XmppClient xmppClient = XmppClient.getXmppClientInstance(getApplicationContext());
-                xmppClient.connectToserver("192.168.1.102"); //"2011-20120430WG"
-                xmppClient.loginToServer("dengfanping", "iee209");
+                xmppClient.connectToserver("192.168.0.100"); //"2011-20120430WG"
+                xmppClient.loginToServer("dengfanping", "123");
+                xmppClient.start(new RemotePkgsManager(getApplicationContext()));
             }
             
         });
