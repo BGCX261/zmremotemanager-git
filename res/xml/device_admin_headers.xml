@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Headers for a set of preferences used to exercise the DevicePolicyManager API. -->
+<preference-headers
+    xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <header
+        android:fragment="com.android.remotemanager.plugins.remotedeviceadmin.RemoteDeviceAdmin$GeneralFragment"
+        android:title="@string/header_general" />
+
+    <header
+        android:fragment="com.android.remotemanager.plugins.remotedeviceadmin.RemoteDeviceAdmin$QualityFragment"
+        android:title="@string/header_quality" />
+
+    <header
+        android:fragment="com.android.remotemanager.plugins.remotedeviceadmin.RemoteDeviceAdmin$ExpirationFragment"
+        android:title="@string/header_expiration" />
+
+    <header
+        android:fragment="com.android.remotemanager.plugins.remotedeviceadmin.RemoteDeviceAdmin$LockWipeFragment"
+        android:title="@string/header_lock_wipe" />
+
+    <header
+        android:fragment="com.android.remotemanager.plugins.remotedeviceadmin.RemoteDeviceAdmin$EncryptionFragment"
+        android:title="@string/header_encryption" />
+
+</preference-headers>
