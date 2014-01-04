@@ -203,7 +203,7 @@ public class XmppClient {
         case RemotePackageIQ.CMD_INT_ENABLE:{
               String pkgName = cmdArgs.get(0);
               Log.e(TAG, "enable pkg: " + pkgName);
-              boolean bResult = mRPM.enablePkg(pkgName);
+              boolean bResult = mRPM.enablePkgForUser(pkgName,0);
               Packet resultPacket = remotePackageIQ.buildResultPacket(bResult);
               mXmppConnection.sendPacket(resultPacket);
               Log.e(TAG, "Result:" + resultPacket.toXML());
@@ -212,7 +212,7 @@ public class XmppClient {
         case RemotePackageIQ.CMD_INT_DISABLE:{
             String pkgName = cmdArgs.get(0);
             Log.e(TAG, "disable pkg: " + pkgName);
-            boolean bResult = mRPM.disablePkg(pkgName);
+            boolean bResult = mRPM.disablePkgForUser(pkgName,0);
             Packet resultPacket = remotePackageIQ.buildResultPacket(bResult);
             mXmppConnection.sendPacket(resultPacket);
             Log.e(TAG, "Result:" + resultPacket.toXML());

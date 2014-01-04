@@ -9,9 +9,12 @@ import android.os.RemoteException;
 import android.content.pm.IPackageDeleteObserver;
 import android.content.pm.IPackageInstallObserver;
 import android.content.pm.IPackageManager;
+import android.os.Environment;
 import android.os.IUserManager;
 import android.os.ServiceManager;
 import android.net.Uri;
+
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,8 +48,10 @@ public class RemotePkgsManager {
     IPackageManager mPm;
     IUserManager mUm;
     PackageManager mPackageManager;
+    Context mContext;
     public RemotePkgsManager(Context context){
         try {
+            mContext = context;
             mUm = IUserManager.Stub.asInterface(ServiceManager.getService("user"));
             mPm = IPackageManager.Stub.asInterface(ServiceManager.getService("package"));
             mPackageManager = context.getPackageManager();
@@ -57,23 +62,22 @@ public class RemotePkgsManager {
     }
     
     
-    
-    public boolean enablePkg(String pkgName){
+    public boolean enablePkgForUser(String pkgName, int userId){
         if(pkgName == null)
             return false;
         try {
             mPm.setApplicationEnabledSetting(pkgName, 
-                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED, 0,0);
+                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED, 0,userId);
         } catch (Exception e) {
             return false;
         }
         return true;
     }
     
-    public boolean disablePkg(String pkgName){
+    public boolean disablePkgForUser(String pkgName,int userId){
         try {
             mPm.setApplicationEnabledSetting(pkgName, 
-                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED, 0,0);
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED, 0,userId);
         } catch (Exception e) {
             return false;
         }
@@ -83,10 +87,18 @@ public class RemotePkgsManager {
     /*
      * Download an new app?
      * */
-    public boolean updatePkg(String pkgName){
+    public boolean updatePkgForUser(String pkgName, int userId){
         return false;
     }
-    public boolean uninstallPkg(String pkgName){
+    /*
+     * Special note:
+     * For uninstall and install, userId is not used, because 
+     * PackageManager will use caller's userid.This means 
+     * User A could not install or uninstall apk for other users 
+     * except for himself
+     * 
+     * */
+    public boolean uninstallPkgForUser(String pkgName,int userId){
         if(pkgName == null)
             return false;
         PackageDeleteObserver obs = new PackageDeleteObserver();
@@ -108,7 +120,24 @@ public class RemotePkgsManager {
         
         
     }
-    public boolean installPkg(String apkLocation){
+    //zhimo://apkname-->/sdcard/xxx/apkname
+    private String getRealPath(String apkLocation){
+        if(apkLocation == null)
+            return null;
+        if(apkLocation.startsWith("http://"))
+            return apkLocation;
+        else if(apkLocation.startsWith("zhimo://")){
+            String realApkLocation = apkLocation.substring(apkLocation.lastIndexOf("/"));
+            File file = Environment.getExternalStorageDirectory();
+            realApkLocation = file.getAbsolutePath() + "/" + realApkLocation;
+            return realApkLocation;
+        } else
+            return apkLocation;
+    }
+    public boolean installPkgForUser(String apkLocation,int userId){
+        apkLocation = getRealPath(apkLocation);
+        if(apkLocation == null)
+            return false;
         PackageInstallObserver obs = new PackageInstallObserver();
         try {
             Uri apkURI = Uri.parse(apkLocation);
