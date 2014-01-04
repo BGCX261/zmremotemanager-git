@@ -62,7 +62,7 @@
         </receiver>
        <!-- Device Admin Samples -->
 
-        <activity android:name="com.android.remotemanager.plugins.remotedeviceadmin.RemoteDeviceAdmin"
+        <activity android:name=".plugins.remotedeviceadmin.RemoteDeviceAdmin"
                 android:label="@string/activity_remote_device_admin">
         </activity>
 

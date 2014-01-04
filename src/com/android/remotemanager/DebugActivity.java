@@ -64,8 +64,8 @@ public class DebugActivity extends ListActivity {
             testXMPP();
         }else if(clickedItem.equals(TEST_DEVICE_ADMIN)){
             android.content.Intent intent = new Intent();
-            intent.setComponent(new ComponentName("com.android.remotemanager.plugins.remotedeviceadmin", 
-                    "RemoteDeviceAdmin"));
+            intent.setComponent(new ComponentName("com.android.remotemanager", 
+                    "com.android.remotemanager.plugins.remotedeviceadmin.RemoteDeviceAdmin"));
             startActivity(intent);
         }
         
