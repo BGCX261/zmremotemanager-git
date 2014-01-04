@@ -4,7 +4,7 @@
 
     <!-- Manifest strings -->
     <string name="activity_remote_device_admin">App/Device Admin</string>
-    <string name="remote_device_admin">Sample Device Admin</string>
+    <string name="remote_device_admin">ZhiMo Tech Remote Device Admin</string>
     <string name="remote_device_admin_description">ZhiMo Tech implementation provides a UI
         for you to directly control what the DeviceAdmin does with the
         system.</string>
@@ -94,7 +94,7 @@
     <string name="expiration_status_future">Password will expire %1$s from now</string>
 
     <!-- Strings used by the RemoteDeviceAdminReceiver -->
-    <string name="admin_receiver_status">Sample Device Admin: %1$s</string>
+    <string name="admin_receiver_status">ZhiMo Remote Device Admin: %1$s</string>
     <string name="admin_receiver_status_enabled">enabled</string>
     <string name="admin_receiver_status_disabled">disabled</string>
     <string name="admin_receiver_status_pw_changed">pw changed</string>
