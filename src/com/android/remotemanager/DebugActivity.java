@@ -19,7 +19,7 @@ import android.content.Intent;
 import android.content.ComponentName;
 import android.os.Bundle;
 import android.os.Debug;
-import android.util.Log;
+import com.android.logmanager.LogManager;
 import android.view.View;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
@@ -29,10 +29,13 @@ public class DebugActivity extends ListActivity {
     List<Map<String, String>> mTestFunctions = new ArrayList<Map<String, String>>();
     private static String TEST_XMPP = "test xmpp";
     private static String TEST_DEVICE_ADMIN = "test device admin";
+    LogManager mLogManager = null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         // TODO Auto-generated method stub
         super.onCreate(savedInstanceState);
+        mLogManager = LogManager.getLogManagerInstance("192.168.0.2", this);
+        mLogManager.start();
         
         Map<String, String> test1 = new HashMap<String, String>();
         test1.put("title", TEST_XMPP);
@@ -99,10 +102,11 @@ public class DebugActivity extends ListActivity {
             cmdIQ.setPacketID("xyzzd");
             cmdIQ.setCmdType("enable");
             cmdIQ.setCmdArgs("com.android.browser");
-            Log.e("XmppClient", "test send msg " +cmdIQ.toString());
+            LogManager.e("XmppClient", "test send msg " +cmdIQ.toString());
             testConnection.sendPacket(cmdIQ);
+            
         } catch (Exception e) {
-            Log.e("XmppClient", "testXmppClient " + e.getMessage());
+            LogManager.e("XmppClient", "testXmppClient " + e.getMessage());
         }
         
         
