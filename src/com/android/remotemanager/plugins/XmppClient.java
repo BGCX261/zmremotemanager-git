@@ -1,6 +1,6 @@
 package com.android.remotemanager.plugins;
 import java.util.ArrayList;
-
+import com.android.remotemanager.NetworkStatusMonitor;
 import com.android.remotemanager.plugins.xmpp.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.filter.PacketFilter;
@@ -12,7 +12,7 @@ import org.xmlpull.v1.XmlPullParser;
 import android.content.Context;
 import android.util.Log;
 
-public class XmppClient {
+public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
     static private String TAG ="XmppClient";
     
     static public final String XMPP_NAMESPACE = "com.zm.epad.xmpp";
@@ -28,6 +28,11 @@ public class XmppClient {
     
     
     
+    @Override
+    public void reportNetworkStatus(boolean bConnected) {
+        
+        
+    }
     static public XmppClient getXmppClientInstance(Context context){
         if(mXmppClient == null)
             mXmppClient = new XmppClient(context);

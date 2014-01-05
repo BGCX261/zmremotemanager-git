@@ -10,7 +10,7 @@ import org.xmlpull.v1.XmlPullParser;
 import android.content.Context;
 import android.os.Environment;
 import android.util.Log;
-
+import com.android.remotemanager.NetworkStatusMonitor;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -23,7 +23,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.LinkedList;
 
-public class LogManager {
+public class LogManager implements NetworkStatusMonitor.NetworkStatusReport{
     
     static public LogManager mLogManager;
     static public LogManager getLogManagerInstance(String serverName,Context context){
@@ -32,6 +32,11 @@ public class LogManager {
         return mLogManager;
     }
     
+    @Override
+    public void reportNetworkStatus(boolean bConnected) {
+        
+        
+    }
     private XMPPConnection   mXmppConnection = null;
     private String mServerName;
     private static String TAG="LogManager";

@@ -4,14 +4,23 @@ import com.android.logmanager.LogManager;
 import com.android.remotemanager.plugins.XmppClient;
 
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.location.LocationProvider;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.IBinder;
+import android.view.LayoutInflater.Filter;
+
+import java.util.ArrayList;
 
 public class RemoteManagerService extends Service {
     
     
     private XmppClient  mXmppClient = null;
     private LogManager  mLogManager = null;
+    private NetworkStatusMonitor mNetworkStatusMonitor = null;
     
 	@Override
 	public IBinder onBind(Intent intent) {
@@ -50,8 +59,14 @@ public class RemoteManagerService extends Service {
         return super.onUnbind(intent);
     }
     
+    
     private void init(){
-        mXmppClient = XmppClient.getXmppClientInstance(getApplicationContext());
-        mLogManager = LogManager.getLogManagerInstance(null,getApplicationContext());
+        mNetworkStatusMonitor = new NetworkStatusMonitor(this);
+        
+        mXmppClient = XmppClient.getXmppClientInstance(this);
+        mLogManager = LogManager.getLogManagerInstance(null,this);
+        mNetworkStatusMonitor.start(new NetworkStatusMonitor.NetworkStatusReport[]{mXmppClient,mLogManager});
+        
+        
     }
 }
