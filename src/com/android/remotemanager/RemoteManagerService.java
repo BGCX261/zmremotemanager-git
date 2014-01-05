@@ -63,9 +63,9 @@ public class RemoteManagerService extends Service {
     private void init(){
         mNetworkStatusMonitor = new NetworkStatusMonitor(this);
         
-        mXmppClient = XmppClient.getXmppClientInstance(this);
+        /*mXmppClient = XmppClient.getXmppClientInstance(this);
         mLogManager = LogManager.getLogManagerInstance(null,this);
-        mNetworkStatusMonitor.start(new NetworkStatusMonitor.NetworkStatusReport[]{mXmppClient,mLogManager});
+        mNetworkStatusMonitor.start(new NetworkStatusMonitor.NetworkStatusReport[]{mXmppClient,mLogManager});*/
         
         
     }

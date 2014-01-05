@@ -79,10 +79,10 @@ public class DebugActivity extends ListActivity {
             @Override
             public void run() {
                 // TODO Auto-generated method stub
-                XmppClient xmppClient = XmppClient.getXmppClientInstance(getApplicationContext());
+               /* XmppClient xmppClient = XmppClient.getXmppClientInstance(getApplicationContext());
                 xmppClient.connectToserver("192.168.0.100"); //"2011-20120430WG"
                 xmppClient.loginToServer("dengfanping", "123");
-                xmppClient.start(new RemotePkgsManager(getApplicationContext()));
+                xmppClient.start(new RemotePkgsManager(getApplicationContext()));*/
                 
                 testXmppClient();
             }
@@ -136,9 +136,9 @@ public class DebugActivity extends ListActivity {
             @Override
             public void run() {
                 // TODO Auto-generated method stub
-                XmppClient xmppClient = XmppClient.getXmppClientInstance(getApplicationContext());
+              /*  XmppClient xmppClient = XmppClient.getXmppClientInstance(getApplicationContext());
                 xmppClient.logout();
-                xmppClient.destroy();
+                xmppClient.destroy();*/
             }
             
         });
