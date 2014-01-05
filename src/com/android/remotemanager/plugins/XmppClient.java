@@ -1,15 +1,42 @@
 package com.android.remotemanager.plugins;
+import java.util.ArrayList;
+import com.android.remotemanager.NetworkStatusMonitor;
+import com.android.remotemanager.plugins.xmpp.*;
 import org.jivesoftware.smack.*;
+import org.jivesoftware.smack.filter.PacketFilter;
 import org.jivesoftware.smack.packet.*;
+import org.jivesoftware.smack.ConnectionListener;
+import org.jivesoftware.smack.provider.*;
+import org.xmlpull.v1.XmlPullParser;
+
 import android.content.Context;
 import android.util.Log;
 
-public class XmppClient {
+public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
     static private String TAG ="XmppClient";
+    
+    static public final String XMPP_NAMESPACE = "com.zm.epad.xmpp";
+    static public final String XMPP_RMDEVICE = "remotedevice";
+    static public final String XMPP_RMPACKAGE= "remotepackage";
     
     static private XmppClient mXmppClient = null;
     
     private SmackAndroid  mSmackAndroid = null;
+    private PacketListener  mSmackPktListener = null;
+    private ConnectionListener  mSmackConnectionListener = null;
+    private IQProvider mIQProvider = null;  
+    
+    
+    
+    @Override
+    public void reportNetworkStatus(boolean bConnected) {
+        
+        
+    }
+    @Override
+    public void reportXMPPConnectionStatus(int type,boolean bConnected){
+        
+    }
     static public XmppClient getXmppClientInstance(Context context){
         if(mXmppClient == null)
             mXmppClient = new XmppClient(context);
@@ -19,8 +46,44 @@ public class XmppClient {
     private XmppClient(Context context){
         Log.e(TAG,"XmppClient initilize SmackAndroid ");
         mSmackAndroid = SmackAndroid.init(context);
+        mIQProvider = new XmppIQProvider();
+        
+        ProviderManager.getInstance().addIQProvider(XMPP_RMDEVICE, XMPP_NAMESPACE,mIQProvider);
+        ProviderManager.getInstance().addIQProvider(XMPP_RMPACKAGE, XMPP_NAMESPACE,mIQProvider);
         
     }
+    class XmppIQProvider implements IQProvider{
+        @Override
+        public IQ parseIQ(XmlPullParser parser){
+            String elementName = parser.getName();
+            String namespace = parser.getNamespace();
+            Log.e(TAG, "element: " + elementName + " namespace: " + namespace);
+            if(namespace.equals(XMPP_NAMESPACE) == false){
+                return null;
+            }
+            if(elementName.equals(XMPP_RMDEVICE)){
+                RemoteDeviceIQ remoteDeviceIQ = new RemoteDeviceIQ();
+                
+                if(remoteDeviceIQ.parse(parser) == false)
+                    return null;
+                
+                return remoteDeviceIQ;
+            }else if (elementName.equals(XMPP_RMPACKAGE)){
+                RemotePackageIQ remotePackageIQ = new RemotePackageIQ();
+                
+                if(remotePackageIQ.parse(parser) == false)
+                    return null;
+                
+                return remotePackageIQ;
+                
+            }
+            else
+                return null;
+         }
+    }
+    
+   
+    
     
     public void destroy(){
         if(mXmppConnection != null)
@@ -33,6 +96,8 @@ public class XmppClient {
             Connection.DEBUG_ENABLED = true;
             mXmppConnection = new XMPPConnection(serverName, null);
             mXmppConnection.connect();
+            //mSmackConnectionListener = new XmppConnectionListener();
+            mXmppConnection.addConnectionListener(mSmackConnectionListener);
             return true;
         } catch (XMPPException e) {
             Log.e(TAG, e.getMessage());
@@ -77,6 +142,95 @@ public class XmppClient {
             return false;
         }
        
+    }
+    
+      class XmppPacketListener implements PacketListener{
+
+        @Override
+        public void processPacket(Packet packet) {
+            Log.e(TAG, "received a xmpp packet " + packet.toXML());
+/*            
+            if(packet.getXmlns().contains(XMPP_NAMESPACE) == false)
+                return;
+            */
+            if(packet instanceof RemotePackageIQ){
+                RemotePackageIQ remotePackageIQ = (RemotePackageIQ)packet; 
+                handleIQCmd(remotePackageIQ);
+                
+            }else if(packet instanceof RemoteDeviceIQ){
+                RemoteDeviceIQ remoteDeviceIQ = (RemoteDeviceIQ)packet;
+                handleIQCmd(remoteDeviceIQ);
+                
+            }
+            
+        }
+        
+    }
+    
+    
+    private void handleIQCmd(RemotePackageIQ remotePackageIQ){
+        int cmdType = remotePackageIQ.getCmdType();
+        ArrayList<String> cmdArgs = remotePackageIQ.getCmdArgs();
+        switch (cmdType) {
+        case RemotePackageIQ.CMD_INT_ENABLE:{
+              String pkgName = cmdArgs.get(0);
+              Log.e(TAG, "enable pkg: " + pkgName);
+              boolean bResult = mRPM.enablePkgForUser(pkgName,0);
+              Packet resultPacket = remotePackageIQ.buildResultPacket(bResult);
+              mXmppConnection.sendPacket(resultPacket);
+              Log.e(TAG, "Result:" + resultPacket.toXML());
+            }
+            break;
+        case RemotePackageIQ.CMD_INT_DISABLE:{
+            String pkgName = cmdArgs.get(0);
+            Log.e(TAG, "disable pkg: " + pkgName);
+            boolean bResult = mRPM.disablePkgForUser(pkgName,0);
+            Packet resultPacket = remotePackageIQ.buildResultPacket(bResult);
+            mXmppConnection.sendPacket(resultPacket);
+            Log.e(TAG, "Result:" + resultPacket.toXML());
+            
+            }
+            break;
+        default:
+            break;
+        }
+        return;
+    }
+    
+    private void handleIQCmd(RemoteDeviceIQ remoteDeviceIQ){
+        return;
+    }
+    
+    
+    
+    
+    /*
+     * 
+     * */
+    
+    
+    RemotePkgsManager mRPM = null;
+    public void start(RemotePkgsManager rpm){
+        if(mXmppConnection == null)
+            return;
+        mRPM = rpm;
+        try {
+            mSmackPktListener = new XmppPacketListener();
+            mXmppConnection.addPacketListener(mSmackPktListener, new PacketFilter() {
+                
+                @Override
+                public boolean accept(Packet packet) {
+                    Log.e(TAG, "accept packet?:" + packet.toXML());
+                    if(packet.getXmlns().contains(XMPP_NAMESPACE))
+                        return true;
+                    return false;
+                }
+            });
+        } catch (Exception e) {
+            // TODO: handle exception
+            Log.e(TAG, e.getMessage());
+        }
+        return;
     }
     
     

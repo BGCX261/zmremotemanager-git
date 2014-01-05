@@ -60,7 +60,23 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+       <!-- Device Admin Samples -->
 
+        <activity android:name=".plugins.remotedeviceadmin.RemoteDeviceAdmin"
+                android:label="@string/activity_remote_device_admin">
+        </activity>
+
+        <receiver android:name="com.android.remotemanager.plugins.remotedeviceadmin.RemoteDeviceAdmin$RemoteDeviceAdminReceiver"
+                android:label="@string/remote_device_admin"
+                android:description="@string/remote_device_admin_description"
+                android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data android:name="android.app.device_admin"
+                       android:resource="@xml/remote_device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+        
          <activity android:name="DebugActivity"
             android:excludeFromRecents="true"
             >
