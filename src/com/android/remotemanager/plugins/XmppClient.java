@@ -33,6 +33,10 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
         
         
     }
+    @Override
+    public void reportXMPPConnectionStatus(int type,boolean bConnected){
+        
+    }
     static public XmppClient getXmppClientInstance(Context context){
         if(mXmppClient == null)
             mXmppClient = new XmppClient(context);
@@ -92,7 +96,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
             Connection.DEBUG_ENABLED = true;
             mXmppConnection = new XMPPConnection(serverName, null);
             mXmppConnection.connect();
-            mSmackConnectionListener = new XmppConnectionListener();
+            //mSmackConnectionListener = new XmppConnectionListener();
             mXmppConnection.addConnectionListener(mSmackConnectionListener);
             return true;
         } catch (XMPPException e) {
@@ -140,44 +144,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
        
     }
     
-    class XmppConnectionListener implements ConnectionListener{
-
-        @Override
-        public void connectionClosed() {
-            // TODO Auto-generated method stub
-            Log.e(TAG, "connection closed");
-            
-        }
-
-        @Override
-        public void connectionClosedOnError(Exception e) {
-            // TODO Auto-generated method stub
-            Log.e(TAG, "connection closed on error");
-            
-            
-        }
-
-        @Override
-        public void reconnectingIn(int seconds) {
-            // TODO Auto-generated method stub
-            Log.e(TAG, "reconnectingIn " + seconds + " seconds");
-            
-        }
-
-        @Override
-        public void reconnectionSuccessful() {
-            // TODO Auto-generated method stub
-            Log.e(TAG, "reconnectionSuccessful");
-        }
-
-        @Override
-        public void reconnectionFailed(Exception e) {
-            // TODO Auto-generated method stub
-            Log.e(TAG, "reconnectionFailed " + e.getMessage());
-        }
-        
-    }
-    class XmppPacketListener implements PacketListener{
+      class XmppPacketListener implements PacketListener{
 
         @Override
         public void processPacket(Packet packet) {
@@ -249,7 +216,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
         mRPM = rpm;
         try {
             mSmackPktListener = new XmppPacketListener();
-            mXmppConnection.addPacketListener(mSmackPktListener, null/*new PacketFilter() {
+            mXmppConnection.addPacketListener(mSmackPktListener, new PacketFilter() {
                 
                 @Override
                 public boolean accept(Packet packet) {
@@ -258,7 +225,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
                         return true;
                     return false;
                 }
-            }*/);
+            });
         } catch (Exception e) {
             // TODO: handle exception
             Log.e(TAG, e.getMessage());
