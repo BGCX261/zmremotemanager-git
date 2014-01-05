@@ -20,21 +20,70 @@ import android.content.ComponentName;
 import android.os.Bundle;
 import android.os.Debug;
 import com.android.logmanager.LogManager;
+import com.example.remmtest.R;
+
+import android.util.Log;
 import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 
 public class DebugActivity extends ListActivity {
 
+	public static final String TAG = "DebugActivity";
     List<Map<String, String>> mTestFunctions = new ArrayList<Map<String, String>>();
     private static String TEST_XMPP = "test xmpp";
     private static String TEST_DEVICE_ADMIN = "test device admin";
+    
+	private Button mConnectBtn = null;
+	private Button mAdvancedBtn = null;
+	private EditText mIpText = null; 
+	
     LogManager mLogManager = null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         // TODO Auto-generated method stub
         super.onCreate(savedInstanceState);
-        mLogManager = LogManager.getLogManagerInstance("192.168.0.2", this);
+        
+		setContentView(R.layout.activity_main);
+		
+		mConnectBtn = (Button)findViewById(R.id.button1);
+		mIpText = (EditText)findViewById(R.id.editText1);
+		mAdvancedBtn = (Button)findViewById(R.id.button2);
+
+		
+		mConnectBtn.setOnClickListener(new OnClickListener(){
+
+			@Override
+			public void onClick(View arg0) {
+				// TODO Auto-generated method stub
+				String ip = mIpText.getText().toString();
+				Log.v(TAG, "ip: "+ ip);
+				connectToServer(ip);
+			}
+			
+		});
+
+		mAdvancedBtn.setOnClickListener(new OnClickListener(){
+
+			@Override
+			public void onClick(View arg0) {
+				// TODO Auto-generated method stub
+				Log.v(TAG, "advanced");
+				Intent intent = new Intent("android.settings.USER_SETTINGS");
+				
+				startActivity(intent);
+			}
+			
+		});		
+
+    }
+
+    private void connectToServer(String ip)
+    {
+        mLogManager = LogManager.getLogManagerInstance(ip, this);
         mLogManager.start();
         
         Map<String, String> test1 = new HashMap<String, String>();
@@ -50,9 +99,9 @@ public class DebugActivity extends ListActivity {
         setListAdapter(new SimpleAdapter(this, mTestFunctions,
                 android.R.layout.simple_list_item_1, new String[] { "title" },
                 new int[] { android.R.id.text1 }));
-        getListView().setTextFilterEnabled(true);
+        getListView().setTextFilterEnabled(true);   	
     }
-
+    
     @Override
     protected void onPause() {
         // TODO Auto-generated method stub
