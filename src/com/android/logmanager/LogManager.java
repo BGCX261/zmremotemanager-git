@@ -58,6 +58,7 @@ public class LogManager implements NetworkStatusMonitor.NetworkStatusReport {
     volatile private Boolean mbConnected = false;
     private XmppLogConnectionListener mLogConnectionListener = null;
     private Context mContext = null;
+    private static boolean mRunning = false;
 
     private LogManager(String serverName, Context context) {
         mServerName = serverName;
@@ -129,6 +130,9 @@ public class LogManager implements NetworkStatusMonitor.NetworkStatusReport {
         transferLeftOverLogs();// left over log must be sent synchronously
         mLogThread = new LogThread();
         mLogThread.start();
+        
+        mRunning = true;
+        
         return true;
 
     }
@@ -206,6 +210,9 @@ public class LogManager implements NetworkStatusMonitor.NetworkStatusReport {
     }
 
     public void stop() {
+    	
+    	mRunning = false;
+    	
         mLogThread.quit();
         mLogThread = null;
         mXmppConnection.disconnect();
@@ -304,26 +311,36 @@ public class LogManager implements NetworkStatusMonitor.NetworkStatusReport {
 
     public static void v(String tag, String msg) {
         Log.v(tag, msg);
+        if(!mRunning)return;
+        
         mLogManager.mLogThread.addLog(getComposedLogText("V/" + tag, msg));
     }
 
     public static void d(String tag, String msg) {
         Log.d(tag, msg);
+        if(!mRunning)return;
+        
         mLogManager.mLogThread.addLog(getComposedLogText("D/" + tag, msg));
     }
 
     public static void i(String tag, String msg) {
         Log.i(tag, msg);
+        if(!mRunning)return;
+        
         mLogManager.mLogThread.addLog(getComposedLogText("I/" + tag, msg));
     }
 
     public static void w(String tag, String msg) {
         Log.w(tag, msg);
+        if(!mRunning)return;
+        
         mLogManager.mLogThread.addLog(getComposedLogText("W/" + tag, msg));
     }
 
     public static void e(String tag, String msg) {
         Log.e(tag, msg);
+        if(!mRunning)return;
+        
         mLogManager.mLogThread.addLog(getComposedLogText("E/" + tag, msg));
     }
 }

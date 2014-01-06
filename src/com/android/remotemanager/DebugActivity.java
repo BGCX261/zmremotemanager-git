@@ -46,7 +46,7 @@ public class DebugActivity extends ListActivity {
         ip = getIntent().getExtras().getString("ServerIP");
         Log.v(TAG,ip);
 
-        connectToServer(ip);
+        connectLogManager(ip);
         
         Map<String, String> test1 = new HashMap<String, String>();
         test1.put("title", TEST_XMPP);
@@ -69,7 +69,7 @@ public class DebugActivity extends ListActivity {
     }
     
 
-    private void connectToServer(String ip)
+    private void connectLogManager(String ip)
     {
     	try{
 	        mLogManager = LogManager.getLogManagerInstance(ip, this);
