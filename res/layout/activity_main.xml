@@ -12,7 +12,7 @@
         android:id="@+id/textView1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Please Input Your IP" />
+        android:text="@string/debug_inputip" />
 
     <EditText
         android:id="@+id/editText1"
@@ -32,7 +32,7 @@
         android:layout_alignRight="@+id/editText1"
         android:layout_below="@+id/editText1"
         android:layout_marginTop="17dp"
-        android:text="Connect" />
+        android:text="@string/debug_connectbtn" />
 
     <Button
         android:id="@+id/button2"
@@ -41,6 +41,8 @@
         android:layout_alignLeft="@+id/editText1"
         android:layout_alignParentBottom="true"
         android:layout_marginBottom="20dp"
-        android:text="Advanced" />
+        android:text="@string/debug_advancedbtn" />
+
+
 
 </RelativeLayout>

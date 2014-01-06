@@ -102,4 +102,9 @@
     <string name="admin_receiver_status_pw_succeeded">pw succeeded</string>
     <string name="admin_receiver_status_disable_warning">
         This is an optional message to warn the user about disabling.</string>
+        
+    <!-- Strings used by DebugActivity -->
+    <string name="debug_inputip">Please Input Your IP</string>
+    <string name="debug_connectbtn">Connect</string>
+    <string name="debug_advancedbtn">Advanced</string>
   </resources>

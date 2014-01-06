@@ -20,7 +20,6 @@ import android.content.ComponentName;
 import android.os.Bundle;
 import android.os.Debug;
 import com.android.logmanager.LogManager;
-import com.example.remmtest.R;
 
 import android.util.Log;
 import android.view.View;
@@ -36,10 +35,7 @@ public class DebugActivity extends ListActivity {
     List<Map<String, String>> mTestFunctions = new ArrayList<Map<String, String>>();
     private static String TEST_XMPP = "test xmpp";
     private static String TEST_DEVICE_ADMIN = "test device admin";
-    
-	private Button mConnectBtn = null;
-	private Button mAdvancedBtn = null;
-	private EditText mIpText = null; 
+    private String ip = null;
 	
     LogManager mLogManager = null;
     @Override
@@ -47,49 +43,17 @@ public class DebugActivity extends ListActivity {
         // TODO Auto-generated method stub
         super.onCreate(savedInstanceState);
         
-		setContentView(R.layout.activity_main);
-		
-		mConnectBtn = (Button)findViewById(R.id.button1);
-		mIpText = (EditText)findViewById(R.id.editText1);
-		mAdvancedBtn = (Button)findViewById(R.id.button2);
+        ip = getIntent().getExtras().getString("ServerIP");
+        Log.v(TAG,ip);
 
-		
-		mConnectBtn.setOnClickListener(new OnClickListener(){
-
-			@Override
-			public void onClick(View arg0) {
-				// TODO Auto-generated method stub
-				String ip = mIpText.getText().toString();
-				Log.v(TAG, "ip: "+ ip);
-				connectToServer(ip);
-			}
-			
-		});
-
-		mAdvancedBtn.setOnClickListener(new OnClickListener(){
-
-			@Override
-			public void onClick(View arg0) {
-				// TODO Auto-generated method stub
-				Log.v(TAG, "advanced");
-				Intent intent = new Intent("android.settings.USER_SETTINGS");
-				
-				startActivity(intent);
-			}
-			
-		});		
-
-    }
-
-    private void connectToServer(String ip)
-    {
-        mLogManager = LogManager.getLogManagerInstance(ip, this);
-        mLogManager.start();
+        connectToServer(ip);
         
         Map<String, String> test1 = new HashMap<String, String>();
         test1.put("title", TEST_XMPP);
         test1.put("value", TEST_XMPP);
         mTestFunctions.add(test1);
+        
+
         
         Map<String, String> test2 = new HashMap<String, String>();
         test2.put("title", TEST_DEVICE_ADMIN);
@@ -99,7 +63,22 @@ public class DebugActivity extends ListActivity {
         setListAdapter(new SimpleAdapter(this, mTestFunctions,
                 android.R.layout.simple_list_item_1, new String[] { "title" },
                 new int[] { android.R.id.text1 }));
-        getListView().setTextFilterEnabled(true);   	
+        getListView().setTextFilterEnabled(true); 
+        
+        
+    }
+    
+
+    private void connectToServer(String ip)
+    {
+    	try{
+	        mLogManager = LogManager.getLogManagerInstance(ip, this);
+	        mLogManager.start();
+    	}catch(Exception e)
+    	{
+    		Log.e(TAG, "LogManager"+e.toString());
+    	}
+          	
     }
     
     @Override
@@ -128,10 +107,15 @@ public class DebugActivity extends ListActivity {
             @Override
             public void run() {
                 // TODO Auto-generated method stub
-                XmppClient xmppClient = XmppClient.getXmppClientInstance(getApplicationContext());
-                xmppClient.connectToserver("192.168.0.100"); //"2011-20120430WG"
-                xmppClient.loginToServer("dengfanping", "123");
-                xmppClient.start(new RemotePkgsManager(getApplicationContext()));
+            	try{
+	                XmppClient xmppClient = XmppClient.getXmppClientInstance(getApplicationContext());
+	                xmppClient.connectToserver(ip); //"2011-20120430WG"
+	                xmppClient.loginToServer("dengfanping", "123");
+	                xmppClient.start(new RemotePkgsManager(getApplicationContext()));
+            	}catch(Exception e){
+            		Log.e(TAG, "testXMPP"+e.toString());
+            	}
+            	
                 
                 testXmppClient();
             }
@@ -141,7 +125,7 @@ public class DebugActivity extends ListActivity {
     }
     private void testXmppClient(){
         try {
-            XMPPConnection testConnection= new XMPPConnection("192.168.0.100", null);
+            XMPPConnection testConnection= new XMPPConnection(ip, null);
             testConnection.connect();
             testConnection.login("test", "test");
             Thread.sleep(5000);
@@ -163,9 +147,7 @@ public class DebugActivity extends ListActivity {
     @Override
     protected void onResume() {
         // TODO Auto-generated method stub
-        super.onResume();
-        
-        
+        super.onResume();       
 
         
     }

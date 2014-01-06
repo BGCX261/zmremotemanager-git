@@ -76,7 +76,7 @@ public class RemotePkgsManager {
         return true;
     }
     
-    public boolean disablePkg(String pkgName){
+    public boolean disablePkgForUser(String pkgName, int userId){
         try {
         	//simulate it as pm command
             mPm.setApplicationEnabledSetting(pkgName, 
