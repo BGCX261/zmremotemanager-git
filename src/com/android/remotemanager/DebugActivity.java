@@ -15,6 +15,7 @@ import com.android.remotemanager.plugins.xmpp.*;
 
 import android.app.Activity;
 import android.app.ListActivity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.ComponentName;
 import android.os.Bundle;
@@ -36,6 +37,7 @@ public class DebugActivity extends ListActivity {
     private static String TEST_XMPP = "test xmpp";
     private static String TEST_DEVICE_ADMIN = "test device admin";
     private String ip = null;
+    private Context mContext = null; 
 	
     LogManager mLogManager = null;
     @Override
@@ -47,6 +49,7 @@ public class DebugActivity extends ListActivity {
         Log.v(TAG,ip);
 
         connectLogManager(ip);
+        mContext = this;
         
         Map<String, String> test1 = new HashMap<String, String>();
         test1.put("title", TEST_XMPP);
@@ -65,6 +68,7 @@ public class DebugActivity extends ListActivity {
                 new int[] { android.R.id.text1 }));
         getListView().setTextFilterEnabled(true); 
         
+        testXMPP();
         
     }
     
@@ -92,7 +96,11 @@ public class DebugActivity extends ListActivity {
         Map<String, String> map = (Map<String, String>)l.getItemAtPosition(position);
         String clickedItem  = map.get("value");
         if(clickedItem.equals(TEST_XMPP)){
-            testXMPP();
+            //testXMPP();
+    		Intent intent = new Intent();
+    		intent.setClass(mContext, DebugActivitySender.class);
+    		intent.putExtra("ServerIP", ip);
+    		startActivity(intent);
         }else if(clickedItem.equals(TEST_DEVICE_ADMIN)){
             android.content.Intent intent = new Intent();
             intent.setComponent(new ComponentName("com.android.remotemanager", 
@@ -102,26 +110,29 @@ public class DebugActivity extends ListActivity {
         
     }
     void testXMPP(){
-        Thread testThread = new Thread(new Runnable(){
+
+         Thread testThread = new Thread(new Runnable(){
 
             @Override
             public void run() {
                 // TODO Auto-generated method stub
+            	Log.v(TAG, "testXMPP run");
+
             	try{
-	                XmppClient xmppClient = XmppClient.getXmppClientInstance(getApplicationContext());
-	                xmppClient.connectToserver(ip); //"2011-20120430WG"
-	                xmppClient.loginToServer("dengfanping", "123");
-	                xmppClient.start(new RemotePkgsManager(getApplicationContext()));
+                    XmppClient xmppClient = XmppClient.getXmppClientInstance(getApplicationContext());
+                    xmppClient.connectToserver(ip); //"2011-20120430WG"
+                    xmppClient.loginToServer("dengfanping", "123");
+                    xmppClient.start(new RemotePkgsManager(getApplicationContext()));
             	}catch(Exception e){
             		Log.e(TAG, "testXMPP"+e.toString());
             	}
-            	
                 
-                testXmppClient();
+                //testXmppClient();
             }
             
         });
         testThread.start();
+
     }
     private void testXmppClient(){
         try {
@@ -157,10 +168,11 @@ public class DebugActivity extends ListActivity {
     protected void onStart() {
         // TODO Auto-generated method stub
         super.onStart();
+        
     }
 
     @Override
-    protected void onStop() {
+    protected void onDestroy() {
         // TODO Auto-generated method stub
         Thread testThread = new Thread(new Runnable(){
 
@@ -174,7 +186,7 @@ public class DebugActivity extends ListActivity {
             
         });
         testThread.start();
-        super.onStop();
+        super.onDestroy();
     }
 
 }

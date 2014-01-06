@@ -107,4 +107,7 @@
     <string name="debug_inputip">Please Input Your IP</string>
     <string name="debug_connectbtn">Connect</string>
     <string name="debug_advancedbtn">Advanced</string>
+    <string name="debug_inputname">Please Input Package Name and useId</string>
+    <string name="debug_enable">Enable</string>
+    <string name="debug_disable">Disable</string>
   </resources>
