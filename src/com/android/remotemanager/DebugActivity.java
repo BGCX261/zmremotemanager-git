@@ -20,12 +20,15 @@ import android.content.ComponentName;
 import android.os.Bundle;
 import android.os.Debug;
 import com.android.logmanager.LogManager;
+
+import android.util.Log;
 import android.view.View;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 
 public class DebugActivity extends ListActivity {
-
+    
+    private static String TAG="XmppClient-DebugActivity";
     List<Map<String, String>> mTestFunctions = new ArrayList<Map<String, String>>();
     private static String TEST_XMPP = "test xmpp";
     private static String TEST_DEVICE_ADMIN = "test device admin";
@@ -34,8 +37,6 @@ public class DebugActivity extends ListActivity {
     protected void onCreate(Bundle savedInstanceState) {
         // TODO Auto-generated method stub
         super.onCreate(savedInstanceState);
-        mLogManager = LogManager.getLogManagerInstance("192.168.0.2", this);
-        mLogManager.start();
         
         Map<String, String> test1 = new HashMap<String, String>();
         test1.put("title", TEST_XMPP);
@@ -74,17 +75,39 @@ public class DebugActivity extends ListActivity {
         
     }
     void testXMPP(){
+        
+        Intent intent = new Intent();
+        intent.setComponent(new ComponentName("com.android.remotemanager", 
+                "com.android.remotemanager.RemoteManagerService"));
+        
+        Bundle args = new Bundle();
+        args.putString("server", "192.168.0.100");
+        args.putString("username", "dengfanping");
+        args.putString("password","123");
+        
+        intent.putExtras(args);
+        
+        try {
+            if( startService(intent) != null)
+                Log.e(TAG, "start service succeed");
+            else
+                Log.e(TAG, "start service failed");
+        } catch (Exception e) {
+            Log.e(TAG, "start service failed " + e.getMessage());
+        }
+       
         Thread testThread = new Thread(new Runnable(){
 
             @Override
             public void run() {
-                // TODO Auto-generated method stub
-               /* XmppClient xmppClient = XmppClient.getXmppClientInstance(getApplicationContext());
-                xmppClient.connectToserver("192.168.0.100"); //"2011-20120430WG"
-                xmppClient.loginToServer("dengfanping", "123");
-                xmppClient.start(new RemotePkgsManager(getApplicationContext()));*/
+                try {
+                    Thread.sleep(5000); //wait 5seconds to RemoteManagerService to get ready!
+                    testXmppClient();
+                } catch (Exception e) {
+                    // TODO: handle exception
+                }
                 
-                testXmppClient();
+                
             }
             
         });
@@ -96,15 +119,14 @@ public class DebugActivity extends ListActivity {
             testConnection.connect();
             testConnection.login("test", "test");
             Thread.sleep(5000);
-            RemotePackageIQ cmdIQ = new RemotePackageIQ();
+            /*RemotePackageIQ cmdIQ = new RemotePackageIQ();
             cmdIQ.setTo("dengfanping@com.zm.openfire/Smack");
             cmdIQ.setFrom("test@com.zm.openfire/Smack");
             cmdIQ.setPacketID("xyzzd");
             cmdIQ.setCmdType("enable");
             cmdIQ.setCmdArgs("com.android.browser");
             LogManager.e("XmppClient", "test send msg " +cmdIQ.toString());
-            testConnection.sendPacket(cmdIQ);
-            
+            testConnection.sendPacket(cmdIQ);*/
         } catch (Exception e) {
             LogManager.e("XmppClient", "testXmppClient " + e.getMessage());
         }
@@ -131,18 +153,6 @@ public class DebugActivity extends ListActivity {
     @Override
     protected void onStop() {
         // TODO Auto-generated method stub
-        Thread testThread = new Thread(new Runnable(){
-
-            @Override
-            public void run() {
-                // TODO Auto-generated method stub
-              /*  XmppClient xmppClient = XmppClient.getXmppClientInstance(getApplicationContext());
-                xmppClient.logout();
-                xmppClient.destroy();*/
-            }
-            
-        });
-        testThread.start();
         super.onStop();
     }
 

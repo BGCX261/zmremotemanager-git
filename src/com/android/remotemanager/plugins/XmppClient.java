@@ -1,5 +1,6 @@
 package com.android.remotemanager.plugins;
-import java.security.PublicKey;
+
+
 import java.util.ArrayList;
 import com.android.remotemanager.NetworkStatusMonitor;
 import com.android.remotemanager.plugins.xmpp.*;
@@ -41,8 +42,6 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
     public interface XmppClientCallback{
         public Object reportXMPPClientEvent(int xmppClientEvent, Object...args);
     }
-    
-    
     static private String TAG ="XmppClient";
 
     static private SmackAndroid  mSmackAndroid = null;
@@ -109,17 +108,9 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
         public void handleMessage(Message msg) {
              int cmd = msg.what;
              if(cmd == CMD_START){
-                 if(mConnectionConfiguration == null){
-                     mConnectionConfiguration = (ConnectionConfiguration)
-                        mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECTION_BEFORE_CREATED);
-                     if(mConnectionConfiguration == null){
-                         mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECT, false);
-                         return;
-                     }
-                 }
-                 
                  try {
-                     mXmppConnection = new XMPPConnection(mConnectionConfiguration);
+                     String serverName = myBundle.getString("server");
+                     mXmppConnection = new XMPPConnection(serverName);
                      mXmppConnectionListener = new XMPPConnectionListener();
                      mXmppConnection.addConnectionListener(mXmppConnectionListener);
                      mXmppConnection.connect();
@@ -218,16 +209,17 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
     private Bundle myBundle = null;
     private XMPPConnectionListener mXmppConnectionListener = null;
     
-    public void XmppClient(Context context, XmppClientCallback xmppClientCallback){
+    public XmppClient(Context context, XmppClientCallback xmppClientCallback){
         mContext = context;
         mXmppClientCallback = xmppClientCallback;
     }
     
-    public void start(){
+    public void start(String serverName){
         if(mXmppClientHandler != null)
             return;
         myBundle = new Bundle();
         myBundle.putString("status", "start");
+        myBundle.putString("server", serverName);
         mXmppHandlerThread = new HandlerThread(TAG);
         mXmppHandlerThread.start();
         mXmppClientHandler = new XmppClientThreadHandler(mXmppHandlerThread.getLooper());
