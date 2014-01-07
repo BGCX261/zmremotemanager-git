@@ -107,9 +107,11 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
         @Override
         public void handleMessage(Message msg) {
              int cmd = msg.what;
+             Log.d(TAG,"handleMessage cmd: "+cmd);
              if(cmd == CMD_START){
                  try {
                      String serverName = myBundle.getString("server");
+                     Log.d(TAG,"CMD_START server: "+serverName);
                      mXmppConnection = new XMPPConnection(serverName);
                      mXmppConnectionListener = new XMPPConnectionListener();
                      mXmppConnection.addConnectionListener(mXmppConnectionListener);
