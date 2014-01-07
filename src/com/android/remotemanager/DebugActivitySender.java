@@ -4,6 +4,10 @@ import com.android.logmanager.LogManager;
 import com.android.remotemanager.plugins.RemotePkgsManager;
 import com.android.remotemanager.plugins.XmppClient;
 import com.android.remotemanager.plugins.xmpp.RemotePackageIQ;
+import com.zm.xmpp.communication.client.ZMIQCommand;
+import com.zm.xmpp.communication.command.Command4App;
+import com.zm.xmpp.communication.command.ICommand;
+import com.zm.epad.structure.Application;
 
 import android.app.Activity;
 import android.content.Context;
@@ -23,7 +27,7 @@ import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.packet.IQ;
 
 public class DebugActivitySender extends Activity {
-	public static final String TAG = "DebugActivityHome";
+	public static final String TAG = "DebugActivitySender";
 	
 	private Button mDisableBtn = null;
 	private Button mEnableBtn = null;
@@ -62,14 +66,22 @@ public class DebugActivitySender extends Activity {
 					String userId = mUserIdText.getText().toString();
 					Log.v(TAG, "Disable name: "+ name+", userId: "+ userId);
 					
-		            RemotePackageIQ cmdIQ = new RemotePackageIQ();
-		            cmdIQ.setTo("dengfanping@com.zm.openfire/Smack");
+					Command4App Command = new Command4App("com.zm.epad.xmpp",
+							userId,"disable","time2014",name,
+							"ver1.1.1","urlcontent://test1");
+					Log.v(TAG,"##Command##\n"+Command.toXML());
+					
+					//RemotePackageIQ cmdIQ = new RemotePackageIQ();
+					ZMIQCommand cmdIQ = new ZMIQCommand();
+					cmdIQ.setCommand(Command);
+					cmdIQ.setTo("dengfanping@com.zm.openfire/Smack");
 		            cmdIQ.setFrom("test@com.zm.openfire/Smack");
 		            cmdIQ.setPacketID("xyzzd");
-		            cmdIQ.setCmdType("disable");
-		            cmdIQ.setCmdArgs(name);
-		            LogManager.e("XmppClient", "test send msg " +cmdIQ.toString());
+		            //cmdIQ.setCmdType("disable");
+		            //cmdIQ.setCmdArgs(name);
+		            //LogManager.e("XmppClient", "test send msg " +cmdIQ.toString());
 		            testConnection.sendPacket(cmdIQ);
+		            Log.v(TAG,"##IQ##\n"+cmdIQ.toXML());
 				}
 				catch(Exception e)
 				{
