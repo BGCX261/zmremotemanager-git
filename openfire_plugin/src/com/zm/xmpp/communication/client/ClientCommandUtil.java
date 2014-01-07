@@ -2,7 +2,7 @@ package com.zm.xmpp.communication.client;
 
 import java.util.HashMap;
 
-import org.xmpp.packet.IQ;
+import org.jivesoftware.smack.packet.IQ;
 
 import com.zm.xmpp.communication.command.ICommand;
 

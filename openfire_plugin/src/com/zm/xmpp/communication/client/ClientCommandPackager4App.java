@@ -3,9 +3,8 @@ package com.zm.xmpp.communication.client;
 import java.util.Collection;
 import java.util.Iterator;
 
-import org.dom4j.Element;
+import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.DefaultPacketExtension;
-import org.xmpp.packet.IQ;
 
 import com.zm.epad.structure.Application;
 import com.zm.xmpp.communication.Constants;
