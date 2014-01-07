@@ -66,8 +66,8 @@ public class RemotePackageIQ extends IQ{
         // TODO Auto-generated method stub
         
         StringBuilder buf = new StringBuilder();
-        buf.append("<" + XmppClient.XMPP_RMPACKAGE);
-        buf.append(" xmlns=\"").append(XmppClient.XMPP_NAMESPACE).append("\"");
+        //buf.append("<" + XmppClient.XMPP_RMPACKAGE);
+       // buf.append(" xmlns=\"").append(XmppClient.XMPP_NAMESPACE).append("\"");
         
         buf.append(">");
         
@@ -87,7 +87,7 @@ public class RemotePackageIQ extends IQ{
             buf.append(mResult?"1":"0");
             buf.append("</result>");
         }
-        buf.append("</" + XmppClient.XMPP_RMPACKAGE + ">");
+       // buf.append("</" + XmppClient.XMPP_RMPACKAGE + ">");
         Log.e(TAG, "created xml = " + buf.toString());
         return buf.toString();
 

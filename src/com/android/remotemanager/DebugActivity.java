@@ -110,24 +110,39 @@ public class DebugActivity extends ListActivity {
         
     }
     void testXMPP(){
-
-         Thread testThread = new Thread(new Runnable(){
+        
+        Intent intent = new Intent();
+        intent.setComponent(new ComponentName("com.android.remotemanager", 
+                "com.android.remotemanager.RemoteManagerService"));
+        
+        Bundle args = new Bundle();
+        args.putString("server", ip);
+        args.putString("username", "dengfanping");
+        args.putString("password","123");
+        
+        intent.putExtras(args);
+        
+        try {
+            if( startService(intent) != null)
+                Log.e(TAG, "start service succeed");
+            else
+                Log.e(TAG, "start service failed");
+        } catch (Exception e) {
+            Log.e(TAG, "start service failed " + e.getMessage());
+        }
+       
+        Thread testThread = new Thread(new Runnable(){
 
             @Override
             public void run() {
-                // TODO Auto-generated method stub
-            	Log.v(TAG, "testXMPP run");
-
-            	try{
-                    XmppClient xmppClient = XmppClient.getXmppClientInstance(getApplicationContext());
-                    xmppClient.connectToserver(ip); //"2011-20120430WG"
-                    xmppClient.loginToServer("dengfanping", "123");
-                    xmppClient.start(new RemotePkgsManager(getApplicationContext()));
-            	}catch(Exception e){
-            		Log.e(TAG, "testXMPP"+e.toString());
-            	}
+                try {
+                    Thread.sleep(5000); //wait 5seconds to RemoteManagerService to get ready!
+                    //testXmppClient();
+                } catch (Exception e) {
+                    // TODO: handle exception
+                }
                 
-                //testXmppClient();
+                
             }
             
         });
@@ -136,19 +151,18 @@ public class DebugActivity extends ListActivity {
     }
     private void testXmppClient(){
         try {
-            XMPPConnection testConnection= new XMPPConnection(ip, null);
+            XMPPConnection testConnection= new XMPPConnection("192.168.0.100", null);
             testConnection.connect();
             testConnection.login("test", "test");
             Thread.sleep(5000);
-            RemotePackageIQ cmdIQ = new RemotePackageIQ();
+            /*RemotePackageIQ cmdIQ = new RemotePackageIQ();
             cmdIQ.setTo("dengfanping@com.zm.openfire/Smack");
             cmdIQ.setFrom("test@com.zm.openfire/Smack");
             cmdIQ.setPacketID("xyzzd");
             cmdIQ.setCmdType("enable");
             cmdIQ.setCmdArgs("com.android.browser");
             LogManager.e("XmppClient", "test send msg " +cmdIQ.toString());
-            testConnection.sendPacket(cmdIQ);
-            
+            testConnection.sendPacket(cmdIQ);*/
         } catch (Exception e) {
             LogManager.e("XmppClient", "testXmppClient " + e.getMessage());
         }
@@ -172,21 +186,9 @@ public class DebugActivity extends ListActivity {
     }
 
     @Override
-    protected void onDestroy() {
+    protected void onStop() {
         // TODO Auto-generated method stub
-        Thread testThread = new Thread(new Runnable(){
-
-            @Override
-            public void run() {
-                // TODO Auto-generated method stub
-                XmppClient xmppClient = XmppClient.getXmppClientInstance(getApplicationContext());
-                xmppClient.logout();
-                xmppClient.destroy();
-            }
-            
-        });
-        testThread.start();
-        super.onDestroy();
+        super.onStop();
     }
 
 }

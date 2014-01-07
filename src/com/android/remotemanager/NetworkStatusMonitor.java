@@ -14,63 +14,18 @@ public class NetworkStatusMonitor extends BroadcastReceiver {
 
     public interface NetworkStatusReport {
         public void reportNetworkStatus(boolean bConnected);
+      }
 
-        public void reportXMPPConnectionStatus(int type, boolean bConnected);
-    }
-
-    public class XMPPConnectionListener implements ConnectionListener {
-
-        int mType;
-
-        public XMPPConnectionListener(int type) {
-            mType = type;
-        }
-
-        @Override
-        public void connectionClosed() {
-            // TODO Auto-generated method stub
-            Log.e(TAG, "connection closed");
-
-        }
-
-        @Override
-        public void connectionClosedOnError(Exception e) {
-            // TODO Auto-generated method stub
-            Log.e(TAG, "connection closed on error");
-
-        }
-
-        @Override
-        public void reconnectingIn(int seconds) {
-            // TODO Auto-generated method stub
-            Log.e(TAG, "reconnectingIn " + seconds + " seconds");
-
-        }
-
-        @Override
-        public void reconnectionSuccessful() {
-            // TODO Auto-generated method stub
-            Log.e(TAG, "reconnectionSuccessful");
-        }
-
-        @Override
-        public void reconnectionFailed(Exception e) {
-            // TODO Auto-generated method stub
-            Log.e(TAG, "reconnectionFailed " + e.getMessage());
-        }
-    }
+  
 
     public static int XMPPCONLISTENER_TYPE_WORK = 0;
     public static int XMPPCONLISTENER_TYPE_LOG = 1;
     private static String TAG = "NetworkStatusMonitor";
 
-    private XMPPConnectionListener[] mXmppConListeners = null;
+   
 
     public NetworkStatusMonitor(Context context) {
         mContext = context;
-        mXmppConListeners = new XMPPConnectionListener[] {
-                new XMPPConnectionListener(XMPPCONLISTENER_TYPE_WORK),
-                new XMPPConnectionListener(XMPPCONLISTENER_TYPE_LOG) };
     }
 
     private boolean mbNetworkConnected = false;
@@ -81,11 +36,7 @@ public class NetworkStatusMonitor extends BroadcastReceiver {
         return mbNetworkConnected;
     }
 
-    public XMPPConnectionListener getXmppConnectionListener(int type) {
-        return mXmppConListeners[type];
-    }
-
-    public void start(NetworkStatusReport reportees[]) {
+   public void start(NetworkStatusReport reportees[]) {
         for (NetworkStatusReport reportee : reportees) {
             mReportees.add(reportee);
         }

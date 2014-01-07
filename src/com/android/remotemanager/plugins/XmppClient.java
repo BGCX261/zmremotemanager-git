@@ -1,5 +1,6 @@
 package com.android.remotemanager.plugins;
 
+
 import java.util.ArrayList;
 import com.android.remotemanager.NetworkStatusMonitor;
 import com.android.remotemanager.plugins.xmpp.*;
@@ -10,226 +11,286 @@ import org.jivesoftware.smack.ConnectionListener;
 import org.jivesoftware.smack.provider.*;
 import org.xmlpull.v1.XmlPullParser;
 
+
 import android.content.Context;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.HandlerThread;
+import android.os.Message;
+import android.provider.VoicemailContract;
+import android.provider.ContactsContract.Contacts.Data;
 import android.util.Log;
 
-public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
-	static private String TAG = "XmppClient";
+public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
+    
+    public static int XMPPCLIENT_EVENT_CONNECTION_BEFORE_CREATED = 0;
+    public static int XMPPCLIENT_EVENT_CONNECT = 1;
+    public static int XMPPCLIENT_EVENT_LOGIN   = 2;
+    public static int XMPPCLIENT_EVENT_CONNECTION_UPDATE_STATUS = 3;
+    public static int XMPPCLIENT_EVENT_LOGOUT = 4;
+    public static int XMPPCLIENT_EVENT_SENDPACKET_RESULT = 5;
+    
+    static  int CMD_START = 0;
+    static  int CMD_CONNECTION_STATUS_UPDATE = 1;
+    static  int CMD_NETWORK_STATUS_UPDATE =2;
+    static  int CMD_LOGIN = 3;
+    static  int CMD_LOGOUT = 4;
+    static  int CMD_QUIT = 5;
+    static  int CMD_SEND_PACKET_ASYNC = 6;
+    
+    public interface XmppClientCallback{
+        public Object reportXMPPClientEvent(int xmppClientEvent, Object...args);
+    }
+    static private String TAG ="XmppClient";
 
-	static public final String XMPP_NAMESPACE = "com.zm.epad.xmpp";
-	static public final String XMPP_RMDEVICE = "remotedevice";
-	static public final String XMPP_RMPACKAGE = "remotepackage";
+    static private SmackAndroid  mSmackAndroid = null;
+  
+    @Override
+    public void reportNetworkStatus(boolean bConnected) {
+        Message msg = mXmppClientHandler.obtainMessage(CMD_NETWORK_STATUS_UPDATE);
+        msg.arg1 = bConnected?1:0;
+        mXmppClientHandler.sendMessage(msg);
+    }
+    
+    
+    static public void  initializeXMPPEnvironment(Context context){
+        if(mSmackAndroid == null){
+            mSmackAndroid = SmackAndroid.init(context);
+        }
+        return ;
+    }
+    static public void destroyXMPPEnvironment(){
+        if(mSmackAndroid != null){
+            mSmackAndroid.onDestroy();
+            mSmackAndroid = null;
+        }
+        return;
+    }
+    
+    private class XMPPConnectionListener implements ConnectionListener {
 
-	static private XmppClient mXmppClient = null;
+       @Override
+        public void connectionClosed() {
+           Message msg = mXmppClientHandler.obtainMessage(CMD_CONNECTION_STATUS_UPDATE);
+           msg.arg1 = 0;
+           mXmppClientHandler.sendMessage(msg);
+        }
 
-	private SmackAndroid mSmackAndroid = null;
-	private PacketListener mSmackPktListener = null;
-	private ConnectionListener mSmackConnectionListener = null;
-	private IQProvider mIQProvider = null;
+        @Override
+        public void connectionClosedOnError(Exception e) {
+            Message msg = mXmppClientHandler.obtainMessage(CMD_CONNECTION_STATUS_UPDATE);
+            msg.arg1 = 0;
+            msg.obj = e;
+            mXmppClientHandler.sendMessage(msg);
+        }
 
-	@Override
-	public void reportNetworkStatus(boolean bConnected) {
+        @Override
+        public void reconnectingIn(int seconds) {
+           
+        }
+        @Override
+        public void reconnectionSuccessful() {
+            Message msg = mXmppClientHandler.obtainMessage(CMD_CONNECTION_STATUS_UPDATE);
+            msg.arg1 = 1;
+            mXmppClientHandler.sendMessage(msg);
+        }
 
-	}
-
-	@Override
-	public void reportXMPPConnectionStatus(int type, boolean bConnected) {
-
-	}
-
-	static public XmppClient getXmppClientInstance(Context context) {
-		if (mXmppClient == null)
-			mXmppClient = new XmppClient(context);
-		return mXmppClient;
-	}
-
-	Connection mXmppConnection = null;
-
-	private XmppClient(Context context) {
-		Log.e(TAG, "XmppClient initilize SmackAndroid ");
-		mSmackAndroid = SmackAndroid.init(context);
-		mIQProvider = new XmppIQProvider();
-
-		ProviderManager.getInstance().addIQProvider(XMPP_RMDEVICE,
-				XMPP_NAMESPACE, mIQProvider);
-		ProviderManager.getInstance().addIQProvider(XMPP_RMPACKAGE,
-				XMPP_NAMESPACE, mIQProvider);
-
-	}
-
-	class XmppIQProvider implements IQProvider {
-		@Override
-		public IQ parseIQ(XmlPullParser parser) {
-			String elementName = parser.getName();
-			String namespace = parser.getNamespace();
-			Log.e(TAG, "element: " + elementName + " namespace: " + namespace);
-			if (namespace.equals(XMPP_NAMESPACE) == false) {
-				return null;
-			}
-			if (elementName.equals(XMPP_RMDEVICE)) {
-				RemoteDeviceIQ remoteDeviceIQ = new RemoteDeviceIQ();
-
-				if (remoteDeviceIQ.parse(parser) == false)
-					return null;
-
-				return remoteDeviceIQ;
-			} else if (elementName.equals(XMPP_RMPACKAGE)) {
-				RemotePackageIQ remotePackageIQ = new RemotePackageIQ();
-
-				if (remotePackageIQ.parse(parser) == false)
-					return null;
-
-				return remotePackageIQ;
-
-			} else
-				return null;
-		}
-	}
-
-	public void destroy() {
-		if (mXmppConnection != null)
-			logout();
-		mSmackAndroid.onDestroy();
-	}
-
-	public boolean connectToserver(String serverName) {
-		try {
-			Log.e(TAG, "connectToserver " + serverName);
-			Connection.DEBUG_ENABLED = true;
-			mXmppConnection = new XMPPConnection(serverName, null);
-			mXmppConnection.connect();
-			// mSmackConnectionListener = new XmppConnectionListener();
-			mXmppConnection.addConnectionListener(mSmackConnectionListener);
-			return true;
-		} catch (XMPPException e) {
-			Log.e(TAG, e.getMessage());
-			mXmppConnection = null;
-			return false;
-		}
-	}
-
-	public boolean logout() {
-		if (mXmppConnection == null)
-			return true;
-
-		try {
-			Log.e(TAG, "logout");
-			mXmppConnection.disconnect();
-			mXmppConnection = null;
-		} catch (Exception e) {
-			Log.e(TAG, "logout " + e.getMessage());
-			return false;
-		}
-		return true;
-	}
-
-	public boolean loginToServer(String username, String password) {
-		if (mXmppConnection == null)
-			return false;
-		boolean bConnected = mXmppConnection.isConnected();
-		try {
-			if (bConnected == false) {
-				mXmppConnection.connect();
-				bConnected = true;
-			}
-			Log.e(TAG, "login as " + username + " password " + password);
-			mXmppConnection.login(username, password);
-			Log.e(TAG, "login successed");
-			return true;
-		} catch (Exception e) {
-			Log.e(TAG, e.getMessage());
-			if (bConnected == false) {
-				// connection is not establised. release XMPPConnection/
-				mXmppConnection = null;
-			}
-			return false;
-		}
-
-	}
-
-	class XmppPacketListener implements PacketListener {
-
-		@Override
-		public void processPacket(Packet packet) {
-			Log.e(TAG, "received a xmpp packet " + packet.toXML());
-			/*
-			 * if(packet.getXmlns().contains(XMPP_NAMESPACE) == false) return;
-			 */
-			if (packet instanceof RemotePackageIQ) {
-				RemotePackageIQ remotePackageIQ = (RemotePackageIQ) packet;
-				handleIQCmd(remotePackageIQ);
-
-			} else if (packet instanceof RemoteDeviceIQ) {
-				RemoteDeviceIQ remoteDeviceIQ = (RemoteDeviceIQ) packet;
-				handleIQCmd(remoteDeviceIQ);
-
-			}
-
-		}
-
-	}
-
-	private void handleIQCmd(RemotePackageIQ remotePackageIQ) {
-		int cmdType = remotePackageIQ.getCmdType();
-		ArrayList<String> cmdArgs = remotePackageIQ.getCmdArgs();
-		switch (cmdType) {
-		case RemotePackageIQ.CMD_INT_ENABLE: {
-			String pkgName = cmdArgs.get(0);
-			Log.e(TAG, "enable pkg: " + pkgName);
-			boolean bResult = mRPM.enablePkgForUser(pkgName, 0);
-			Packet resultPacket = remotePackageIQ.buildResultPacket(bResult);
-			mXmppConnection.sendPacket(resultPacket);
-			Log.e(TAG, "Result:" + resultPacket.toXML());
-		}
-			break;
-		case RemotePackageIQ.CMD_INT_DISABLE: {
-			String pkgName = cmdArgs.get(0);
-			Log.e(TAG, "disable pkg: " + pkgName);
-			boolean bResult = mRPM.disablePkgForUser(pkgName, 0);
-			Packet resultPacket = remotePackageIQ.buildResultPacket(bResult);
-			mXmppConnection.sendPacket(resultPacket);
-			Log.e(TAG, "Result:" + resultPacket.toXML());
-
-		}
-			break;
-		default:
-			break;
-		}
-		return;
-	}
-
-	private void handleIQCmd(RemoteDeviceIQ remoteDeviceIQ) {
-		return;
-	}
-
-	/*
-     * 
-     * */
-
-	RemotePkgsManager mRPM = null;
-
-	public void start(RemotePkgsManager rpm) {
-		if (mXmppConnection == null)
-			return;
-		mRPM = rpm;
-		try {
-			mSmackPktListener = new XmppPacketListener();
-			mXmppConnection.addPacketListener(mSmackPktListener,
-					new PacketFilter() {
-
-						@Override
-						public boolean accept(Packet packet) {
-							Log.e(TAG, "accept packet?:" + packet.toXML());
-							if (packet.getXmlns().contains(XMPP_NAMESPACE))
-								return true;
-							return false;
-						}
-					});
-		} catch (Exception e) {
-			// TODO: handle exception
-			Log.e(TAG, e.getMessage());
-		}
-		return;
-	}
-
+        @Override
+        public void reconnectionFailed(Exception e) {
+        }
+    }
+    private class XmppClientThreadHandler extends Handler{
+        public XmppClientThreadHandler(Looper looper){
+            super(looper);
+        }
+        @Override
+        public void handleMessage(Message msg) {
+             int cmd = msg.what;
+             if(cmd == CMD_START){
+                 try {
+                     String serverName = myBundle.getString("server");
+                     mXmppConnection = new XMPPConnection(serverName);
+                     mXmppConnectionListener = new XMPPConnectionListener();
+                     mXmppConnection.addConnectionListener(mXmppConnectionListener);
+                     mXmppConnection.connect();
+                     mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECT, true,
+                             mXmppConnection,ProviderManager.getInstance());
+                } catch (Exception e) {
+                    mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECT, false);
+                }
+                 return;
+             }else if(cmd == CMD_LOGIN){
+                 if(mXmppConnection == null){
+                     mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_LOGIN,false);
+                     return;
+                 }
+                 try {
+                     if(mXmppConnection.isConnected() == false){
+                         mXmppConnection.connect();
+                     }
+                     Bundle data = msg.getData();
+                     String usrName = data.getString("username");
+                     String usrPwd = data.getString("password");
+                     String usrResource = data.getString("resource");
+                     
+                     mXmppConnection.login(usrName, usrPwd, usrResource);
+                     mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_LOGIN,true);
+                     data.putString("status","login");
+                } catch (Exception e) {
+                    mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_LOGIN,false);
+                }
+                return;
+             }else if(cmd == CMD_LOGOUT){
+                 try {
+                     mXmppConnection.disconnect();
+                     mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_LOGOUT,true);
+                } catch (Exception e) {
+                    mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_LOGOUT,false);
+                }
+             }else if(cmd == CMD_SEND_PACKET_ASYNC){
+                 try {
+                     mXmppConnection.sendPacket((Packet)msg.obj);
+                     mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_SENDPACKET_RESULT,true, msg.obj);
+                } catch (Exception e) {
+                    mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_SENDPACKET_RESULT,false,msg.obj);
+                }
+             }else if(cmd == CMD_CONNECTION_STATUS_UPDATE){
+                 int connected = msg.arg1;
+                 if(connected == 0){
+                     mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECTION_UPDATE_STATUS,
+                             0,msg.obj);
+                 }else{
+                     mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECTION_UPDATE_STATUS,1);
+                 }
+                 return;
+             }else if (cmd == CMD_NETWORK_STATUS_UPDATE){
+                 int connected = msg.arg1;
+                 if(connected == 0){
+                     mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECTION_UPDATE_STATUS,0);
+                     String currentStatus = myBundle.getString("status");
+                     if(currentStatus.equals("login")){
+                         try {
+                            mXmppConnection.disconnect();
+                        } catch (Exception e) {
+                            // TODO: handle exception
+                        }
+                     }
+                 }else {
+                     String currentStatus = myBundle.getString("status");
+                     if(currentStatus.equals("login")){
+                         try {
+                             mXmppConnection.connect();
+                             mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECT, true);
+                             String usrName = myBundle.getString("username");
+                             String usrPwd = myBundle.getString("password");
+                             String usrResource = myBundle.getString("resource");
+                             mXmppConnection.login(usrName, usrPwd, usrResource);
+                             mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_LOGIN,true);
+                        } catch (Exception e) {
+                            if(mXmppConnection.isConnected()){
+                                mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_LOGIN,false);
+                            }else{
+                                mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECT,false);
+                            }
+                        }
+                     }
+               }
+             }
+        }
+    }
+    
+    private XmppClientThreadHandler mXmppClientHandler = null;
+    private HandlerThread  mXmppHandlerThread = null;
+    private Context mContext;
+    private XmppClientCallback mXmppClientCallback;
+    private ConnectionConfiguration  mConnectionConfiguration = null;
+    private Connection mXmppConnection = null;
+    private Bundle myBundle = null;
+    private XMPPConnectionListener mXmppConnectionListener = null;
+    
+    public XmppClient(Context context, XmppClientCallback xmppClientCallback){
+        mContext = context;
+        mXmppClientCallback = xmppClientCallback;
+    }
+    
+    public void start(String serverName){
+        if(mXmppClientHandler != null)
+            return;
+        myBundle = new Bundle();
+        myBundle.putString("status", "start");
+        myBundle.putString("server", serverName);
+        mXmppHandlerThread = new HandlerThread(TAG);
+        mXmppHandlerThread.start();
+        mXmppClientHandler = new XmppClientThreadHandler(mXmppHandlerThread.getLooper());
+        mXmppClientHandler.sendEmptyMessage(CMD_START);
+    }
+    public void stop(){
+        if(mXmppClientHandler == null)
+            return;
+        logout();
+        synchronized (mXmppHandlerThread) {
+            try {
+                mXmppHandlerThread.quit();
+                mXmppHandlerThread.join();
+            } catch (Exception e) {
+                // TODO: handle exception
+            }
+            
+            
+        }
+        mXmppHandlerThread = null;
+        mXmppClientHandler = null;
+        mXmppConnection = null;
+        mConnectionConfiguration = null;
+        
+    }
+    
+    public void login(String usrName, String password, String resource){
+        if(mXmppClientHandler == null)
+            return;
+         
+        String currentStatus = myBundle.getString("status");
+        
+        if(currentStatus.equals("login")) //if already logined, just return back directly
+            return;
+       
+        myBundle.putString("username", usrName);
+        myBundle.putString("password", password);
+        myBundle.putString("resource", resource==null?"zhimotech":resource);
+        Message msg = mXmppClientHandler.obtainMessage(CMD_LOGIN);
+        msg.setData(myBundle);
+        mXmppClientHandler.sendMessage(msg);
+        return;
+    }
+    public void logout(){
+        if(mXmppClientHandler==null)
+            return;
+        mXmppClientHandler.sendEmptyMessage(CMD_LOGOUT);
+        return;
+    }
+    
+    
+    public boolean sendPacket(Packet packet){
+        if(mXmppConnection == null)
+            return false;
+        try {
+            mXmppConnection.sendPacket(packet);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    public boolean sendPacketAsync(Packet packet){
+        if(mXmppConnection == null)
+            return false;
+        Message msg = mXmppClientHandler.obtainMessage(CMD_SEND_PACKET_ASYNC, packet);
+        mXmppClientHandler.sendMessage(msg);
+        return true;
+    }
+    
+    
+    
+  
 }

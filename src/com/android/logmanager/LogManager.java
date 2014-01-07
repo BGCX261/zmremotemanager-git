@@ -38,10 +38,7 @@ public class LogManager implements NetworkStatusMonitor.NetworkStatusReport {
     public void reportNetworkStatus(boolean bConnected) {
 
     }
-    @Override
-    public void reportXMPPConnectionStatus(int type, boolean bConnected) {
 
-    }
 
     private XMPPConnection mXmppConnection = null;
     private String mServerName;
