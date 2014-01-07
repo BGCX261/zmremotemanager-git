@@ -45,6 +45,7 @@ public class RemoteManagerService extends Service {
         
         mXmppClient.logout();
         mXmppClient.stop();
+        XmppClient.destroyXMPPEnvironment();
     }
 
     @Override
