@@ -131,6 +131,7 @@ public class DebugActivity extends ListActivity {
             Log.e(TAG, "start service failed " + e.getMessage());
         }
        
+        /*
         Thread testThread = new Thread(new Runnable(){
 
             @Override
@@ -147,6 +148,7 @@ public class DebugActivity extends ListActivity {
             
         });
         testThread.start();
+        */
 
     }
     private void testXmppClient(){
@@ -190,5 +192,26 @@ public class DebugActivity extends ListActivity {
         // TODO Auto-generated method stub
         super.onStop();
     }
+
+
+	@Override
+	protected void onDestroy() {
+		
+        Intent intent = new Intent();
+        intent.setComponent(new ComponentName("com.android.remotemanager", 
+                "com.android.remotemanager.RemoteManagerService"));
+        
+        try {
+            stopService(intent);
+
+        } catch (Exception e) {
+            Log.e(TAG, "stop service failed " + e.getMessage());
+        }
+		// TODO Auto-generated method stub
+		super.onDestroy();
+        
+	}
+    
+    
 
 }

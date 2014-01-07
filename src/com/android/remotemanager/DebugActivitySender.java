@@ -132,9 +132,30 @@ public class DebugActivitySender extends Activity {
 
    }
     
+void testConnectionOff(){
+
+        Thread testThread = new Thread(new Runnable(){
+
+           @Override
+           public void run() {
+               // TODO Auto-generated method stub
+
+	       		try{
+	       			if(testConnection != null)
+	       				testConnection.disconnect();
+	    		}catch(Exception e){
+	        		Log.e(TAG, "testConnection"+e.toString());
+	        	}               
+           }
+           
+       });
+       testThread.start();
+
+   }
+    
     @Override
     protected void onDestroy() {
-    	testConnection.disconnect();
+    	testConnectionOff();
     	
     	super.onDestroy();
     }
