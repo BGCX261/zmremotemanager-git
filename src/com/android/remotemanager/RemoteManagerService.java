@@ -61,7 +61,7 @@ public class RemoteManagerService extends Service {
     private void init(Intent intent){
         Bundle data = intent.getExtras();
         
-        mLoginBundle.putString("server", data.getString("name"));
+        mLoginBundle.putString("server", data.getString("server"));
         mLoginBundle.putString("username", data.getString("username"));
         mLoginBundle.putString("password", data.getString("password"));
         mLoginBundle.putString("resource", data.getString("resource"));
