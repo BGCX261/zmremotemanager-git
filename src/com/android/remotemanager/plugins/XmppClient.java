@@ -107,49 +107,12 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
         @Override
         public void handleMessage(Message msg) {
              int cmd = msg.what;
-             Log.d(TAG,"handleMessage cmd: "+cmd);
              if(cmd == CMD_START){
-                 try {
-                     String serverName = myBundle.getString("server");
-                     Log.d(TAG,"CMD_START server: "+serverName);
-                     mXmppConnection = new XMPPConnection(serverName);
-                     mXmppConnectionListener = new XMPPConnectionListener();
-                     mXmppConnection.addConnectionListener(mXmppConnectionListener);
-                     mXmppConnection.connect();
-                     mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECT, true,
-                             mXmppConnection,ProviderManager.getInstance());
-                } catch (Exception e) {
-                    mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECT, false);
-                }
-                 return;
+                 handleStartCmd();
              }else if(cmd == CMD_LOGIN){
-                 if(mXmppConnection == null){
-                     mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_LOGIN,false);
-                     return;
-                 }
-                 try {
-                     if(mXmppConnection.isConnected() == false){
-                         mXmppConnection.connect();
-                     }
-                     Bundle data = msg.getData();
-                     String usrName = data.getString("username");
-                     String usrPwd = data.getString("password");
-                     String usrResource = data.getString("resource");
-                     
-                     mXmppConnection.login(usrName, usrPwd, usrResource);
-                     mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_LOGIN,true);
-                     data.putString("status","login");
-                } catch (Exception e) {
-                    mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_LOGIN,false);
-                }
-                return;
+                handleLoginCmd();
              }else if(cmd == CMD_LOGOUT){
-                 try {
-                     mXmppConnection.disconnect();
-                     mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_LOGOUT,true);
-                } catch (Exception e) {
-                    mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_LOGOUT,false);
-                }
+                 handleLogoutCmd();
              }else if(cmd == CMD_SEND_PACKET_ASYNC){
                  try {
                      mXmppConnection.sendPacket((Packet)msg.obj);
@@ -167,40 +130,74 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
                  }
                  return;
              }else if (cmd == CMD_NETWORK_STATUS_UPDATE){
-                 int connected = msg.arg1;
-                 if(connected == 0){
-                     mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECTION_UPDATE_STATUS,0);
-                     String currentStatus = myBundle.getString("status");
-                     if(currentStatus.equals("login")){
-                         try {
-                            mXmppConnection.disconnect();
-                        } catch (Exception e) {
-                            // TODO: handle exception
-                        }
-                     }
-                 }else {
-                     String currentStatus = myBundle.getString("status");
-                     if(currentStatus.equals("login")){
-                         try {
-                             mXmppConnection.connect();
-                             mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECT, true);
-                             String usrName = myBundle.getString("username");
-                             String usrPwd = myBundle.getString("password");
-                             String usrResource = myBundle.getString("resource");
-                             mXmppConnection.login(usrName, usrPwd, usrResource);
-                             mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_LOGIN,true);
-                        } catch (Exception e) {
-                            if(mXmppConnection.isConnected()){
-                                mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_LOGIN,false);
-                            }else{
-                                mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECT,false);
-                            }
-                        }
-                     }
-               }
+                 handleNetworkAvailable(msg.arg1);
              }
+             
+             return;
         }
     }
+    private void handleNetworkAvailable(int networkAvailable){
+        if(networkAvailable == 0){
+            Log.e(TAG, "handleNetworkAvailable : network is down, need logout");
+            handleLogoutCmd();
+        } else if(networkAvailable == 1){
+            String  prevStatus = myBundle.getString("status");
+            Log.e(TAG, "handleNetworkAvailable : network is up");
+            if(prevStatus.equals("idle")){
+                Log.e(TAG, "\t prevstatus = " + prevStatus + ": do nothing");
+                return;
+            }else if(prevStatus.equals("starting") || prevStatus.equals("started")){
+                Log.e(TAG, "\t prevstatus = " + prevStatus + ": restart");
+                handleStartCmd();
+            }else if(prevStatus.equals("logining") || prevStatus.equals("logined")){
+                Log.e(TAG, "\t prevstatus = " + prevStatus + ": re-login");
+                handleStartCmd();
+                handleLoginCmd();
+            }
+        }
+        return ;
+    }
+    private void handleStartCmd(){
+        try {
+            Log.e(TAG, "handle CMD_START");
+            String serverName = myBundle.getString("server");
+            mXmppConnection = new XMPPConnection(serverName);
+            mXmppConnectionListener = new XMPPConnectionListener();
+            
+            mXmppConnection.addConnectionListener(mXmppConnectionListener);
+            
+            mXmppConnection.connect();
+            
+            mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECT, true,
+                    mXmppConnection,ProviderManager.getInstance());
+            myBundle.putString("status", "started");
+            
+       } catch (Exception e) {
+           mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECT, false);
+           myBundle.putString("status", "idle");
+           myBundle.putString("exception", "connected failed: " + e.getMessage());
+       }
+    }
+    private void handleLoginCmd(){
+        try {
+            String usrName = myBundle.getString("username");
+            String usrPwd = myBundle.getString("password");
+            String usrResource = myBundle.getString("resource");
+            mXmppConnection.login(usrName, usrPwd, usrResource);
+            mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_LOGIN,true);
+            myBundle.putString("status","logined");
+       } catch (Exception e) {
+           mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_LOGIN,false);
+           myBundle.putString("status", "started");
+           myBundle.putString("exception", "login failed: " + e.getMessage());
+       }
+    }
+    private void handleLogoutCmd(){
+        mXmppConnection.disconnect();
+        mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_LOGOUT,true);
+        myBundle.putString("status", "idle");
+    }
+    
     
     private XmppClientThreadHandler mXmppClientHandler = null;
     private HandlerThread  mXmppHandlerThread = null;
@@ -214,18 +211,29 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
     public XmppClient(Context context, XmppClientCallback xmppClientCallback){
         mContext = context;
         mXmppClientCallback = xmppClientCallback;
+        myBundle = new Bundle();
+        myBundle.putString("status", "idle");
     }
     
-    public void start(String serverName){
-        if(mXmppClientHandler != null)
-            return;
-        myBundle = new Bundle();
-        myBundle.putString("status", "start");
+    public boolean start(String serverName){
+        if(mXmppClientHandler != null){
+            Log.e(TAG, "already started");
+            return true;
+        }
+        if(serverName == null){
+            Log.e(TAG, "FAILED: start without serverName");
+            return false;
+        }
+        Log.e(TAG, "xmppclient start with servername :" + serverName);
+        
+        myBundle.putString("status", "starting"); //set status to starting
         myBundle.putString("server", serverName);
         mXmppHandlerThread = new HandlerThread(TAG);
         mXmppHandlerThread.start();
         mXmppClientHandler = new XmppClientThreadHandler(mXmppHandlerThread.getLooper());
         mXmppClientHandler.sendEmptyMessage(CMD_START);
+        
+        return true;
     }
     public void stop(){
         if(mXmppClientHandler == null)
@@ -248,22 +256,31 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
         
     }
     
-    public void login(String usrName, String password, String resource){
-        if(mXmppClientHandler == null)
-            return;
-         
+    public boolean login(String usrName, String password, String resource){
+        if(mXmppClientHandler == null){
+            
+            return false;
+        }
+        if(usrName == null || password == null){
+            Log.e(TAG, "xmppclient login failed,either username or password is null");
+            return false;
+        }
         String currentStatus = myBundle.getString("status");
         
-        if(currentStatus.equals("login")) //if already logined, just return back directly
-            return;
-       
+        if(!currentStatus.equals("started")) {
+            Log.e(TAG, "xmppclient failed to login with current status = " + currentStatus);
+            return false;
+        }
+        Log.e(TAG, "xmppclient login username " + usrName + " password " + password + " resource " + resource);
         myBundle.putString("username", usrName);
         myBundle.putString("password", password);
         myBundle.putString("resource", resource==null?"zhimotech":resource);
+        myBundle.putString("status", "logining");
         Message msg = mXmppClientHandler.obtainMessage(CMD_LOGIN);
         msg.setData(myBundle);
         mXmppClientHandler.sendMessage(msg);
-        return;
+        
+        return true;
     }
     public void logout(){
         if(mXmppClientHandler==null)

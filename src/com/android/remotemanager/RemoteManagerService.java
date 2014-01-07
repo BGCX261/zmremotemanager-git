@@ -43,8 +43,7 @@ public class RemoteManagerService extends Service {
     public void onDestroy() {
         super.onDestroy();
         
-        mXmppClient.logout();
-        mXmppClient.stop();
+        mXmppClient.stop();//automatically logout
         XmppClient.destroyXMPPEnvironment();
     }
 
