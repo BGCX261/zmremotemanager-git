@@ -7,6 +7,10 @@ public class Application {
 	private String url;
 	private String status;
 	
+	public Application(){
+		
+	}
+	
 	public Application(String appName,String version,String url){
 		this.appName=appName;
 		this.version=version;

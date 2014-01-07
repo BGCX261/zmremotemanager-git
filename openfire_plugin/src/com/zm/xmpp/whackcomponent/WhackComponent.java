@@ -6,13 +6,14 @@ import java.util.Collection;
 import org.jivesoftware.whack.ExternalComponentManager;
 import org.xmpp.component.ComponentException;
 import org.xmpp.component.ComponentManager;
+import org.xmpp.packet.IQ;
 import org.xmpp.packet.JID;
 import org.xmpp.packet.Message;
 import org.xmpp.packet.Packet;
 
 import com.zm.epad.structure.Application;
-import com.zm.xmpp.command.Command;
-import com.zm.xmpp.command.CommandUtil;
+import com.zm.xmpp.communication.client.ClientCommandUtil;
+import com.zm.xmpp.communication.command.Command4App;
 
 public class WhackComponent  implements org.xmpp.component.Component {
 	    private ExternalComponentManager mgr = null;
@@ -25,6 +26,7 @@ public class WhackComponent  implements org.xmpp.component.Component {
 	        return ("Echos your message back to you in upper case");
 	    }
 
+    
 	    public void processPacket(Packet packet) {
 	        if (packet instanceof Message) {
 	        	if(((Message)packet).getType().equals("normal"))return; //广播类消息,会有客户端在键盘输入的广播消息
@@ -38,9 +40,9 @@ public class WhackComponent  implements org.xmpp.component.Component {
 	            
 	            response.setBody("Hello from WhackService");
 
-	            Command c=new Command("id","install","20101112T13:10:11","app1","1.0","http://xx.xx");
+	            Command4App c=new Command4App("up","id","install","20101112T13:10:11","app1","1.0","http://xx.xx");
         
-	            CommandUtil.packCommand(response, c);
+//	            CommandUtil.packCommand(response, c);
 	            
 	            System.out.println(response.toXML());
 	            mgr.sendPacket(this, response);
