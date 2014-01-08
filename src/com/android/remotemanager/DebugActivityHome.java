@@ -10,6 +10,8 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 
+import org.jivesoftware.smack.*;
+
 public class DebugActivityHome extends Activity {
 	public static final String TAG = "DebugActivityHome";
 	
@@ -26,6 +28,8 @@ public class DebugActivityHome extends Activity {
         
 		setContentView(R.layout.activity_main);		
 		mContext = this;
+		
+		Connection.DEBUG_ENABLED = true;
 		
 		mConnectBtn = (Button)findViewById(R.id.button1);
 		mIpText = (EditText)findViewById(R.id.editText1);
@@ -61,5 +65,12 @@ public class DebugActivityHome extends Activity {
 		});		
 
     }
+
+	@Override
+	protected void onDestroy() {
+		// TODO Auto-generated method stub
+		super.onDestroy();
+		Connection.DEBUG_ENABLED = false;
+	}
 
 }
