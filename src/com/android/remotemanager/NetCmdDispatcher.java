@@ -1,5 +1,7 @@
 package com.android.remotemanager;
 
+import android.util.Log;
+
 import com.android.remotemanager.plugins.XmppClient;
 
 import org.jivesoftware.smack.Connection;
@@ -17,8 +19,9 @@ import java.util.Iterator;
 import java.util.Collection;
 
 public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
+	public static final String TAG="NetCmdDispatcher";
     
-    public class CmdDispatchInfo{
+    public static class CmdDispatchInfo{
         public String mStrElementName;
         public String mStrNameSpace;
         public IQ parseXMLStream(XmlPullParser parser){
@@ -42,6 +45,8 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
         public IQ parseIQ(XmlPullParser parser){
             
             String namespace = parser.getNamespace();
+            Log.v(TAG, "parseIQ: "+namespace);
+            
             CmdDispatchInfo cmdDispatchInfo = mCmdDispacherHashMap.get(namespace);
             if(cmdDispatchInfo == null) return null;
             
@@ -50,6 +55,7 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
         @Override
         public boolean accept(Packet packet) {
             String namespace = packet.getXmlns();
+            Log.v(TAG, "accept: "+namespace);
             return mCmdDispacherHashMap.containsKey(namespace);
         }
 
@@ -57,6 +63,8 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
         public void processPacket(Packet packet) {
            
             String key = packet.getXmlns();
+            Log.v(TAG, "processPacket: "+key);
+            
             CmdDispatchInfo cmdDispatchInfo = mCmdDispacherHashMap.get(key);
             if(cmdDispatchInfo == null)
                 return;
@@ -83,6 +91,8 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
          if(xmppClientEvent == XmppClient.XMPPCLIENT_EVENT_CONNECT){
             if(args.length > 1){
                 int connSuc = ((Integer)args[0]).intValue();
+                Log.v(TAG, "reportXMPPClientEvent: "+connSuc);
+                
                 if(connSuc == 1){
                     mXmppConnection = (Connection)args[1];
                     mXmppConnection.addPacketListener(mCmdHandler, mCmdHandler);
@@ -93,7 +103,7 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
                             .hasNext();) {
                         CmdDispatchInfo info = (CmdDispatchInfo) iterator.next();
                         prdManager.addIQProvider(info.mStrElementName, info.mStrNameSpace, mCmdHandler);
-                        
+                        Log.v(TAG, "addIQProvider: "+info.mStrElementName+", "+info.mStrNameSpace);
                     }
                    
                 }else if(connSuc == 0)

@@ -1,6 +1,7 @@
 package com.android.remotemanager;
 
 import com.android.logmanager.LogManager;
+import com.android.remotemanager.iq.IQDispatcherCommand;
 import com.android.remotemanager.plugins.XmppClient;
 import com.android.remotemanager.NetCmdDispatcher;
 
@@ -67,7 +68,10 @@ public class RemoteManagerService extends Service {
         
         mbInitialized = true;
         mNetworkStatusMonitor = new NetworkStatusMonitor(this);
-        mNetCmdDispatcher = new NetCmdDispatcher();
+        mNetCmdDispatcher = new NetCmdDispatcher();        
+        mNetCmdDispatcher.registerDispacher(new IQDispatcherCommand(this, 
+        		"com.zm.epad.xmpp"));
+        
         mXmppClient = new XmppClient(this,mNetCmdDispatcher);
         mXmppClient.start(mLoginBundle.getString("server"));
         mXmppClient.login(mLoginBundle.getString("username"), 
