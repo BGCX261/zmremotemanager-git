@@ -56,7 +56,15 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
         public boolean accept(Packet packet) {
             String namespace = packet.getXmlns();
             Log.v(TAG, "accept: "+namespace);
-            return mCmdDispacherHashMap.containsKey(namespace);
+            
+            if(packet instanceof IQ)
+            {
+            	namespace = ((IQ)packet).getXmlns();
+            	Log.v(TAG, "accept: "+namespace);
+            }
+            //return mCmdDispacherHashMap.containsKey(namespace);
+            //temp solution because packet.getXmlns always null
+            return true;
         }
 
         @Override
@@ -64,10 +72,17 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
            
             String key = packet.getXmlns();
             Log.v(TAG, "processPacket: "+key);
-            
+                        
             CmdDispatchInfo cmdDispatchInfo = mCmdDispacherHashMap.get(key);
             if(cmdDispatchInfo == null)
-                return;
+            {
+            	//temp solution because packet.getXmlns always null
+            	//return;
+            	cmdDispatchInfo = mCmdDispacherHashMap.get("com.zm.epad.xmpp");
+            	if(cmdDispatchInfo == null)
+            		return;
+            }
+                            
             cmdDispatchInfo.handlePacket(packet);
         }
     }
