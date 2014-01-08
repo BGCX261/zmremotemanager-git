@@ -76,8 +76,8 @@ public class DebugActivity extends ListActivity {
     private void connectLogManager(String ip)
     {
     	try{
-	        mLogManager = LogManager.getLogManagerInstance(ip, this);
-	        mLogManager.start();
+	        /*mLogManager = LogManager.getLogManagerInstance(ip, this);
+	        mLogManager.start();*/
     	}catch(Exception e)
     	{
     		Log.e(TAG, "LogManager"+e.toString());

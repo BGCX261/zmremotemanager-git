@@ -25,7 +25,8 @@ import org.jivesoftware.smack.ConnectionListener;
 import org.jivesoftware.smack.provider.*;
 import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.packet.IQ;
-
+import com.zm.xmpp.communication.command.Command4App;
+import com.zm.xmpp.communication.client.ZMIQCommand;
 public class DebugActivitySender extends Activity {
 	public static final String TAG = "DebugActivitySender";
 	

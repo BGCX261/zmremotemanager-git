@@ -181,7 +181,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
        }
     }
     private void handleLoginCmd(){
-
+        Log.d(TAG, "handle CMD_LOGIN");
         String currentStatus = myBundle.getString("status");
         if(!currentStatus.equals("started")) {
             Log.e(TAG, "xmppclient failed to login with current status = " + currentStatus);

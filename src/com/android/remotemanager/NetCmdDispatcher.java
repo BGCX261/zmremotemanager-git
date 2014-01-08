@@ -1,5 +1,6 @@
 package com.android.remotemanager;
 
+import android.net.LocalSocketAddress.Namespace;
 import android.util.Log;
 
 import com.android.remotemanager.plugins.XmppClient;
@@ -55,16 +56,18 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
         @Override
         public boolean accept(Packet packet) {
             String namespace = packet.getXmlns();
-            Log.v(TAG, "accept: "+namespace);
             
-            if(packet instanceof IQ)
+            Log.v(TAG, "accept: "+namespace);
+            Log.v(TAG, "pakcet info " + packet.toXML());
+           /* if(packet instanceof IQ)
             {
             	namespace = ((IQ)packet).getXmlns();
             	Log.v(TAG, "accept: "+namespace);
-            }
-            //return mCmdDispacherHashMap.containsKey(namespace);
+            }*/
+            if(namespace == null)
+                return false;
+            return mCmdDispacherHashMap.containsKey(namespace);
             //temp solution because packet.getXmlns always null
-            return true;
         }
 
         @Override
@@ -72,15 +75,18 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
            
             String key = packet.getXmlns();
             Log.v(TAG, "processPacket: "+key);
-                        
+            Log.v(TAG, "processPacket pakcet info " + packet.toXML());            
+            if(key == null){
+                return;
+            }
             CmdDispatchInfo cmdDispatchInfo = mCmdDispacherHashMap.get(key);
             if(cmdDispatchInfo == null)
             {
             	//temp solution because packet.getXmlns always null
-            	//return;
-            	cmdDispatchInfo = mCmdDispacherHashMap.get("com.zm.epad.xmpp");
+            	return;
+            	/*cmdDispatchInfo = mCmdDispacherHashMap.get("com.zm.epad.xmpp");
             	if(cmdDispatchInfo == null)
-            		return;
+            		return;*/
             }
                             
             cmdDispatchInfo.handlePacket(packet);
@@ -106,7 +112,7 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
          if(xmppClientEvent == XmppClient.XMPPCLIENT_EVENT_CONNECT){
             if(args.length > 1){
                 int connSuc = ((Integer)args[0]).intValue();
-                Log.v(TAG, "reportXMPPClientEvent: "+connSuc);
+                Log.v(TAG, "reportXMPPClientEvent connect to server : "+connSuc);
                 
                 if(connSuc == 1){
                     mXmppConnection = (Connection)args[1];

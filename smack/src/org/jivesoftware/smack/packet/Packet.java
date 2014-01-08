@@ -88,7 +88,7 @@ public abstract class Packet {
      */
     private static long id = 0;
 
-    private String xmlns = DEFAULT_XML_NS;
+    /*private*/ protected String xmlns = DEFAULT_XML_NS;
 
     /**
      * Returns the next unique id. Each id made up of a short alphanumeric
@@ -103,7 +103,9 @@ public abstract class Packet {
     public static void setDefaultXmlns(String defaultXmlns) {
         DEFAULT_XML_NS = defaultXmlns;
     }
-
+  /*  public void setXmlns(String xmlns){
+        this.xmlns = xmlns;
+    }*/
     private String packetID = null;
     private String to = null;
     private String from = null;
