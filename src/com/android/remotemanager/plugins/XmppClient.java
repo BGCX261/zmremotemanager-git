@@ -107,6 +107,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
         @Override
         public void handleMessage(Message msg) {
              int cmd = msg.what;
+             Log.d(TAG,"handleMessage cmd:"+cmd);
              if(cmd == CMD_START){
                  handleStartCmd();
              }else if(cmd == CMD_LOGIN){
@@ -159,26 +160,34 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
     }
     private void handleStartCmd(){
         try {
-            Log.e(TAG, "handle CMD_START");
+            Log.d(TAG, "handle CMD_START");
             String serverName = myBundle.getString("server");
+            Log.d(TAG, "connect to server:" + serverName);
             mXmppConnection = new XMPPConnection(serverName);
-            mXmppConnectionListener = new XMPPConnectionListener();
-            
-            mXmppConnection.addConnectionListener(mXmppConnectionListener);
-            
             mXmppConnection.connect();
             
-            mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECT, true,
+            mXmppConnectionListener = new XMPPConnectionListener();
+            mXmppConnection.addConnectionListener(mXmppConnectionListener);
+
+            mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECT, 1,
                     mXmppConnection,ProviderManager.getInstance());
             myBundle.putString("status", "started");
             
        } catch (Exception e) {
-           mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECT, false);
+           Log.e(TAG,"handleStartCmd: "+e.toString());
+           mXmppClientCallback.reportXMPPClientEvent(XMPPCLIENT_EVENT_CONNECT, 0);
            myBundle.putString("status", "idle");
            myBundle.putString("exception", "connected failed: " + e.getMessage());
        }
     }
     private void handleLoginCmd(){
+
+        String currentStatus = myBundle.getString("status");
+        if(!currentStatus.equals("started")) {
+            Log.e(TAG, "xmppclient failed to login with current status = " + currentStatus);
+            return ;
+        }
+
         try {
             String usrName = myBundle.getString("username");
             String usrPwd = myBundle.getString("password");
@@ -265,12 +274,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport{
             Log.e(TAG, "xmppclient login failed,either username or password is null");
             return false;
         }
-        String currentStatus = myBundle.getString("status");
         
-        if(!currentStatus.equals("started")) {
-            Log.e(TAG, "xmppclient failed to login with current status = " + currentStatus);
-            return false;
-        }
         Log.e(TAG, "xmppclient login username " + usrName + " password " + password + " resource " + resource);
         myBundle.putString("username", usrName);
         myBundle.putString("password", password);
