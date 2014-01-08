@@ -62,26 +62,7 @@ public class DebugActivitySender extends Activity {
 			public void onClick(View arg0) {
 				// TODO Auto-generated method stub
 				try{
-					String name = mNameText.getText().toString();
-					String userId = mUserIdText.getText().toString();
-					Log.v(TAG, "Disable name: "+ name+", userId: "+ userId);
-					
-					Command4App Command = new Command4App("com.zm.epad.xmpp",
-							userId,"disable","time2014",name,
-							"ver1.1.1","urlcontent://test1");
-					Log.v(TAG,"##Command##\n"+Command.toXML());
-					
-					//RemotePackageIQ cmdIQ = new RemotePackageIQ();
-					ZMIQCommand cmdIQ = new ZMIQCommand();
-					cmdIQ.setCommand(Command);
-					cmdIQ.setTo("dengfanping@com.zm.openfire/Smack");
-		            cmdIQ.setFrom("test@com.zm.openfire/Smack");
-		            cmdIQ.setPacketID("xyzzd");
-		            //cmdIQ.setCmdType("disable");
-		            //cmdIQ.setCmdArgs(name);
-		            //LogManager.e("XmppClient", "test send msg " +cmdIQ.toString());
-		            testConnection.sendPacket(cmdIQ);
-		            Log.v(TAG,"##IQ##\n"+cmdIQ.toXML());
+					SendTestCommand4App("disable");
 				}
 				catch(Exception e)
 				{
@@ -98,18 +79,19 @@ public class DebugActivitySender extends Activity {
 			public void onClick(View arg0) {
 				// TODO Auto-generated method stub
 				try{
-					String name = mNameText.getText().toString();
-					String userId = mUserIdText.getText().toString();
-					Log.v(TAG, "Enable name: "+ name+", userId: "+ userId);
+					//String name = mNameText.getText().toString();
+					//String userId = mUserIdText.getText().toString();
+					//Log.v(TAG, "Enable name: "+ name+", userId: "+ userId);
 					
-		            RemotePackageIQ cmdIQ = new RemotePackageIQ();
-		            cmdIQ.setTo("dengfanping@com.zm.openfire/Smack");
-		            cmdIQ.setFrom("test@com.zm.openfire/Smack");
-		            cmdIQ.setPacketID("xyzzd");
-		            cmdIQ.setCmdType("enable");
-		            cmdIQ.setCmdArgs(name);
-		            LogManager.e("XmppClient", "test send msg " +cmdIQ.toString());
-		            testConnection.sendPacket(cmdIQ);
+		            //RemotePackageIQ cmdIQ = new RemotePackageIQ();
+		            //cmdIQ.setTo("dengfanping@com.zm.openfire/Smack");
+		            //cmdIQ.setFrom("test@com.zm.openfire/Smack");
+		            //cmdIQ.setPacketID("xyzzd");
+		            //cmdIQ.setCmdType("enable");
+		            //cmdIQ.setCmdArgs(name);
+		            //LogManager.e("XmppClient", "test send msg " +cmdIQ.toString());
+		            //testConnection.sendPacket(cmdIQ);
+		            SendTestCommand4App("enable");
 				}
 				catch(Exception e)
 				{
@@ -132,7 +114,7 @@ public class DebugActivitySender extends Activity {
 	       		try{
 	    	        testConnection= new XMPPConnection(IP, null);
 	    	        testConnection.connect();
-	    	        testConnection.login("test", "test");
+	    	        testConnection.login("test", "test","zhimotech");
 	    		}catch(Exception e){
 	        		Log.e(TAG, "testConnection"+e.toString());
 	        	}
@@ -141,10 +123,9 @@ public class DebugActivitySender extends Activity {
            
        });
        testThread.start();
-
-   }
+	}
     
-void testConnectionOff(){
+    void testConnectionOff(){
 
         Thread testThread = new Thread(new Runnable(){
 
@@ -162,9 +143,27 @@ void testConnectionOff(){
            
        });
        testThread.start();
-
-   }
+	}
     
+    void SendTestCommand4App(String action)
+    {
+		String name = mNameText.getText().toString();
+		String userId = mUserIdText.getText().toString();
+		Log.v(TAG, "action:"+action+", name:"+ name+", userId:"+ userId);
+		
+		Command4App Command = new Command4App("com.zm.epad.xmpp",
+				userId,action,"time2014",name,
+				"ver1.1.1","urlcontent://test1");
+		Log.v(TAG,"##Command##\n"+Command.toXML());
+		
+		ZMIQCommand cmdIQ = new ZMIQCommand();
+		cmdIQ.setCommand(Command);
+		cmdIQ.setTo("dengfanping@com.zm.openfire/zhimotech");
+        cmdIQ.setFrom("test@com.zm.openfire/zhimotech");
+        cmdIQ.setPacketID("xyzzd");
+        testConnection.sendPacket(cmdIQ);
+        Log.v(TAG,"##IQ##\n"+cmdIQ.toXML());
+    }
     @Override
     protected void onDestroy() {
     	testConnectionOff();
