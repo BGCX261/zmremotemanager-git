@@ -109,6 +109,8 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     		Log.d(TAG,"bad action");
     		return false;
     	}
+    	
+    	Log.v(TAG, "return:"+ret);
     	return ret;
     	
     }
