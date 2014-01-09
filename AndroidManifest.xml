@@ -1,6 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:androidprv="http://schemas.android.com/apk/prv/res/android"
         package="com.android.remotemanager"
+        android:sharedUserId="android.uid.system"
         >
      <!-- android:sharedUserId="android.uid.system" -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -50,6 +51,7 @@
         android:allowClearUserData="false"
         android:allowBackup="false"
         android:hardwareAccelerated="true"
+        android:process="system"
         >
 
         <service android:name="RemoteManagerService"/>
