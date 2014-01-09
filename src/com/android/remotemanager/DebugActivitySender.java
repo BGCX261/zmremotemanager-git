@@ -32,6 +32,8 @@ public class DebugActivitySender extends Activity {
 	
 	private Button mDisableBtn = null;
 	private Button mEnableBtn = null;
+	private Button mRemoveBtn = null;
+	private Button mInstallBtn = null;
 	private EditText mNameText = null; 
 	private EditText mUserIdText = null;
 	private Context mContext = null;
@@ -52,6 +54,8 @@ public class DebugActivitySender extends Activity {
 		testConnectionOn();
 		mDisableBtn = (Button)findViewById(R.id.button1);
 		mEnableBtn = (Button)findViewById(R.id.button2);
+		mRemoveBtn = (Button)findViewById(R.id.button3);
+		mInstallBtn = (Button)findViewById(R.id.button4);
 		
 		mNameText = (EditText)findViewById(R.id.editText1);
 		mUserIdText = (EditText)findViewById(R.id.editText2);
@@ -101,6 +105,40 @@ public class DebugActivitySender extends Activity {
 			}
 			
 		});		
+		
+		mRemoveBtn.setOnClickListener(new OnClickListener(){
+
+			@Override
+			public void onClick(View arg0) {
+				// TODO Auto-generated method stub
+				try{
+					SendTestCommand4App("remove");
+				}
+				catch(Exception e)
+				{
+					Log.e(TAG, e.getMessage());
+				}
+
+			}
+			
+		});
+		
+		mInstallBtn.setOnClickListener(new OnClickListener(){
+
+			@Override
+			public void onClick(View arg0) {
+				// TODO Auto-generated method stub
+				try{
+					SendTestCommand4App("install");
+				}
+				catch(Exception e)
+				{
+					Log.e(TAG, e.getMessage());
+				}
+
+			}
+			
+		});
 
     }
     
@@ -151,6 +189,7 @@ public class DebugActivitySender extends Activity {
 		String name = mNameText.getText().toString();
 		String userId = mUserIdText.getText().toString();
 		Log.v(TAG, "action:"+action+", name:"+ name+", userId:"+ userId);
+		
 		
 		Command4App Command = new Command4App("com.zm.epad.xmpp",
 				userId,action,"time2014",name,

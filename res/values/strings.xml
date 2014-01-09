@@ -110,4 +110,6 @@
     <string name="debug_inputname">Please Input Package Name and useId</string>
     <string name="debug_enable">Enable</string>
     <string name="debug_disable">Disable</string>
+    <string name="debug_install">Install</string>
+    <string name="debug_remove">Remove</string>
   </resources>
