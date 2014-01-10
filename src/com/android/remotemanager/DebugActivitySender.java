@@ -190,10 +190,20 @@ public class DebugActivitySender extends Activity {
 		String userId = mUserIdText.getText().toString();
 		Log.v(TAG, "action:"+action+", name:"+ name+", userId:"+ userId);
 		
+		int IntUid = 0;
+		try{
+			IntUid = Integer.valueOf(userId);
+		}
+		catch(Exception e)
+		{
+			Log.v(TAG, "userId:"+userId+";"+e.toString());
+			IntUid = 0;
+		}
 		
 		Command4App Command = new Command4App("com.zm.epad.xmpp",
-				userId,action,"time2014",name,
-				"ver1.1.1","urlcontent://test1");
+				"9527",action,"time2014",name,
+				"ver1.1.1","/sdcard/testinstall/"+name,
+				IntUid,null);
 		Log.v(TAG,"##Command##\n"+Command.toXML());
 		
 		ZMIQCommand cmdIQ = new ZMIQCommand();
