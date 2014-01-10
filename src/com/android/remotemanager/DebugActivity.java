@@ -119,6 +119,7 @@ public class DebugActivity extends ListActivity {
         args.putString("server", ip);
         args.putString("username", "dengfanping");
         args.putString("password","123");
+        args.putString("resource", "zhimotech");
         
         intent.putExtras(args);
         
