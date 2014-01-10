@@ -12,8 +12,8 @@ import com.android.remotemanager.NetCmdDispatcher.CmdDispatchInfo;
 import com.android.remotemanager.plugins.RemotePkgsManager;
 import com.zm.xmpp.communication.client.ZMIQCommand;
 import com.zm.xmpp.communication.client.ZMIQCommandProvider;
-import com.zm.xmpp.communication.command.Command4App;
 import com.zm.xmpp.communication.command.ICommand;
+import com.zm.xmpp.communication.command.ICommand4App;
 
 public class IQDispatcherCommand extends CmdDispatchInfo {
 	private static final String  TAG="IQDispatcherCommand";
@@ -68,7 +68,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     	
     	if(cmd.getType().equals("app"))
     	{
-    		ret = handleCommand4App((Command4App)cmd);
+    		ret = handleCommand4App((ICommand4App)cmd);
     	}else
     	{
     		Log.w(TAG, "bad command: "+cmd.getType());
@@ -77,32 +77,34 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     	return ret;
     }
 
-    private boolean handleCommand4App(Command4App cmd)
+    private boolean handleCommand4App(ICommand4App cmd)
     {
-    	boolean ret = false;
-    	com.zm.epad.structure.Application app = cmd.getApp();
-    	
+    	boolean ret = false;    	
     	Log.v(TAG, "handleCommand4App:"+cmd.getAction());
     	
     	if(cmd.getAction().equals(APP_ENABLE))
     	{
-    		String name = app.getAppName();
-    		int userId = 0;
+    		String name = cmd.getAppName();
+    		int userId = cmd.getUserId();
     		ret = mPkgManager.enablePkgForUser(name, userId);
     	}
     	else if(cmd.getAction().equals(APP_DISABLE))
     	{
-    		String name = app.getAppName();
-    		int userId = 0;
+    		String name = cmd.getAppName();
+    		int userId = cmd.getUserId();
     		ret = mPkgManager.disablePkgForUser(name, userId);
     	}
     	else if(cmd.getAction().equals(APP_INSTALL))
     	{
-    		
+    		String url = cmd.getAppUrl();
+    		int userId = cmd.getUserId();
+    		ret = mPkgManager.installPkgForUser(url, userId);
     	}
     	else if(cmd.getAction().equals(APP_REMOVE))
     	{
-    		
+    		String name = cmd.getAppName();
+    		int userId = cmd.getUserId();
+    		ret = mPkgManager.uninstallPkgForUser(name, userId);
     	}
     	else
     	{
