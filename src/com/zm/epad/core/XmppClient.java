@@ -174,7 +174,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             } else if (cmd == CMD_NETWORK_STATUS_UPDATE) {
                 handleNetworkAvailable(msg.arg1);
             } else if (cmd == CMD_QUIT) {
-                handleCmdQuit();
+                handleQuitCmd();
             }
 
             return;
@@ -260,7 +260,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         }
     }
 
-    private void handleCmdQuit() {
+    private void handleQuitCmd() {
         try {
             mStatusLock.lock();
             mXmppConnection.disconnect();
@@ -401,6 +401,11 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 return;
             }
             mXmppClientHandler.sendEmptyMessage(CMD_QUIT);
+            try {
+                mStatusLock.wait();
+            } catch (Exception e) {
+                // TODO: handle exception
+            }
 
             try {
                 mXmppHandlerThread.quit();
