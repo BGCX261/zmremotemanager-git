@@ -369,19 +369,18 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             mXmppClientHandler.sendEmptyMessage(CMD_QUIT);
 
             try {
-                mXmppHandlerThread.quit();
                 mStatusLock.wait();
             } catch (Exception e) {
                 Log.e(TAG, "xmppclient stop thread error " + e.getMessage());
             }
         }
-        synchronized (mStatusLock) {
-            try {
-                mXmppHandlerThread.join();
-                mXmppHandlerThread = null;
-            } catch (Exception e) {
-
-            }
+        
+        try {
+        	mXmppHandlerThread.quit();
+        	mXmppHandlerThread.join();        	
+        	mXmppHandlerThread = null;
+        } catch (Exception e) {
+        	Log.e(TAG, e.toString());
         }
         Log.e(TAG, "xmppclient stopped");
 
