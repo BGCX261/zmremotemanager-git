@@ -1,9 +1,8 @@
-package com.android.remotemanager;
+package com.zm.epad.core;
 
 import android.net.LocalSocketAddress.Namespace;
 import android.util.Log;
 
-import com.android.remotemanager.plugins.XmppClient;
 
 import org.jivesoftware.smack.Connection;
 import org.jivesoftware.smack.ConnectionConfiguration;

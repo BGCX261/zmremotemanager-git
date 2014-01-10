@@ -1,4 +1,4 @@
-package com.android.remotemanager.iq;
+package com.zm.epad.plugins;
 
 import org.xmlpull.v1.XmlPullParser;
 
@@ -8,8 +8,8 @@ import android.util.Log;
 import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.provider.IQProvider;
 import org.jivesoftware.smack.packet.Packet;
-import com.android.remotemanager.NetCmdDispatcher.CmdDispatchInfo;
-import com.android.remotemanager.plugins.RemotePkgsManager;
+
+import com.zm.epad.core.NetCmdDispatcher.CmdDispatchInfo;
 import com.zm.xmpp.communication.client.ZMIQCommand;
 import com.zm.xmpp.communication.client.ZMIQCommandProvider;
 import com.zm.xmpp.communication.command.ICommand;

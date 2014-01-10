@@ -1,4 +1,4 @@
-package com.android.logmanager;
+package com.zm.epad.core;
 
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.filter.PacketFilter;
@@ -10,7 +10,8 @@ import org.xmlpull.v1.XmlPullParser;
 import android.content.Context;
 import android.os.Environment;
 import android.util.Log;
-import com.android.remotemanager.NetworkStatusMonitor;
+
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;

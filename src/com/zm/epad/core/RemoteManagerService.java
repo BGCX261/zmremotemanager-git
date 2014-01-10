@@ -1,9 +1,6 @@
-package com.android.remotemanager;
+package com.zm.epad.core;
 
-import com.android.logmanager.LogManager;
-import com.android.remotemanager.iq.IQDispatcherCommand;
-import com.android.remotemanager.plugins.XmppClient;
-import com.android.remotemanager.NetCmdDispatcher;
+import com.zm.epad.plugins.IQDispatcherCommand;
 
 
 import android.app.Service;

@@ -1,7 +1,9 @@
-package com.android.remotemanager.plugins.xmpp;
+package com.zm.epad.plugins;
 
 import java.util.ArrayList;
-import com.android.remotemanager.plugins.XmppClient;
+
+import com.zm.epad.core.XmppClient;
+
 import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.Packet;
 import org.xmlpull.v1.XmlPullParser;

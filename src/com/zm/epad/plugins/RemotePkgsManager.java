@@ -1,4 +1,4 @@
-package com.android.remotemanager.plugins;
+package com.zm.epad.plugins;
 
 
 

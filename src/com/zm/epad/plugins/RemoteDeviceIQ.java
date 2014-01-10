@@ -1,4 +1,4 @@
-package com.android.remotemanager.plugins.xmpp;
+package com.zm.epad.plugins;
 
 import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.Packet;

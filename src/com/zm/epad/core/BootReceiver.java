@@ -1,4 +1,4 @@
-package com.android.remotemanager;
+package com.zm.epad.core;
 
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -12,8 +12,8 @@ public class BootReceiver extends BroadcastReceiver {
 	    String action = intent.getAction();
 	    if(action.equals(Intent.ACTION_BOOT_COMPLETED)){
 	        Intent serviceIntent = new Intent();
-	        serviceIntent.setComponent(new ComponentName("com.android.remotemanager", 
-	            "RemoteManagerService"));
+            serviceIntent.setComponent(new ComponentName("com.zm.epad",
+                    "com.zm.epad.core.RemoteManagerService"));
 	        context.startService(serviceIntent);
 	    }
 

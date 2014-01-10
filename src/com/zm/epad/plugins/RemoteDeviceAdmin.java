@@ -1,6 +1,6 @@
-package com.android.remotemanager.plugins.remotedeviceadmin;
+package com.zm.epad.plugins;
 
-import com.android.remotemanager.R;
+import com.zm.epad.R;
 
 import android.app.ActivityManager;
 import android.app.AlertDialog;
@@ -27,7 +27,6 @@ import android.widget.Toast;
 
 import java.util.List;
 
-
 public class RemoteDeviceAdmin extends PreferenceActivity {
 
     // Miscellaneous utilities and definitions
@@ -44,8 +43,7 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
     private static final String KEY_ENABLE_ADMIN = "key_enable_admin";
     private static final String KEY_DISABLE_CAMERA = "key_disable_camera";
     private static final String KEY_DISABLE_KEYGUARD_WIDGETS = "key_disable_keyguard_widgets";
-    private static final String KEY_DISABLE_KEYGUARD_SECURE_CAMERA
-            = "key_disable_keyguard_secure_camera";
+    private static final String KEY_DISABLE_KEYGUARD_SECURE_CAMERA = "key_disable_keyguard_secure_camera";
 
     private static final String KEY_CATEGORY_QUALITY = "key_category_quality";
     private static final String KEY_SET_PASSWORD = "key_set_password";
@@ -85,11 +83,13 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
 
         // Prepare to work with the DPM
         mDPM = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
-        mRemoteDeviceAdmin = new ComponentName(this, RemoteDeviceAdminReceiver.class);
+        mRemoteDeviceAdmin = new ComponentName(this,
+                RemoteDeviceAdminReceiver.class);
     }
 
     /**
-     * We override this method to provide PreferenceActivity with the top-level preference headers.
+     * We override this method to provide PreferenceActivity with the top-level
+     * preference headers.
      */
     @Override
     public void onBuildHeaders(List<Header> target) {
@@ -104,13 +104,15 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
     }
 
     /**
-     * Common fragment code for DevicePolicyManager access.  Provides two shared elements:
-     *
-     *   1.  Provides instance variables to access activity/context, DevicePolicyManager, etc.
-     *   2.  Provides support for the "set password" button(s) shared by multiple fragments.
+     * Common fragment code for DevicePolicyManager access. Provides two shared
+     * elements:
+     * 
+     * 1. Provides instance variables to access activity/context,
+     * DevicePolicyManager, etc. 2. Provides support for the "set password"
+     * button(s) shared by multiple fragments.
      */
     public static class RemoteAdminFragment extends PreferenceFragment
-            implements OnPreferenceChangeListener, OnPreferenceClickListener{
+            implements OnPreferenceChangeListener, OnPreferenceClickListener {
 
         // Useful instance variables
         protected RemoteDeviceAdmin mActivity;
@@ -156,16 +158,17 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
         }
 
         /**
-         * Called automatically at every onResume.  Should also call explicitly any time a
-         * policy changes that may affect other policy values.
+         * Called automatically at every onResume. Should also call explicitly
+         * any time a policy changes that may affect other policy values.
          */
         protected void reloadSummaries() {
             if (mSetPassword != null) {
                 if (mAdminActive) {
                     // Show password-sufficient status under Set Password button
                     boolean sufficient = mDPM.isActivePasswordSufficient();
-                    mSetPassword.setSummary(sufficient ?
-                            R.string.password_sufficient : R.string.password_insufficient);
+                    mSetPassword
+                            .setSummary(sufficient ? R.string.password_sufficient
+                                    : R.string.password_insufficient);
                 } else {
                     mSetPassword.setSummary(null);
                 }
@@ -175,7 +178,8 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
         @Override
         public boolean onPreferenceClick(Preference preference) {
             if (mSetPassword != null && preference == mSetPassword) {
-                Intent intent = new Intent(DevicePolicyManager.ACTION_SET_NEW_PASSWORD);
+                Intent intent = new Intent(
+                        DevicePolicyManager.ACTION_SET_NEW_PASSWORD);
                 startActivity(intent);
                 return true;
             }
@@ -185,30 +189,33 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
         @Override
         public boolean onPreferenceChange(Preference preference, Object newValue) {
             if (mResetPassword != null && preference == mResetPassword) {
-                doResetPassword((String)newValue);
+                doResetPassword((String) newValue);
                 return true;
             }
             return false;
         }
 
         /**
-         * This is dangerous, so we prevent automated tests from doing it, and we
-         * remind the user after we do it.
+         * This is dangerous, so we prevent automated tests from doing it, and
+         * we remind the user after we do it.
          */
         private void doResetPassword(String newPassword) {
             if (alertIfMonkey(mActivity, R.string.monkey_reset_password)) {
                 return;
             }
-            mDPM.resetPassword(newPassword, DevicePolicyManager.RESET_PASSWORD_REQUIRE_ENTRY);
+            mDPM.resetPassword(newPassword,
+                    DevicePolicyManager.RESET_PASSWORD_REQUIRE_ENTRY);
             AlertDialog.Builder builder = new AlertDialog.Builder(mActivity);
-            String message = mActivity.getString(R.string.reset_password_warning, newPassword);
+            String message = mActivity.getString(
+                    R.string.reset_password_warning, newPassword);
             builder.setMessage(message);
             builder.setPositiveButton(R.string.reset_password_ok, null);
             builder.show();
         }
 
         /**
-         * Simple helper for summaries showing local & global (aggregate) policy settings
+         * Simple helper for summaries showing local & global (aggregate) policy
+         * settings
          */
         protected String localGlobalSummary(Object local, Object global) {
             return getString(R.string.status_local_global, local, global);
@@ -218,8 +225,8 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
     /**
      * PreferenceFragment for "general" preferences.
      */
-    public static class GeneralFragment extends RemoteAdminFragment
-            implements OnPreferenceChangeListener {
+    public static class GeneralFragment extends RemoteAdminFragment implements
+            OnPreferenceChangeListener {
         // UI elements
         private CheckBoxPreference mEnableCheckbox;
         private CheckBoxPreference mDisableCameraCheckbox;
@@ -234,12 +241,11 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
             mEnableCheckbox.setOnPreferenceChangeListener(this);
             mDisableCameraCheckbox = (CheckBoxPreference) findPreference(KEY_DISABLE_CAMERA);
             mDisableCameraCheckbox.setOnPreferenceChangeListener(this);
-            mDisableKeyguardWidgetsCheckbox =
-                (CheckBoxPreference) findPreference(KEY_DISABLE_KEYGUARD_WIDGETS);
+            mDisableKeyguardWidgetsCheckbox = (CheckBoxPreference) findPreference(KEY_DISABLE_KEYGUARD_WIDGETS);
             mDisableKeyguardWidgetsCheckbox.setOnPreferenceChangeListener(this);
-            mDisableKeyguardSecureCameraCheckbox =
-                (CheckBoxPreference) findPreference(KEY_DISABLE_KEYGUARD_SECURE_CAMERA);
-            mDisableKeyguardSecureCameraCheckbox.setOnPreferenceChangeListener(this);
+            mDisableKeyguardSecureCameraCheckbox = (CheckBoxPreference) findPreference(KEY_DISABLE_KEYGUARD_SECURE_CAMERA);
+            mDisableKeyguardSecureCameraCheckbox
+                    .setOnPreferenceChangeListener(this);
         }
 
         // At onResume time, reload UI with current values as required
@@ -250,18 +256,20 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
             enableDeviceCapabilitiesArea(mAdminActive);
 
             if (mAdminActive) {
-                mDPM.setCameraDisabled(mRemoteDeviceAdminFragment, mDisableCameraCheckbox.isChecked());
-                mDPM.setKeyguardDisabledFeatures(mRemoteDeviceAdminFragment, createKeyguardDisabledFlag());
+                mDPM.setCameraDisabled(mRemoteDeviceAdminFragment,
+                        mDisableCameraCheckbox.isChecked());
+                mDPM.setKeyguardDisabledFeatures(mRemoteDeviceAdminFragment,
+                        createKeyguardDisabledFlag());
                 reloadSummaries();
             }
         }
 
         int createKeyguardDisabledFlag() {
             int flags = DevicePolicyManager.KEYGUARD_DISABLE_FEATURES_NONE;
-            flags |= mDisableKeyguardWidgetsCheckbox.isChecked() ?
-                    DevicePolicyManager.KEYGUARD_DISABLE_WIDGETS_ALL : 0;
-            flags |= mDisableKeyguardSecureCameraCheckbox.isChecked() ?
-                    DevicePolicyManager.KEYGUARD_DISABLE_SECURE_CAMERA : 0;
+            flags |= mDisableKeyguardWidgetsCheckbox.isChecked() ? DevicePolicyManager.KEYGUARD_DISABLE_WIDGETS_ALL
+                    : 0;
+            flags |= mDisableKeyguardSecureCameraCheckbox.isChecked() ? DevicePolicyManager.KEYGUARD_DISABLE_SECURE_CAMERA
+                    : 0;
             return flags;
         }
 
@@ -274,13 +282,20 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
             if (preference == mEnableCheckbox) {
                 if (value != mAdminActive) {
                     if (value) {
-                        // Launch the activity to have the user enable our admin.
-                        Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
-                        intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, mRemoteDeviceAdminFragment);
-                        intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                                mActivity.getString(R.string.add_admin_extra_app_text));
-                        startActivityForResult(intent, REQUEST_CODE_ENABLE_ADMIN);
-                        // return false - don't update checkbox until we're really active
+                        // Launch the activity to have the user enable our
+                        // admin.
+                        Intent intent = new Intent(
+                                DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
+                        intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN,
+                                mRemoteDeviceAdminFragment);
+                        intent.putExtra(
+                                DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                                mActivity
+                                        .getString(R.string.add_admin_extra_app_text));
+                        startActivityForResult(intent,
+                                REQUEST_CODE_ENABLE_ADMIN);
+                        // return false - don't update checkbox until we're
+                        // really active
                         return false;
                     } else {
                         mDPM.removeActiveAdmin(mRemoteDeviceAdminFragment);
@@ -293,7 +308,8 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
                 reloadSummaries();
             } else if (preference == mDisableKeyguardWidgetsCheckbox
                     || preference == mDisableKeyguardSecureCameraCheckbox) {
-                mDPM.setKeyguardDisabledFeatures(mRemoteDeviceAdminFragment, createKeyguardDisabledFlag());
+                mDPM.setKeyguardDisabledFeatures(mRemoteDeviceAdminFragment,
+                        createKeyguardDisabledFlag());
                 reloadSummaries();
             }
             return true;
@@ -302,24 +318,28 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
         @Override
         protected void reloadSummaries() {
             super.reloadSummaries();
-            String cameraSummary = getString(mDPM.getCameraDisabled(mRemoteDeviceAdminFragment)
-                    ? R.string.camera_disabled : R.string.camera_enabled);
+            String cameraSummary = getString(mDPM
+                    .getCameraDisabled(mRemoteDeviceAdminFragment) ? R.string.camera_disabled
+                    : R.string.camera_enabled);
             mDisableCameraCheckbox.setSummary(cameraSummary);
 
-            int disabled = mDPM.getKeyguardDisabledFeatures(mRemoteDeviceAdminFragment);
+            int disabled = mDPM
+                    .getKeyguardDisabledFeatures(mRemoteDeviceAdminFragment);
 
-            String keyguardWidgetSummary = getString(
-                    (disabled & DevicePolicyManager.KEYGUARD_DISABLE_WIDGETS_ALL) != 0 ?
-                            R.string.keyguard_widgets_disabled : R.string.keyguard_widgets_enabled);
+            String keyguardWidgetSummary = getString((disabled & DevicePolicyManager.KEYGUARD_DISABLE_WIDGETS_ALL) != 0 ? R.string.keyguard_widgets_disabled
+                    : R.string.keyguard_widgets_enabled);
             mDisableKeyguardWidgetsCheckbox.setSummary(keyguardWidgetSummary);
 
-            String keyguardSecureCameraSummary = getString(
-                (disabled & DevicePolicyManager.KEYGUARD_DISABLE_SECURE_CAMERA) != 0 ?
-                R.string.keyguard_secure_camera_disabled : R.string.keyguard_secure_camera_enabled);
-            mDisableKeyguardSecureCameraCheckbox.setSummary(keyguardSecureCameraSummary);
+            String keyguardSecureCameraSummary = getString((disabled & DevicePolicyManager.KEYGUARD_DISABLE_SECURE_CAMERA) != 0 ? R.string.keyguard_secure_camera_disabled
+                    : R.string.keyguard_secure_camera_enabled);
+            mDisableKeyguardSecureCameraCheckbox
+                    .setSummary(keyguardSecureCameraSummary);
         }
 
-        /** Updates the device capabilities area (dis/enabling) as the admin is (de)activated */
+        /**
+         * Updates the device capabilities area (dis/enabling) as the admin is
+         * (de)activated
+         */
         private void enableDeviceCapabilitiesArea(boolean enabled) {
             mDisableCameraCheckbox.setEnabled(enabled);
             mDisableKeyguardWidgetsCheckbox.setEnabled(enabled);
@@ -330,30 +350,31 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
     /**
      * PreferenceFragment for "password quality" preferences.
      */
-    public static class QualityFragment extends RemoteAdminFragment
-            implements OnPreferenceChangeListener {
+    public static class QualityFragment extends RemoteAdminFragment implements
+            OnPreferenceChangeListener {
 
         // Password quality values
-        // This list must match the list found in samples/ApiDemos/res/values/arrays.xml
+        // This list must match the list found in
+        // samples/ApiDemos/res/values/arrays.xml
         final static int[] mPasswordQualityValues = new int[] {
-            DevicePolicyManager.PASSWORD_QUALITY_UNSPECIFIED,
-            DevicePolicyManager.PASSWORD_QUALITY_SOMETHING,
-            DevicePolicyManager.PASSWORD_QUALITY_NUMERIC,
-            DevicePolicyManager.PASSWORD_QUALITY_ALPHABETIC,
-            DevicePolicyManager.PASSWORD_QUALITY_ALPHANUMERIC,
-            DevicePolicyManager.PASSWORD_QUALITY_COMPLEX
-        };
+                DevicePolicyManager.PASSWORD_QUALITY_UNSPECIFIED,
+                DevicePolicyManager.PASSWORD_QUALITY_SOMETHING,
+                DevicePolicyManager.PASSWORD_QUALITY_NUMERIC,
+                DevicePolicyManager.PASSWORD_QUALITY_ALPHABETIC,
+                DevicePolicyManager.PASSWORD_QUALITY_ALPHANUMERIC,
+                DevicePolicyManager.PASSWORD_QUALITY_COMPLEX };
 
-        // Password quality values (as strings, for the ListPreference entryValues)
-        // This list must match the list found in samples/ApiDemos/res/values/arrays.xml
+        // Password quality values (as strings, for the ListPreference
+        // entryValues)
+        // This list must match the list found in
+        // samples/ApiDemos/res/values/arrays.xml
         final static String[] mPasswordQualityValueStrings = new String[] {
-            String.valueOf(DevicePolicyManager.PASSWORD_QUALITY_UNSPECIFIED),
-            String.valueOf(DevicePolicyManager.PASSWORD_QUALITY_SOMETHING),
-            String.valueOf(DevicePolicyManager.PASSWORD_QUALITY_NUMERIC),
-            String.valueOf(DevicePolicyManager.PASSWORD_QUALITY_ALPHABETIC),
-            String.valueOf(DevicePolicyManager.PASSWORD_QUALITY_ALPHANUMERIC),
-            String.valueOf(DevicePolicyManager.PASSWORD_QUALITY_COMPLEX)
-        };
+                String.valueOf(DevicePolicyManager.PASSWORD_QUALITY_UNSPECIFIED),
+                String.valueOf(DevicePolicyManager.PASSWORD_QUALITY_SOMETHING),
+                String.valueOf(DevicePolicyManager.PASSWORD_QUALITY_NUMERIC),
+                String.valueOf(DevicePolicyManager.PASSWORD_QUALITY_ALPHABETIC),
+                String.valueOf(DevicePolicyManager.PASSWORD_QUALITY_ALPHANUMERIC),
+                String.valueOf(DevicePolicyManager.PASSWORD_QUALITY_COMPLEX) };
 
         // UI elements
         private PreferenceCategory mQualityCategory;
@@ -401,7 +422,8 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
         }
 
         /**
-         * Update the summaries of each item to show the local setting and the global setting.
+         * Update the summaries of each item to show the local setting and the
+         * global setting.
          */
         @Override
         protected void reloadSummaries() {
@@ -410,8 +432,8 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
             int local, global;
             local = mDPM.getPasswordQuality(mRemoteDeviceAdminFragment);
             global = mDPM.getPasswordQuality(null);
-            mPasswordQuality.setSummary(
-                    localGlobalSummary(qualityValueToString(local), qualityValueToString(global)));
+            mPasswordQuality.setSummary(localGlobalSummary(
+                    qualityValueToString(local), qualityValueToString(global)));
             local = mDPM.getPasswordMinimumLength(mRemoteDeviceAdminFragment);
             global = mDPM.getPasswordMinimumLength(null);
             mMinLength.setSummary(localGlobalSummary(local, global));
@@ -421,16 +443,19 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
             local = mDPM.getPasswordMinimumNumeric(mRemoteDeviceAdminFragment);
             global = mDPM.getPasswordMinimumNumeric(null);
             mMinNumeric.setSummary(localGlobalSummary(local, global));
-            local = mDPM.getPasswordMinimumLowerCase(mRemoteDeviceAdminFragment);
+            local = mDPM
+                    .getPasswordMinimumLowerCase(mRemoteDeviceAdminFragment);
             global = mDPM.getPasswordMinimumLowerCase(null);
             mMinLowerCase.setSummary(localGlobalSummary(local, global));
-            local = mDPM.getPasswordMinimumUpperCase(mRemoteDeviceAdminFragment);
+            local = mDPM
+                    .getPasswordMinimumUpperCase(mRemoteDeviceAdminFragment);
             global = mDPM.getPasswordMinimumUpperCase(null);
             mMinUpperCase.setSummary(localGlobalSummary(local, global));
             local = mDPM.getPasswordMinimumSymbols(mRemoteDeviceAdminFragment);
             global = mDPM.getPasswordMinimumSymbols(null);
             mMinSymbols.setSummary(localGlobalSummary(local, global));
-            local = mDPM.getPasswordMinimumNonLetter(mRemoteDeviceAdminFragment);
+            local = mDPM
+                    .getPasswordMinimumNonLetter(mRemoteDeviceAdminFragment);
             global = mDPM.getPasswordMinimumNonLetter(null);
             mMinNonLetter.setSummary(localGlobalSummary(local, global));
         }
@@ -440,7 +465,7 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
             if (super.onPreferenceChange(preference, newValue)) {
                 return true;
             }
-            String valueString = (String)newValue;
+            String valueString = (String) newValue;
             if (TextUtils.isEmpty(valueString)) {
                 return false;
             }
@@ -448,7 +473,8 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
             try {
                 value = Integer.parseInt(valueString);
             } catch (NumberFormatException nfe) {
-                String warning = mActivity.getString(R.string.number_format_warning, valueString);
+                String warning = mActivity.getString(
+                        R.string.number_format_warning, valueString);
                 Toast.makeText(mActivity, warning, Toast.LENGTH_SHORT).show();
             }
             if (preference == mPasswordQuality) {
@@ -456,27 +482,33 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
             } else if (preference == mMinLength) {
                 mDPM.setPasswordMinimumLength(mRemoteDeviceAdminFragment, value);
             } else if (preference == mMinLetters) {
-                mDPM.setPasswordMinimumLetters(mRemoteDeviceAdminFragment, value);
+                mDPM.setPasswordMinimumLetters(mRemoteDeviceAdminFragment,
+                        value);
             } else if (preference == mMinNumeric) {
-                mDPM.setPasswordMinimumNumeric(mRemoteDeviceAdminFragment, value);
+                mDPM.setPasswordMinimumNumeric(mRemoteDeviceAdminFragment,
+                        value);
             } else if (preference == mMinLowerCase) {
-                mDPM.setPasswordMinimumLowerCase(mRemoteDeviceAdminFragment, value);
+                mDPM.setPasswordMinimumLowerCase(mRemoteDeviceAdminFragment,
+                        value);
             } else if (preference == mMinUpperCase) {
-                mDPM.setPasswordMinimumUpperCase(mRemoteDeviceAdminFragment, value);
+                mDPM.setPasswordMinimumUpperCase(mRemoteDeviceAdminFragment,
+                        value);
             } else if (preference == mMinSymbols) {
-                mDPM.setPasswordMinimumSymbols(mRemoteDeviceAdminFragment, value);
+                mDPM.setPasswordMinimumSymbols(mRemoteDeviceAdminFragment,
+                        value);
             } else if (preference == mMinNonLetter) {
-                mDPM.setPasswordMinimumNonLetter(mRemoteDeviceAdminFragment, value);
+                mDPM.setPasswordMinimumNonLetter(mRemoteDeviceAdminFragment,
+                        value);
             }
             reloadSummaries();
             return true;
         }
 
         private String qualityValueToString(int quality) {
-            for (int i=  0; i < mPasswordQualityValues.length; i++) {
+            for (int i = 0; i < mPasswordQualityValues.length; i++) {
                 if (mPasswordQualityValues[i] == quality) {
-                    String[] qualities =
-                        mActivity.getResources().getStringArray(R.array.password_qualities);
+                    String[] qualities = mActivity.getResources()
+                            .getStringArray(R.array.password_qualities);
                     return qualities[i];
                 }
             }
@@ -516,7 +548,8 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
         }
 
         /**
-         * Update the summaries of each item to show the local setting and the global setting.
+         * Update the summaries of each item to show the local setting and the
+         * global setting.
          */
         @Override
         protected void reloadSummaries() {
@@ -528,10 +561,11 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
             mHistory.setSummary(localGlobalSummary(local, global));
 
             long localLong, globalLong;
-            localLong = mDPM.getPasswordExpirationTimeout(mRemoteDeviceAdminFragment);
+            localLong = mDPM
+                    .getPasswordExpirationTimeout(mRemoteDeviceAdminFragment);
             globalLong = mDPM.getPasswordExpirationTimeout(null);
-            mExpirationTimeout.setSummary(localGlobalSummary(
-                    localLong / MS_PER_MINUTE, globalLong / MS_PER_MINUTE));
+            mExpirationTimeout.setSummary(localGlobalSummary(localLong
+                    / MS_PER_MINUTE, globalLong / MS_PER_MINUTE));
 
             String expirationStatus = getExpirationStatus();
             mExpirationStatus.setSummary(expirationStatus);
@@ -542,7 +576,7 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
             if (super.onPreferenceChange(preference, newValue)) {
                 return true;
             }
-            String valueString = (String)newValue;
+            String valueString = (String) newValue;
             if (TextUtils.isEmpty(valueString)) {
                 return false;
             }
@@ -550,13 +584,15 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
             try {
                 value = Integer.parseInt(valueString);
             } catch (NumberFormatException nfe) {
-                String warning = mActivity.getString(R.string.number_format_warning, valueString);
+                String warning = mActivity.getString(
+                        R.string.number_format_warning, valueString);
                 Toast.makeText(mActivity, warning, Toast.LENGTH_SHORT).show();
             }
             if (preference == mHistory) {
                 mDPM.setPasswordHistoryLength(mRemoteDeviceAdminFragment, value);
             } else if (preference == mExpirationTimeout) {
-                mDPM.setPasswordExpirationTimeout(mRemoteDeviceAdminFragment, value * MS_PER_MINUTE);
+                mDPM.setPasswordExpirationTimeout(mRemoteDeviceAdminFragment,
+                        value * MS_PER_MINUTE);
             }
             reloadSummaries();
             return true;
@@ -576,12 +612,13 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
         }
 
         /**
-         * Create a summary string describing the expiration status for the sample app,
-         * as well as the global (aggregate) status.
+         * Create a summary string describing the expiration status for the
+         * sample app, as well as the global (aggregate) status.
          */
         private String getExpirationStatus() {
-            // expirations are absolute;  convert to relative for display
-            long localExpiration = mDPM.getPasswordExpiration(mRemoteDeviceAdminFragment);
+            // expirations are absolute; convert to relative for display
+            long localExpiration = mDPM
+                    .getPasswordExpiration(mRemoteDeviceAdminFragment);
             long globalExpiration = mDPM.getPasswordExpiration(null);
             long now = System.currentTimeMillis();
 
@@ -591,11 +628,14 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
                 local = mActivity.getString(R.string.expiration_status_none);
             } else {
                 localExpiration -= now;
-                String dms = timeToDaysMinutesSeconds(mActivity, Math.abs(localExpiration));
+                String dms = timeToDaysMinutesSeconds(mActivity,
+                        Math.abs(localExpiration));
                 if (localExpiration >= 0) {
-                    local = mActivity.getString(R.string.expiration_status_future, dms);
+                    local = mActivity.getString(
+                            R.string.expiration_status_future, dms);
                 } else {
-                    local = mActivity.getString(R.string.expiration_status_past, dms);
+                    local = mActivity.getString(
+                            R.string.expiration_status_past, dms);
                 }
             }
 
@@ -605,22 +645,26 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
                 global = mActivity.getString(R.string.expiration_status_none);
             } else {
                 globalExpiration -= now;
-                String dms = timeToDaysMinutesSeconds(mActivity, Math.abs(globalExpiration));
+                String dms = timeToDaysMinutesSeconds(mActivity,
+                        Math.abs(globalExpiration));
                 if (globalExpiration >= 0) {
-                    global = mActivity.getString(R.string.expiration_status_future, dms);
+                    global = mActivity.getString(
+                            R.string.expiration_status_future, dms);
                 } else {
-                    global = mActivity.getString(R.string.expiration_status_past, dms);
+                    global = mActivity.getString(
+                            R.string.expiration_status_past, dms);
                 }
             }
-            return mActivity.getString(R.string.status_local_global, local, global);
+            return mActivity.getString(R.string.status_local_global, local,
+                    global);
         }
     }
 
     /**
      * PreferenceFragment for "lock screen & wipe" preferences.
      */
-    public static class LockWipeFragment extends RemoteAdminFragment
-            implements OnPreferenceChangeListener, OnPreferenceClickListener {
+    public static class LockWipeFragment extends RemoteAdminFragment implements
+            OnPreferenceChangeListener, OnPreferenceClickListener {
         private PreferenceCategory mLockWipeCategory;
         private EditTextPreference mMaxTimeScreenLock;
         private EditTextPreference mMaxFailures;
@@ -654,7 +698,8 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
         }
 
         /**
-         * Update the summaries of each item to show the local setting and the global setting.
+         * Update the summaries of each item to show the local setting and the
+         * global setting.
          */
         @Override
         protected void reloadSummaries() {
@@ -663,11 +708,12 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
             long localLong, globalLong;
             localLong = mDPM.getMaximumTimeToLock(mRemoteDeviceAdminFragment);
             globalLong = mDPM.getMaximumTimeToLock(null);
-            mMaxTimeScreenLock.setSummary(localGlobalSummary(
-                    localLong / MS_PER_MINUTE, globalLong / MS_PER_MINUTE));
+            mMaxTimeScreenLock.setSummary(localGlobalSummary(localLong
+                    / MS_PER_MINUTE, globalLong / MS_PER_MINUTE));
 
             int local, global;
-            local = mDPM.getMaximumFailedPasswordsForWipe(mRemoteDeviceAdminFragment);
+            local = mDPM
+                    .getMaximumFailedPasswordsForWipe(mRemoteDeviceAdminFragment);
             global = mDPM.getMaximumFailedPasswordsForWipe(null);
             mMaxFailures.setSummary(localGlobalSummary(local, global));
         }
@@ -677,7 +723,7 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
             if (super.onPreferenceChange(preference, newValue)) {
                 return true;
             }
-            String valueString = (String)newValue;
+            String valueString = (String) newValue;
             if (TextUtils.isEmpty(valueString)) {
                 return false;
             }
@@ -685,16 +731,19 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
             try {
                 value = Integer.parseInt(valueString);
             } catch (NumberFormatException nfe) {
-                String warning = mActivity.getString(R.string.number_format_warning, valueString);
+                String warning = mActivity.getString(
+                        R.string.number_format_warning, valueString);
                 Toast.makeText(mActivity, warning, Toast.LENGTH_SHORT).show();
             }
             if (preference == mMaxTimeScreenLock) {
-                mDPM.setMaximumTimeToLock(mRemoteDeviceAdminFragment, value * MS_PER_MINUTE);
+                mDPM.setMaximumTimeToLock(mRemoteDeviceAdminFragment, value
+                        * MS_PER_MINUTE);
             } else if (preference == mMaxFailures) {
                 if (alertIfMonkey(mActivity, R.string.monkey_wipe_data)) {
                     return true;
                 }
-                mDPM.setMaximumFailedPasswordsForWipe(mRemoteDeviceAdminFragment, value);
+                mDPM.setMaximumFailedPasswordsForWipe(
+                        mRemoteDeviceAdminFragment, value);
             }
             reloadSummaries();
             return true;
@@ -722,7 +771,8 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
         }
 
         /**
-         * Wiping data is real, so we don't want it to be easy.  Show two alerts before wiping.
+         * Wiping data is real, so we don't want it to be easy. Show two alerts
+         * before wiping.
          */
         private void promptForRealDeviceWipe(final boolean wipeAllData) {
             final RemoteDeviceAdmin activity = mActivity;
@@ -731,29 +781,35 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
             builder.setMessage(R.string.wipe_warning_first);
             builder.setPositiveButton(R.string.wipe_warning_first_ok,
                     new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(activity);
-                    if (wipeAllData) {
-                        builder.setMessage(R.string.wipe_warning_second_full);
-                    } else {
-                        builder.setMessage(R.string.wipe_warning_second);
-                    }
-                    builder.setPositiveButton(R.string.wipe_warning_second_ok,
-                            new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
-                            boolean stillActive = mActivity.isActiveAdmin();
-                            if (stillActive) {
-                                mDPM.wipeData(wipeAllData
-                                        ? DevicePolicyManager.WIPE_EXTERNAL_STORAGE : 0);
+                            AlertDialog.Builder builder = new AlertDialog.Builder(
+                                    activity);
+                            if (wipeAllData) {
+                                builder.setMessage(R.string.wipe_warning_second_full);
+                            } else {
+                                builder.setMessage(R.string.wipe_warning_second);
                             }
+                            builder.setPositiveButton(
+                                    R.string.wipe_warning_second_ok,
+                                    new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(
+                                                DialogInterface dialog,
+                                                int which) {
+                                            boolean stillActive = mActivity
+                                                    .isActiveAdmin();
+                                            if (stillActive) {
+                                                mDPM.wipeData(wipeAllData ? DevicePolicyManager.WIPE_EXTERNAL_STORAGE
+                                                        : 0);
+                                            }
+                                        }
+                                    });
+                            builder.setNegativeButton(
+                                    R.string.wipe_warning_second_no, null);
+                            builder.show();
                         }
                     });
-                    builder.setNegativeButton(R.string.wipe_warning_second_no, null);
-                    builder.show();
-                }
-            });
             builder.setNegativeButton(R.string.wipe_warning_first_no, null);
             builder.show();
         }
@@ -785,11 +841,13 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
         public void onResume() {
             super.onResume();
             mEncryptionCategory.setEnabled(mAdminActive);
-            mRequireEncryption.setChecked(mDPM.getStorageEncryption(mRemoteDeviceAdminFragment));
+            mRequireEncryption.setChecked(mDPM
+                    .getStorageEncryption(mRemoteDeviceAdminFragment));
         }
 
         /**
-         * Update the summaries of each item to show the local setting and the global setting.
+         * Update the summaries of each item to show the local setting and the
+         * global setting.
          */
         @Override
         protected void reloadSummaries() {
@@ -802,7 +860,8 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
 
             int deviceStatusCode = mDPM.getStorageEncryptionStatus();
             String deviceStatus = statusCodeToString(deviceStatusCode);
-            String status = mActivity.getString(R.string.status_device_encryption, deviceStatus);
+            String status = mActivity.getString(
+                    R.string.status_device_encryption, deviceStatus);
             mActivateEncryption.setSummary(status);
         }
 
@@ -829,17 +888,21 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
                 if (alertIfMonkey(mActivity, R.string.monkey_encryption)) {
                     return true;
                 }
-                // Check to see if encryption is even supported on this device (it's optional).
-                if (mDPM.getStorageEncryptionStatus() ==
-                        DevicePolicyManager.ENCRYPTION_STATUS_UNSUPPORTED) {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(mActivity);
+                // Check to see if encryption is even supported on this device
+                // (it's optional).
+                if (mDPM.getStorageEncryptionStatus() == DevicePolicyManager.ENCRYPTION_STATUS_UNSUPPORTED) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(
+                            mActivity);
                     builder.setMessage(R.string.encryption_not_supported);
-                    builder.setPositiveButton(R.string.encryption_not_supported_ok, null);
+                    builder.setPositiveButton(
+                            R.string.encryption_not_supported_ok, null);
                     builder.show();
                     return true;
                 }
-                // Launch the activity to activate encryption.  May or may not return!
-                Intent intent = new Intent(DevicePolicyManager.ACTION_START_ENCRYPTION);
+                // Launch the activity to activate encryption. May or may not
+                // return!
+                Intent intent = new Intent(
+                        DevicePolicyManager.ACTION_START_ENCRYPTION);
                 startActivityForResult(intent, REQUEST_CODE_START_ENCRYPTION);
                 return true;
             }
@@ -849,18 +912,18 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
         private String statusCodeToString(int newStatusCode) {
             int newStatus = R.string.encryption_status_unknown;
             switch (newStatusCode) {
-                case DevicePolicyManager.ENCRYPTION_STATUS_UNSUPPORTED:
-                    newStatus = R.string.encryption_status_unsupported;
-                    break;
-                case DevicePolicyManager.ENCRYPTION_STATUS_INACTIVE:
-                    newStatus = R.string.encryption_status_inactive;
-                    break;
-                case DevicePolicyManager.ENCRYPTION_STATUS_ACTIVATING:
-                    newStatus = R.string.encryption_status_activating;
-                    break;
-                case DevicePolicyManager.ENCRYPTION_STATUS_ACTIVE:
-                    newStatus = R.string.encryption_status_active;
-                    break;
+            case DevicePolicyManager.ENCRYPTION_STATUS_UNSUPPORTED:
+                newStatus = R.string.encryption_status_unsupported;
+                break;
+            case DevicePolicyManager.ENCRYPTION_STATUS_INACTIVE:
+                newStatus = R.string.encryption_status_inactive;
+                break;
+            case DevicePolicyManager.ENCRYPTION_STATUS_ACTIVATING:
+                newStatus = R.string.encryption_status_activating;
+                break;
+            case DevicePolicyManager.ENCRYPTION_STATUS_ACTIVE:
+                newStatus = R.string.encryption_status_active;
+                break;
             }
             return mActivity.getString(newStatus);
         }
@@ -873,12 +936,14 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
         long days = time / MS_PER_DAY;
         long hours = (time / MS_PER_HOUR) % 24;
         long minutes = (time / MS_PER_MINUTE) % 60;
-        return context.getString(R.string.status_days_hours_minutes, days, hours, minutes);
+        return context.getString(R.string.status_days_hours_minutes, days,
+                hours, minutes);
     }
 
     /**
-     * If the "user" is a monkey, post an alert and notify the caller.  This prevents automated
-     * test frameworks from stumbling into annoying or dangerous operations.
+     * If the "user" is a monkey, post an alert and notify the caller. This
+     * prevents automated test frameworks from stumbling into annoying or
+     * dangerous operations.
      */
     private static boolean alertIfMonkey(Context context, int stringId) {
         if (ActivityManager.isUserAMonkey()) {
@@ -893,58 +958,69 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
     }
 
     /**
-     * Sample implementation of a DeviceAdminReceiver.  Your controller must provide one,
-     * although you may or may not implement all of the methods shown here.
-     *
-     * All callbacks are on the UI thread and your implementations should not engage in any
-     * blocking operations, including disk I/O.
+     * Sample implementation of a DeviceAdminReceiver. Your controller must
+     * provide one, although you may or may not implement all of the methods
+     * shown here.
+     * 
+     * All callbacks are on the UI thread and your implementations should not
+     * engage in any blocking operations, including disk I/O.
      */
     public static class RemoteDeviceAdminReceiver extends DeviceAdminReceiver {
         void showToast(Context context, String msg) {
-            String status = context.getString(R.string.admin_receiver_status, msg);
+            String status = context.getString(R.string.admin_receiver_status,
+                    msg);
             Toast.makeText(context, status, Toast.LENGTH_SHORT).show();
         }
 
         @Override
         public void onEnabled(Context context, Intent intent) {
-            showToast(context, context.getString(R.string.admin_receiver_status_enabled));
+            showToast(context,
+                    context.getString(R.string.admin_receiver_status_enabled));
         }
 
         @Override
         public CharSequence onDisableRequested(Context context, Intent intent) {
-            return context.getString(R.string.admin_receiver_status_disable_warning);
+            return context
+                    .getString(R.string.admin_receiver_status_disable_warning);
         }
 
         @Override
         public void onDisabled(Context context, Intent intent) {
-            showToast(context, context.getString(R.string.admin_receiver_status_disabled));
+            showToast(context,
+                    context.getString(R.string.admin_receiver_status_disabled));
         }
 
         @Override
         public void onPasswordChanged(Context context, Intent intent) {
-            showToast(context, context.getString(R.string.admin_receiver_status_pw_changed));
+            showToast(
+                    context,
+                    context.getString(R.string.admin_receiver_status_pw_changed));
         }
 
         @Override
         public void onPasswordFailed(Context context, Intent intent) {
-            showToast(context, context.getString(R.string.admin_receiver_status_pw_failed));
+            showToast(context,
+                    context.getString(R.string.admin_receiver_status_pw_failed));
         }
 
         @Override
         public void onPasswordSucceeded(Context context, Intent intent) {
-            showToast(context, context.getString(R.string.admin_receiver_status_pw_succeeded));
+            showToast(
+                    context,
+                    context.getString(R.string.admin_receiver_status_pw_succeeded));
         }
 
         @Override
         public void onPasswordExpiring(Context context, Intent intent) {
-            DevicePolicyManager dpm = (DevicePolicyManager) context.getSystemService(
-                    Context.DEVICE_POLICY_SERVICE);
-            long expr = dpm.getPasswordExpiration(
-                    new ComponentName(context, RemoteDeviceAdminReceiver.class));
+            DevicePolicyManager dpm = (DevicePolicyManager) context
+                    .getSystemService(Context.DEVICE_POLICY_SERVICE);
+            long expr = dpm.getPasswordExpiration(new ComponentName(context,
+                    RemoteDeviceAdminReceiver.class));
             long delta = expr - System.currentTimeMillis();
             boolean expired = delta < 0L;
-            String message = context.getString(expired ?
-                    R.string.expiration_status_past : R.string.expiration_status_future);
+            String message = context
+                    .getString(expired ? R.string.expiration_status_past
+                            : R.string.expiration_status_future);
             showToast(context, message);
             Log.v(TAG, message);
         }

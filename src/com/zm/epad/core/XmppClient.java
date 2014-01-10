@@ -1,6 +1,5 @@
-package com.android.remotemanager.plugins;
+package com.zm.epad.core;
 
-import com.android.remotemanager.NetworkStatusMonitor;
 
 import org.jivesoftware.smack.Connection;
 import org.jivesoftware.smack.ConnectionListener;
