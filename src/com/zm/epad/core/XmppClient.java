@@ -9,6 +9,7 @@ import org.jivesoftware.smack.packet.Packet;
 import org.jivesoftware.smack.provider.ProviderManager;
 
 import android.content.Context;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -428,6 +429,14 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                     "xmppclient login failed,either username or password is null");
             return false;
         }
+        if (resource == null && Build.SERIAL == null) {
+            if (Build.SERIAL == null) {
+                Log.e(TAG, "xmppclient login failed due to resource is null");
+                return false;
+            }
+            resource = Build.SERIAL;
+
+        }
         try {
             mStatusLock.lock();
             if (mXmppClientHandler == null) {
@@ -445,8 +454,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                     + password + " resource " + resource);
             mConnectionInfo.putString("username", usrName);
             mConnectionInfo.putString("password", password);
-            mConnectionInfo.putString("resource", resource == null ? "zmtech"
-                    : resource);
+            mConnectionInfo.putString("resource", resource);
             Message msg = mXmppClientHandler.obtainMessage(CMD_LOGIN);
             msg.setData(mConnectionInfo);
             mXmppClientHandler.sendMessage(msg);

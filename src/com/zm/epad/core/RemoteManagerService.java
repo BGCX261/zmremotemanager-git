@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 
@@ -72,7 +73,7 @@ public class RemoteManagerService extends Service {
         mXmppClient = new XmppClient(this,mNetCmdDispatcher);
         mXmppClient.start(mLoginBundle.getString("server"));
         mXmppClient.login(mLoginBundle.getString("username"), 
-                mLoginBundle.getString("password"), mLoginBundle.getString("resource"));
+                mLoginBundle.getString("password"), Build.SERIAL);
         
         mbInitialized = true;
         
