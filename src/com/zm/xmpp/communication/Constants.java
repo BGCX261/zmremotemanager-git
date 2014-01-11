@@ -12,5 +12,10 @@ public class Constants {
     
     static public final String RESULT_OK="ok";
     static public final String ERRORCODE_SUCCESS="0";
+    
+    static public final String XMPP_APP_INSTALL = "install";
+    static public final String XMPP_APP_REMOVE = "remove";
+    static public final String XMPP_APP_ENABLE = "enable";
+    static public final String XMPP_APP_DISABLE = "disable";
    
 }
