@@ -1,6 +1,7 @@
 package com.zm.epad.ui;
 
 import com.zm.epad.R;
+import com.zm.xmpp.communication.Constants;
 import com.zm.xmpp.communication.client.ZMIQCommand;
 import com.zm.xmpp.communication.command.Command4App;
 
@@ -55,7 +56,7 @@ public class DebugActivitySender extends Activity {
             public void onClick(View arg0) {
                 // TODO Auto-generated method stub
                 try {
-                    SendTestCommand4App("disable");
+                    SendTestCommand4App(Constants.XMPP_APP_DISABLE);
                 } catch (Exception e) {
                     Log.e(TAG, e.getMessage());
                 }
@@ -83,7 +84,7 @@ public class DebugActivitySender extends Activity {
                     // LogManager.e("XmppClient", "test send msg "
                     // +cmdIQ.toString());
                     // testConnection.sendPacket(cmdIQ);
-                    SendTestCommand4App("enable");
+                    SendTestCommand4App(Constants.XMPP_APP_ENABLE);
                 } catch (Exception e) {
                     Log.e(TAG, e.getMessage());
                 }
@@ -97,7 +98,7 @@ public class DebugActivitySender extends Activity {
             public void onClick(View arg0) {
                 // TODO Auto-generated method stub
                 try {
-                    SendTestCommand4App("remove");
+                    SendTestCommand4App(Constants.XMPP_APP_REMOVE);
                 } catch (Exception e) {
                     Log.e(TAG, e.getMessage());
                 }
@@ -112,7 +113,7 @@ public class DebugActivitySender extends Activity {
             public void onClick(View arg0) {
                 // TODO Auto-generated method stub
                 try {
-                    SendTestCommand4App("install");
+                    SendTestCommand4App(Constants.XMPP_APP_INSTALL);
                 } catch (Exception e) {
                     Log.e(TAG, e.getMessage());
                 }
@@ -178,7 +179,7 @@ public class DebugActivitySender extends Activity {
             IntUid = 0;
         }
 
-        Command4App Command = new Command4App("com.zm.epad.xmpp", "9527",
+        Command4App Command = new Command4App(Constants.XMPP_NAMESPACE_CENTER, "9527",
                 action, "time2014", name, "ver1.1.1", "/sdcard/testinstall/"
                         + name, IntUid, null);
         Log.v(TAG, "##Command##\n" + Command.toXML());
