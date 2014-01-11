@@ -1,7 +1,7 @@
 package com.zm.epad.core;
 
 import com.zm.epad.plugins.IQDispatcherCommand;
-
+import com.zm.xmpp.communication.Constants;
 
 import android.app.Service;
 import android.content.Context;
@@ -67,7 +67,7 @@ public class RemoteManagerService extends Service {
         mNetworkStatusMonitor = new NetworkStatusMonitor(this);
         mNetCmdDispatcher = new NetCmdDispatcher();        
         mNetCmdDispatcher.registerDispacher(new IQDispatcherCommand(this, 
-        		"com.zm.epad.xmpp"));
+        		Constants.XMPP_NAMESPACE_CENTER));
         
         mXmppClient = new XmppClient(this,mNetCmdDispatcher);
         mXmppClient.start(mLoginBundle.getString("server"));

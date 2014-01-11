@@ -10,6 +10,7 @@ import org.jivesoftware.smack.provider.IQProvider;
 import org.jivesoftware.smack.packet.Packet;
 
 import com.zm.epad.core.NetCmdDispatcher.CmdDispatchInfo;
+import com.zm.xmpp.communication.Constants;
 import com.zm.xmpp.communication.client.ZMIQCommand;
 import com.zm.xmpp.communication.client.ZMIQCommandProvider;
 import com.zm.xmpp.communication.command.ICommand;
@@ -17,11 +18,6 @@ import com.zm.xmpp.communication.command.ICommand4App;
 
 public class IQDispatcherCommand extends CmdDispatchInfo {
 	private static final String  TAG="IQDispatcherCommand";
-	
-	private static final String APP_INSTALL = "install";
-	private static final String APP_REMOVE = "remove";
-	private static final String APP_ENABLE = "enable";
-	private static final String APP_DISABLE = "disable";
 	
 	private Context mContext;
 	private ZMIQCommandProvider mProvider;
@@ -82,25 +78,25 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     	boolean ret = false;    	
     	Log.v(TAG, "handleCommand4App:"+cmd.getAction());
     	
-    	if(cmd.getAction().equals(APP_ENABLE))
+    	if(cmd.getAction().equals(Constants.XMPP_APP_ENABLE))
     	{
     		String name = cmd.getAppName();
     		int userId = cmd.getUserId();
     		ret = mPkgManager.enablePkgForUser(name, userId);
     	}
-    	else if(cmd.getAction().equals(APP_DISABLE))
+    	else if(cmd.getAction().equals(Constants.XMPP_APP_DISABLE))
     	{
     		String name = cmd.getAppName();
     		int userId = cmd.getUserId();
     		ret = mPkgManager.disablePkgForUser(name, userId);
     	}
-    	else if(cmd.getAction().equals(APP_INSTALL))
+    	else if(cmd.getAction().equals(Constants.XMPP_APP_INSTALL))
     	{
     		String url = cmd.getAppUrl();
     		int userId = cmd.getUserId();
     		ret = mPkgManager.installPkgForUser(url, userId);
     	}
-    	else if(cmd.getAction().equals(APP_REMOVE))
+    	else if(cmd.getAction().equals(Constants.XMPP_APP_REMOVE))
     	{
     		String name = cmd.getAppName();
     		int userId = cmd.getUserId();
