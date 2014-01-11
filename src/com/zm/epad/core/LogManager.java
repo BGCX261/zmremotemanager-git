@@ -1,47 +1,28 @@
 package com.zm.epad.core;
 
-import org.jivesoftware.smack.*;
-import org.jivesoftware.smack.filter.PacketFilter;
-import org.jivesoftware.smack.packet.*;
 import org.jivesoftware.smack.ConnectionListener;
-import org.jivesoftware.smack.provider.*;
-import org.xmlpull.v1.XmlPullParser;
+import org.jivesoftware.smack.XMPPConnection;
+import org.jivesoftware.smack.packet.Message;
 
 import android.content.Context;
-import android.os.Environment;
 import android.util.Log;
-
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.io.StringReader;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.LinkedList;
 
-public class LogManager implements NetworkStatusMonitor.NetworkStatusReport {
+public class LogManager implements XmppClient.XmppClientCallback {
 
     static public LogManager mLogManager;
 
-    static public LogManager getLogManagerInstance(String serverName,
-            Context context) {
-        if (mLogManager == null)
-            mLogManager = new LogManager(serverName, context);
-        return mLogManager;
-    }
-
-    @Override
-    public void reportNetworkStatus(boolean bConnected) {
-
-    }
 
 
-    private XMPPConnection mXmppConnection = null;
+    private XmppClient mXmppClient = null;
     private String mServerName;
     private static String TAG = "LogManager";
     private static String LOG_RES = "RemoteLog";
@@ -54,83 +35,33 @@ public class LogManager implements NetworkStatusMonitor.NetworkStatusReport {
     static private Date mLogDate = new Date();
 
     volatile private Boolean mbConnected = false;
-    private XmppLogConnectionListener mLogConnectionListener = null;
+
     private Context mContext = null;
     private static boolean mRunning = false;
 
-    private LogManager(String serverName, Context context) {
-        mServerName = serverName;
+    public LogManager(Context context, XmppClient xmppClient) {
         mContext = context;
         mLocalLogFile = mContext.getDir("local.log", Context.MODE_PRIVATE);
+        mXmppClient = xmppClient;
     }
 
-    class XmppLogConnectionListener implements ConnectionListener {
 
-        @Override
-        public void connectionClosed() {
-            // TODO Auto-generated method stub
-            mbConnected = false;
-            Log.e(TAG, "connection closed");
 
-        }
-
-        @Override
-        public void connectionClosedOnError(Exception e) {
-            // TODO Auto-generated method stub
-            Log.e(TAG, "connection closed on error");
-            mbConnected = false;
-
-        }
-
-        @Override
-        public void reconnectingIn(int seconds) {
-            // TODO Auto-generated method stub
-            Log.e(TAG, "reconnectingIn " + seconds + " seconds");
-
-        }
-
-        @Override
-        public void reconnectionSuccessful() {
-            // TODO Auto-generated method stub
-            Log.e(TAG, "reconnectionSuccessful");
-            mbConnected = true;
-        }
-
-        @Override
-        public void reconnectionFailed(Exception e) {
-            // TODO Auto-generated method stub
-            Log.e(TAG, "reconnectionFailed " + e.getMessage());
-        }
-
+    @Override
+    public Object reportXMPPClientEvent(int xmppClientEvent, Object... args) {
+        return null;
     }
+
+
 
     public boolean start() {
-        mXmppConnection = new XMPPConnection(mServerName);
-        mLogConnectionListener = new XmppLogConnectionListener();
-        mXmppConnection.addConnectionListener(mLogConnectionListener);
-
-        try {
-            mXmppConnection.connect();
-        } catch (Exception e) {
-            mXmppConnection = null;
-            Log.e(TAG, "error in start " + e.getMessage());
-            return false;
-        }
-
-        try {
-            mXmppConnection.login("username", "password", LOG_RES);
-        } catch (Exception e) {
-            Log.e(TAG, "error in login " + e.getMessage());
-            mXmppConnection = null;
-            return false;
-        }
         mbConnected = true;
         transferLeftOverLogs();// left over log must be sent synchronously
         mLogThread = new LogThread();
         mLogThread.start();
-        
+
         mRunning = true;
-        
+
         return true;
 
     }
@@ -208,13 +139,11 @@ public class LogManager implements NetworkStatusMonitor.NetworkStatusReport {
     }
 
     public void stop() {
-    	
-    	mRunning = false;
-    	
+
+        mRunning = false;
+
         mLogThread.quit();
         mLogThread = null;
-        mXmppConnection.disconnect();
-        mXmppConnection = null;
         try {
             if (mLocalLogFileWrite != null) {
                 mLocalLogFileWrite.flush();
@@ -292,7 +221,7 @@ public class LogManager implements NetworkStatusMonitor.NetworkStatusReport {
             Message logMsg = new Message();
             logMsg.setTo(LOG_DESTINATION);
             logMsg.setBody(logTxt);
-            mXmppConnection.sendPacket(logMsg);
+            // mXmppConnection.sendPacket(logMsg);
             return true;
         } catch (Exception e) {
             Log.e(TAG, "sendLogLine fails: " + e.getMessage());
@@ -309,36 +238,41 @@ public class LogManager implements NetworkStatusMonitor.NetworkStatusReport {
 
     public static void v(String tag, String msg) {
         Log.v(tag, msg);
-        if(!mRunning)return;
-        
+        if (!mRunning)
+            return;
+
         mLogManager.mLogThread.addLog(getComposedLogText("V/" + tag, msg));
     }
 
     public static void d(String tag, String msg) {
         Log.d(tag, msg);
-        if(!mRunning)return;
-        
+        if (!mRunning)
+            return;
+
         mLogManager.mLogThread.addLog(getComposedLogText("D/" + tag, msg));
     }
 
     public static void i(String tag, String msg) {
         Log.i(tag, msg);
-        if(!mRunning)return;
-        
+        if (!mRunning)
+            return;
+
         mLogManager.mLogThread.addLog(getComposedLogText("I/" + tag, msg));
     }
 
     public static void w(String tag, String msg) {
         Log.w(tag, msg);
-        if(!mRunning)return;
-        
+        if (!mRunning)
+            return;
+
         mLogManager.mLogThread.addLog(getComposedLogText("W/" + tag, msg));
     }
 
     public static void e(String tag, String msg) {
         Log.e(tag, msg);
-        if(!mRunning)return;
-        
+        if (!mRunning)
+            return;
+
         mLogManager.mLogThread.addLog(getComposedLogText("E/" + tag, msg));
     }
 }

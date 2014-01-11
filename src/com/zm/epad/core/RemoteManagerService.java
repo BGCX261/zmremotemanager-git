@@ -23,7 +23,6 @@ public class RemoteManagerService extends Service {
     private LogManager  mLogManager = null;
     private NetworkStatusMonitor mNetworkStatusMonitor = null;
     private NetCmdDispatcher mNetCmdDispatcher = null;
-    
     @Override
     public void onCreate() {
         super.onCreate();
@@ -42,7 +41,10 @@ public class RemoteManagerService extends Service {
     public void onDestroy() {
         super.onDestroy();
         
-        mXmppClient.stop();//automatically logout
+        mNetworkStatusMonitor.stop();
+        mLogManager.stop();
+        mXmppClient.stop();
+        mNetCmdDispatcher.stop();
         XmppClient.destroyXMPPEnvironment();
     }
 
@@ -65,16 +67,33 @@ public class RemoteManagerService extends Service {
         mLoginBundle.putString("resource", data.getString("resource"));
         
         mbInitialized = true;
-        mNetworkStatusMonitor = new NetworkStatusMonitor(this);
+        
+  
+        
         mNetCmdDispatcher = new NetCmdDispatcher();        
         mNetCmdDispatcher.registerDispacher(new IQDispatcherCommand(this, 
         		Constants.XMPP_NAMESPACE_CENTER));
         
-        mXmppClient = new XmppClient(this,mNetCmdDispatcher);
+        mXmppClient = new XmppClient(this);
+        mXmppClient.addXmppClientCallback(mNetCmdDispatcher);
+        
+        mLogManager = new LogManager(this, mXmppClient);
+        mXmppClient.addXmppClientCallback(mLogManager);
+        
+        mNetworkStatusMonitor = new NetworkStatusMonitor(this);
+        mNetworkStatusMonitor.addReportee(mXmppClient);
+        
+        mNetworkStatusMonitor.start(); // we could get network status very
+                                       // quickly. so there is a time race....
+        mNetCmdDispatcher.start();
+
         mXmppClient.start(mLoginBundle.getString("server"));
+
         mXmppClient.login(mLoginBundle.getString("username"), 
                 mLoginBundle.getString("password"), Build.SERIAL);
-        
+
+        mLogManager.start();
+
         mbInitialized = true;
         
         

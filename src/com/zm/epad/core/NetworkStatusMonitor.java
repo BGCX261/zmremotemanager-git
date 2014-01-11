@@ -5,24 +5,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
-import android.util.Log;
 
-import org.jivesoftware.smack.ConnectionListener;
 import java.util.ArrayList;
 
 public class NetworkStatusMonitor extends BroadcastReceiver {
 
     public interface NetworkStatusReport {
         public void reportNetworkStatus(boolean bConnected);
-      }
-
-  
+    }
 
     public static int XMPPCONLISTENER_TYPE_WORK = 0;
     public static int XMPPCONLISTENER_TYPE_LOG = 1;
     private static String TAG = "NetworkStatusMonitor";
-
-   
 
     public NetworkStatusMonitor(Context context) {
         mContext = context;
@@ -36,19 +30,25 @@ public class NetworkStatusMonitor extends BroadcastReceiver {
         return mbNetworkConnected;
     }
 
-   public void start(NetworkStatusReport reportees[]) {
-        for (NetworkStatusReport reportee : reportees) {
-            mReportees.add(reportee);
-        }
+    public void start() {
         IntentFilter filter = new IntentFilter();
         filter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
         mContext.registerReceiver(this, filter);
     }
 
+    public void addReportee(NetworkStatusReport reportee) {
+        synchronized (mReportees) {
+            mReportees.add(reportee);
+        }
+    }
+
     public void stop() {
         mContext.unregisterReceiver(this);
-        mReportees.clear();
-        mbNetworkConnected = false;
+        synchronized (mReportees) {
+            mReportees.clear();
+            mbNetworkConnected = false;
+        }
+
     }
 
     @Override
@@ -63,10 +63,21 @@ public class NetworkStatusMonitor extends BroadcastReceiver {
                 networkConnected = true;
             }
             // currently, we don't care if the network type if wifi or mobile
-            if (networkConnected != mbNetworkConnected) {
-                mbNetworkConnected = networkConnected;
-                for (NetworkStatusReport reportee : mReportees) {
-                    reportee.reportNetworkStatus(mbNetworkConnected);
+            Object[] reports = null;
+            boolean shouldReport = false;
+            synchronized (reports) {
+                reports = mReportees.toArray(); // multithread handling. we just
+                                                // get a snapshot of current
+                                                // mReportees.
+                if (networkConnected != mbNetworkConnected) {
+                    mbNetworkConnected = networkConnected;
+                    shouldReport = true;
+                }
+            }
+            if (shouldReport) {
+                for (Object reportee : reports) {
+                    ((NetworkStatusReport) reportee)
+                            .reportNetworkStatus(networkConnected);
                 }
             }
 
