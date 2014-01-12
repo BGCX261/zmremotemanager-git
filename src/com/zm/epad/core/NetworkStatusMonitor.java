@@ -65,13 +65,13 @@ public class NetworkStatusMonitor extends BroadcastReceiver {
             // currently, we don't care if the network type if wifi or mobile
             Object[] reports = null;
             boolean shouldReport = false;
-            synchronized (reports) {
+            synchronized (this) {
                 reports = mReportees.toArray(); // multithread handling. we just
                                                 // get a snapshot of current
                                                 // mReportees.
                 if (networkConnected != mbNetworkConnected) {
                     mbNetworkConnected = networkConnected;
-                    shouldReport = true;
+                    if(reports != null) shouldReport = true;
                 }
             }
             if (shouldReport) {

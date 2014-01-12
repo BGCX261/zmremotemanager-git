@@ -3,27 +3,13 @@ package com.zm.epad.ui;
 import com.zm.epad.core.LogManager;
 
 import org.jivesoftware.smack.XMPPConnection;
-import org.jivesoftware.smack.packet.IQ;
 
-import com.zm.epad.plugins.RemotePkgsManager;
-import com.zm.epad.core.XmppClient;
-
-
-import android.app.Activity;
 import android.app.ListActivity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ComponentName;
 import android.os.Bundle;
-import android.os.Debug;
-import com.zm.epad.core.LogManager;
-
-import android.util.Log;
 import android.view.View;
-import android.view.View.OnClickListener;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 
@@ -49,7 +35,7 @@ public class DebugActivity extends ListActivity {
         super.onCreate(savedInstanceState);
 
         ip = getIntent().getExtras().getString("ServerIP");
-        Log.v(TAG, ip);
+        LogManager.local(TAG, ip);
 
         connectLogManager(ip);
         mContext = this;
@@ -80,7 +66,7 @@ public class DebugActivity extends ListActivity {
              * mLogManager.start();
              */
         } catch (Exception e) {
-            Log.e(TAG, "LogManager" + e.toString());
+            LogManager.local(TAG, "LogManager" + e.toString());
         }
 
     }
@@ -126,11 +112,11 @@ public class DebugActivity extends ListActivity {
 
         try {
             if (startService(intent) != null)
-                Log.e(TAG, "start service succeed");
+                LogManager.local(TAG, "start service succeed");
             else
-                Log.e(TAG, "start service failed");
+                LogManager.local(TAG, "start service failed");
         } catch (Exception e) {
-            Log.e(TAG, "start service failed " + e.getMessage());
+            LogManager.local(TAG, "start service failed " + e.getMessage());
         }
 
         /*
@@ -164,7 +150,7 @@ public class DebugActivity extends ListActivity {
              * testConnection.sendPacket(cmdIQ);
              */
         } catch (Exception e) {
-            LogManager.e("XmppClient", "testXmppClient " + e.getMessage());
+            LogManager.local("XmppClient", "testXmppClient " + e.getMessage());
         }
 
     }
@@ -200,7 +186,7 @@ public class DebugActivity extends ListActivity {
             stopService(intent);
 
         } catch (Exception e) {
-            Log.e(TAG, "stop service failed " + e.getMessage());
+            LogManager.local(TAG, "stop service failed " + e.getMessage());
         }
         // TODO Auto-generated method stub
         super.onDestroy();

@@ -8,6 +8,7 @@ import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.packet.Packet;
 import org.jivesoftware.smack.provider.ProviderManager;
 
+import com.zm.epad.core.LogManager;
 import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
@@ -15,7 +16,6 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
-import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.concurrent.locks.Condition;
@@ -70,7 +70,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                     .obtainMessage(CMD_NETWORK_STATUS_UPDATE);
             msg.arg1 = bConnected ? 1 : 0;
             mXmppClientHandler.sendMessage(msg);
-            Log.e(TAG, "reportNetworkStatus : " + bConnected);
+            LogManager.local(TAG, "reportNetworkStatus : " + bConnected);
         } finally {
             mStatusLock.unlock();
         }
@@ -100,7 +100,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 mStatusLock.lock();
                 if (mXmppClientHandler == null)
                     return;
-                Log.d(TAG, "connectionClosed ");
+                LogManager.local(TAG, "connectionClosed ");
                 Message msg = mXmppClientHandler
                         .obtainMessage(CMD_CONNECTION_STATUS_UPDATE);
                 msg.arg1 = 0;
@@ -116,7 +116,8 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 mStatusLock.lock();
                 if (mXmppClientHandler == null)
                     return;
-                Log.d(TAG, "connectionClosedOnError " + e.getMessage());
+                LogManager.local(TAG,
+                        "connectionClosedOnError " + e.getMessage());
                 Message msg = mXmppClientHandler
                         .obtainMessage(CMD_CONNECTION_STATUS_UPDATE);
                 msg.arg1 = 0;
@@ -129,7 +130,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
 
         @Override
         public void reconnectingIn(int seconds) {
-            Log.d(TAG, "reconnectingIn " + seconds + "s");
+            LogManager.local(TAG, "reconnectingIn " + seconds + "s");
         }
 
         @Override
@@ -138,7 +139,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 mStatusLock.lock();
                 if (mXmppClientHandler == null)
                     return;
-                Log.d(TAG, "reconnectionSuccessful ");
+                LogManager.local(TAG, "reconnectionSuccessful ");
                 Message msg = mXmppClientHandler
                         .obtainMessage(CMD_CONNECTION_STATUS_UPDATE);
                 msg.arg1 = 1;
@@ -150,7 +151,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
 
         @Override
         public void reconnectionFailed(Exception e) {
-            Log.d(TAG, "reconnectionFailed : " + e.getMessage());
+            LogManager.local(TAG, "reconnectionFailed : " + e.getMessage());
         }
     }
 
@@ -162,7 +163,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         @Override
         public void handleMessage(Message msg) {
             int cmd = msg.what;
-            Log.d(TAG, "handleMessage cmd:" + cmd);
+            LogManager.local(TAG, "handleMessage cmd:" + cmd);
             if (cmd == CMD_START) {
                 handleStartCmd();
             } else if (cmd == CMD_LOGIN) {
@@ -201,7 +202,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     private void handleStartCmdLocked() {
         try {
             String serverName = mConnectionInfo.getString("server");
-            Log.d(TAG, "connect to server:" + serverName);
+            LogManager.local(TAG, "connect to server:" + serverName);
             mXmppConnection = new XMPPConnection(serverName);
             mXmppConnection.connect();
 
@@ -215,7 +216,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                     1, mXmppConnection, ProviderManager.getInstance());
 
         } catch (Exception e) {
-            Log.e(TAG, "handleStartCmd ERR: " + e.toString());
+            LogManager.local(TAG, "handleStartCmd ERR: " + e.toString());
             transitionToStatusLocked(XMPPCLIENT_STATUS_ERROR);
             dispatchXmppClientEvent(
                     XMPPCLIENT_EVENT_CONNECT,
@@ -246,7 +247,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             dispatchXmppClientEvent(XMPPCLIENT_EVENT_LOGIN,
                     true);
         } catch (Exception e) {
-            Log.e(TAG, "handleLoginCmd ERR: " + e.toString());
+            LogManager.local(TAG, "handleLoginCmd ERR: " + e.toString());
             transitionToStatusLocked(XMPPCLIENT_STATUS_ERROR);
             dispatchXmppClientEvent(XMPPCLIENT_EVENT_LOGIN,
                     false);
@@ -284,20 +285,22 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
 
     private void handleNetworkAvailable(int networkAvailable) {
         if (networkAvailable == 0) {
-            Log.e(TAG, "handleNetworkAvailable : network is down, need logout");
+            LogManager.local(TAG,
+                    "handleNetworkAvailable : network is down, need logout");
             handleLogoutCmd(false);
         } else if (networkAvailable == 1) {
             synchronized (mStatusLock) {
                 if (mCurrentStatus == XMPPCLIENT_STATUS_IDLE) {
                     mPrevStatus = XMPPCLIENT_STATUS_IDLE;
-                    Log.e(TAG, "\t xmppclient not working, do nothing");
+                    LogManager.local(TAG,
+                            "\t xmppclient not working, do nothing");
                 } else if (mPrevStatus == XMPPCLIENT_STATUS_STARTING
                         || mPrevStatus == XMPPCLIENT_STATUS_STARTED) {
-                    Log.e(TAG, "\t xmppclient re-start");
+                    LogManager.local(TAG, "\t xmppclient re-start");
                     handleStartCmdLocked();
                 } else if (mPrevStatus == XMPPCLIENT_STATUS_LOGINING
                         || mPrevStatus == XMPPCLIENT_STATUS_LOGINED) {
-                    Log.e(TAG, "\t xmppclient re-login");
+                    LogManager.local(TAG, "\t xmppclient re-login");
                     handleStartCmdLocked();
                     handleLoginCmdLocked();
                 }
@@ -403,19 +406,20 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
 
     public boolean start(String serverName) {
         if (serverName == null) {
-            Log.e(TAG, "FAILED: start without serverName");
+            LogManager.local(TAG, "FAILED: start without serverName");
             return false;
         }
         try {
             mStatusLock.lock();
             if (mCurrentStatus != XMPPCLIENT_STATUS_IDLE
                     && mCurrentStatus != XMPPCLIENT_STATUS_ERROR) {
-                Log.e(TAG, "Cannot start because currentstatus is "
+                LogManager.local(TAG, "Cannot start because currentstatus is "
                         + XMPPCLIENT_STATUS_STRINGS[mCurrentStatus]);
                 return false;
             }
 
-            Log.e(TAG, "xmppclient start with servername :" + serverName);
+            LogManager.local(TAG, "xmppclient start with servername :"
+                    + serverName);
             mConnectionInfo.putString("server", serverName);
             mXmppHandlerThread = new HandlerThread(TAG);
             mXmppHandlerThread.start();
@@ -431,11 +435,11 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     }
 
     public void stop() {
-        Log.e(TAG, "stop xmppclient");
+        LogManager.local(TAG, "stop xmppclient");
         try {
             mStatusLock.lock();
             if (mXmppClientHandler == null) {
-                Log.e(TAG, "xmppclient already stopped");
+                LogManager.local(TAG, "xmppclient already stopped");
                 return;
             }
             mXmppClientHandler.sendEmptyMessage(CMD_QUIT);
@@ -450,25 +454,27 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 mXmppHandlerThread.join();
                 mXmppHandlerThread = null;
             } catch (Exception e) {
-                Log.e(TAG, e.toString());
+                LogManager.local(TAG, e.toString());
             }
         } finally {
             mStatusLock.unlock();
         }
 
-        Log.e(TAG, "xmppclient stopped");
+        LogManager.local(TAG, "xmppclient stopped");
 
     }
 
     public boolean login(String usrName, String password, String resource) {
         if (usrName == null || password == null) {
-            Log.e(TAG,
+            LogManager
+                    .local(TAG,
                     "xmppclient login failed,either username or password is null");
             return false;
         }
         if (resource == null && Build.SERIAL == null) {
             if (Build.SERIAL == null) {
-                Log.e(TAG, "xmppclient login failed due to resource is null");
+                LogManager.local(TAG,
+                        "xmppclient login failed due to resource is null");
                 return false;
             }
             resource = Build.SERIAL;
@@ -482,12 +488,13 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
 
             if (mCurrentStatus != XMPPCLIENT_STATUS_STARTING
                     && mCurrentStatus != XMPPCLIENT_STATUS_STARTED) {
-                Log.e(TAG, "Cannot login because currentstatus is "
+                LogManager.local(TAG, "Cannot login because currentstatus is "
                         + XMPPCLIENT_STATUS_STRINGS[mCurrentStatus]);
                 return false;
             }
             transitionToStatusLocked(XMPPCLIENT_STATUS_LOGINING);
-            Log.e(TAG, "xmppclient login username " + usrName + " password "
+            LogManager.local(TAG, "xmppclient login username " + usrName
+                    + " password "
                     + password + " resource " + resource);
             mConnectionInfo.putString("username", usrName);
             mConnectionInfo.putString("password", password);
@@ -513,6 +520,9 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         return;
     }
 
+    public void sendLogPacket(String msg) {
+        // lalalalala
+    }
     public boolean sendPacket(Packet packet) {
         try {
             mStatusLock.lock();

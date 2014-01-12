@@ -1,6 +1,7 @@
 package com.zm.epad.ui;
 
 import com.zm.epad.R;
+import com.zm.epad.core.LogManager;
 import com.zm.xmpp.communication.Constants;
 import com.zm.xmpp.communication.client.ZMIQCommand;
 import com.zm.xmpp.communication.command.Command4App;
@@ -10,7 +11,6 @@ import org.jivesoftware.smack.XMPPConnection;
 import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -58,7 +58,7 @@ public class DebugActivitySender extends Activity {
                 try {
                     SendTestCommand4App(Constants.XMPP_APP_DISABLE);
                 } catch (Exception e) {
-                    Log.e(TAG, e.getMessage());
+                    LogManager.local(TAG, e.getMessage());
                 }
 
             }
@@ -86,7 +86,7 @@ public class DebugActivitySender extends Activity {
                     // testConnection.sendPacket(cmdIQ);
                     SendTestCommand4App(Constants.XMPP_APP_ENABLE);
                 } catch (Exception e) {
-                    Log.e(TAG, e.getMessage());
+                    LogManager.local(TAG, e.getMessage());
                 }
             }
 
@@ -100,7 +100,7 @@ public class DebugActivitySender extends Activity {
                 try {
                     SendTestCommand4App(Constants.XMPP_APP_REMOVE);
                 } catch (Exception e) {
-                    Log.e(TAG, e.getMessage());
+                    LogManager.local(TAG, e.getMessage());
                 }
 
             }
@@ -115,7 +115,7 @@ public class DebugActivitySender extends Activity {
                 try {
                     SendTestCommand4App(Constants.XMPP_APP_INSTALL);
                 } catch (Exception e) {
-                    Log.e(TAG, e.getMessage());
+                    LogManager.local(TAG, e.getMessage());
                 }
 
             }
@@ -137,7 +137,7 @@ public class DebugActivitySender extends Activity {
                     testConnection.connect();
                     testConnection.login("test", "test", "zhimotech");
                 } catch (Exception e) {
-                    Log.e(TAG, "testConnection" + e.toString());
+                    LogManager.local(TAG, "testConnection" + e.toString());
                 }
 
             }
@@ -158,7 +158,7 @@ public class DebugActivitySender extends Activity {
                     if (testConnection != null)
                         testConnection.disconnect();
                 } catch (Exception e) {
-                    Log.e(TAG, "testConnection" + e.toString());
+                    LogManager.local(TAG, "testConnection" + e.toString());
                 }
             }
 
@@ -169,20 +169,21 @@ public class DebugActivitySender extends Activity {
     void SendTestCommand4App(String action) {
         String name = mNameText.getText().toString();
         String userId = mUserIdText.getText().toString();
-        Log.v(TAG, "action:" + action + ", name:" + name + ", userId:" + userId);
+        LogManager.local(TAG, "action:" + action + ", name:" + name
+                + ", userId:" + userId);
 
         int IntUid = 0;
         try {
             IntUid = Integer.valueOf(userId);
         } catch (Exception e) {
-            Log.v(TAG, "userId:" + userId + ";" + e.toString());
+            LogManager.local(TAG, "userId:" + userId + ";" + e.toString());
             IntUid = 0;
         }
 
         Command4App Command = new Command4App(Constants.XMPP_NAMESPACE_CENTER, "9527",
                 action, "time2014", name, "ver1.1.1", "/sdcard/testinstall/"
                         + name, IntUid, null);
-        Log.v(TAG, "##Command##\n" + Command.toXML());
+        LogManager.local(TAG, "##Command##\n" + Command.toXML());
 
         ZMIQCommand cmdIQ = new ZMIQCommand();
         cmdIQ.setCommand(Command);
@@ -190,7 +191,7 @@ public class DebugActivitySender extends Activity {
         cmdIQ.setFrom("test@com.zm.openfire/zhimotech");
         cmdIQ.setPacketID("xyzzd");
         testConnection.sendPacket(cmdIQ);
-        Log.v(TAG, "##IQ##\n" + cmdIQ.toXML());
+        LogManager.local(TAG, "##IQ##\n" + cmdIQ.toXML());
     }
 
     @Override

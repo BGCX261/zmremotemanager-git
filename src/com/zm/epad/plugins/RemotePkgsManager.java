@@ -12,7 +12,8 @@ import android.content.pm.IPackageManager;
 import android.os.Environment;
 import android.os.IUserManager;
 import android.os.ServiceManager;
-import android.util.Log;
+
+import com.zm.epad.core.LogManager;
 import android.net.Uri;
 
 import java.io.File;
@@ -73,7 +74,7 @@ public class RemotePkgsManager {
                     PackageManager.COMPONENT_ENABLED_STATE_ENABLED, 0,userId,
                     "shell:" + android.os.Process.myUid());
         } catch (Exception e) {
-        	Log.e(TAG,"enablePkgForUser:"+e.toString());
+            LogManager.local(TAG, "enablePkgForUser:" + e.toString());
             return false;
         }
         return true;
@@ -86,7 +87,7 @@ public class RemotePkgsManager {
                     PackageManager.COMPONENT_ENABLED_STATE_DISABLED, 0,userId,
                     "shell:" + android.os.Process.myUid());
         } catch (Exception e) {
-        	Log.e(TAG,"disablePkgForUser:"+e.toString());
+            LogManager.local(TAG, "disablePkgForUser:" + e.toString());
             return false;
         }
         return true;
@@ -122,7 +123,7 @@ public class RemotePkgsManager {
                 }
             }
         } catch (RemoteException e) {
-        	Log.e(TAG,"uninstallPkgForUser:"+e.toString());
+            LogManager.local(TAG, "uninstallPkgForUser:" + e.toString());
            return false;
         }
         return obs.result;
@@ -168,7 +169,7 @@ public class RemotePkgsManager {
                 }
             }
         } catch (RemoteException e) {
-        	Log.e(TAG,"installPkgForUser:"+e.toString());
+            LogManager.local(TAG, "installPkgForUser:" + e.toString());
             return false;
         }
     }

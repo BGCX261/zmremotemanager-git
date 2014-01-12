@@ -8,7 +8,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
+import com.zm.epad.core.LogManager;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -43,7 +43,7 @@ public class DebugActivityHome extends Activity {
             public void onClick(View arg0) {
                 // TODO Auto-generated method stub
                 String ip = mIpText.getText().toString();
-                Log.v(TAG, "ip: " + ip);
+                LogManager.local(TAG, "ip: " + ip);
                 Intent intent = new Intent();
                 intent.setClass(mContext, DebugActivity.class);
                 intent.putExtra("ServerIP", ip);
@@ -57,7 +57,7 @@ public class DebugActivityHome extends Activity {
             @Override
             public void onClick(View arg0) {
                 // TODO Auto-generated method stub
-                Log.v(TAG, "advanced");
+                LogManager.local(TAG, "advanced");
                 Intent intent = new Intent("android.settings.USER_SETTINGS");
 
                 startActivity(intent);

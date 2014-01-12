@@ -8,7 +8,7 @@ import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.Packet;
 import org.xmlpull.v1.XmlPullParser;
 
-import android.util.Log;
+import com.zm.epad.core.LogManager;
 
 public class RemotePackageIQ extends IQ{
     static private final String TAG ="XmppClient-RemotePackageIQ";
@@ -90,7 +90,7 @@ public class RemotePackageIQ extends IQ{
             buf.append("</result>");
         }
        // buf.append("</" + XmppClient.XMPP_RMPACKAGE + ">");
-        Log.e(TAG, "created xml = " + buf.toString());
+        LogManager.local(TAG, "created xml = " + buf.toString());
         return buf.toString();
 
     }
@@ -113,7 +113,8 @@ public class RemotePackageIQ extends IQ{
                 }
             }
         }catch (Exception e) {
-            Log.e(TAG,"RemotePackageIQ parse fail: " + e.getMessage());
+            LogManager.local(TAG,
+                    "RemotePackageIQ parse fail: " + e.getMessage());
             return false;
         }
        

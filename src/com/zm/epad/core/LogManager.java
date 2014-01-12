@@ -1,278 +1,272 @@
 package com.zm.epad.core;
 
-import org.jivesoftware.smack.ConnectionListener;
-import org.jivesoftware.smack.XMPPConnection;
-import org.jivesoftware.smack.packet.Message;
-
+import android.R.string;
+import android.content.ContentValues;
 import android.content.Context;
-import android.util.Log;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
+import android.os.Message;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.LinkedList;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class LogManager implements XmppClient.XmppClientCallback {
+    static private String TAG = "LogManager";
 
     static public LogManager mLogManager;
 
+    static private String LOGDATABASE_TABLE_NAME = "logdata";
+    static private String LOGDATABASE_COLUMN_LOGMSG = "logmsg";
 
+    static private String LOGDATABASE_CREATE_TABLE = "CREATE TABLE IF NOT EXISTS logdata(id INTEGER PRIMARY KEY AutoIncrement,"
+            + "logmsg TEXT not null, logtime  TIMESTAMP default (datetime('now', 'localtime')));";
+
+    static private String LOGDATABASE_QUERY_LOG = "SELECT * FROM logdata";
+
+    static private String LOGDATABASE_DELETE_LOG = "DELETE FROM logdata WHERE (id <= ?)";
+
+    static private String LOGDATABASE_NAME = "logdatabase";
+    static private int LOGDATABASE_VERSION = 1;
+
+    ReentrantLock mLock = null;
+    private boolean mbLogined = false; // if xmppclient is logined.
+
+    private static int CMD_UPDATE_LOGGIN_STATUS = 1;
+    private static int CMD_ADD_LOGS = 2;
+
+    private LogDatabase mLogDatabase = null;
+    private SQLiteDatabase mSqLiteDatabase = null;
 
     private XmppClient mXmppClient = null;
-    private String mServerName;
-    private static String TAG = "LogManager";
-    private static String LOG_RES = "RemoteLog";
-    private File mLocalLogFile;
-    private BufferedWriter mLocalLogFileWrite;
-    private String LOG_DESTINATION = "zm-remote-logserver";
-    public LogThread mLogThread = null;
-    static private SimpleDateFormat mSimpleDateFormat = new SimpleDateFormat(
-            "yyyy-MM-dd HH:mmZ");
-    static private Date mLogDate = new Date();
-
-    volatile private Boolean mbConnected = false;
-
     private Context mContext = null;
-    private static boolean mRunning = false;
+
+    private HandlerThread mLogWorkingThread = null;
+    private LogWorkingHandler mLogWorkingHandler = null;
 
     public LogManager(Context context, XmppClient xmppClient) {
         mContext = context;
-        mLocalLogFile = mContext.getDir("local.log", Context.MODE_PRIVATE);
         mXmppClient = xmppClient;
+        mLogDatabase = new LogDatabase(context, LOGDATABASE_NAME,
+                LOGDATABASE_VERSION);
+        mLock = new ReentrantLock();
+        if (mLogManager == null)
+            mLogManager = this;
     }
 
+    static public LogManager getLogManager() {
+        return mLogManager;
+    }
+    private class LogDatabase extends SQLiteOpenHelper {
+        public LogDatabase(Context context, String name, int version) {
+            super(context, name, null, 1);
+            local(TAG, "constructor logdatabase with name = " + name
+                    + " version = " + version);
 
+        }
+
+        @Override
+        public void onCreate(SQLiteDatabase db) {
+            local(TAG, "create logdatabase");
+            try {
+                db.execSQL(LOGDATABASE_CREATE_TABLE);
+            } catch (Exception e) {
+                local(TAG, "create database fails:" + e.getMessage());
+            }
+        }
+
+        @Override
+        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+            // TODO Auto-generated method stub
+
+        }
+
+    }
 
     @Override
     public Object reportXMPPClientEvent(int xmppClientEvent, Object... args) {
+        mLock.lock();
+
+        boolean bUpdateLoginStatus = false;
+        if (xmppClientEvent == XmppClient.XMPPCLIENT_EVENT_LOGIN) {
+            boolean bLogined = ((Boolean) args[0]).booleanValue();
+            if (mbLogined != bLogined) {
+                bUpdateLoginStatus = true;
+                mbLogined = bLogined;
+            }
+
+        } else if (xmppClientEvent == XmppClient.XMPPCLIENT_EVENT_LOGOUT) {
+            if (mbLogined == true) {
+                bUpdateLoginStatus = true;
+                mbLogined = false;
+            }
+        } else if (xmppClientEvent == XmppClient.XMPPCLIENT_EVENT_CONNECTION_UPDATE_STATUS) {
+            boolean bNetworkConnected = ((Boolean) args[0]).booleanValue();
+            if (bNetworkConnected == false && mbLogined != bNetworkConnected) {
+                bUpdateLoginStatus = true;
+                mbLogined = false;
+            }
+        }
+        if (bUpdateLoginStatus && mLogWorkingHandler != null) {
+            mLogWorkingHandler.sendEmptyMessage(CMD_UPDATE_LOGGIN_STATUS);
+        }
+        mLock.unlock();
         return null;
     }
 
-
-
     public boolean start() {
-        mbConnected = true;
-        transferLeftOverLogs();// left over log must be sent synchronously
-        mLogThread = new LogThread();
-        mLogThread.start();
-
-        mRunning = true;
-
+        try {
+            mSqLiteDatabase = mLogDatabase.getWritableDatabase();
+        } catch (Exception e) {
+            local(TAG, "getWritableDatabase fails with " + e.getMessage());
+            mSqLiteDatabase = null;
+        }
+        mXmppClient.addXmppClientCallback(this);
+        mLogWorkingThread = new HandlerThread("logworkingthread");
+        mLogWorkingThread.start();
+        mLogWorkingHandler = new LogWorkingHandler(
+                mLogWorkingThread.getLooper());
         return true;
 
     }
 
-    private class LogThread extends Thread {
-        LinkedList<String> mlogsInQueue = new LinkedList<String>();
-        volatile private int mMaxiumLogsInQueu = 10000;
-        volatile private boolean mQuitTask;
-
-        public int setInQueueLogsCount(int newValue) {
-            int ret = mMaxiumLogsInQueu;
-            mMaxiumLogsInQueu = newValue;
-            return ret;
+    private class LogWorkingHandler extends Handler {
+        public LogWorkingHandler(Looper looper) {
+            super(looper);
         }
 
         @Override
-        public void run() {
-            synchronized (mlogsInQueue) {
-                while (mQuitTask == false) {
+        public void handleMessage(android.os.Message msg) {
+            int what = msg.what;
+            if (what == CMD_UPDATE_LOGGIN_STATUS) {
+                if (mSqLiteDatabase == null) {
+                    local(TAG, "logdatabase not opened");
+                    return;
+                }
+                while (true) {
+                    mLock.lock();
+                    if (mbLogined == false) {
+                        local(TAG, "xmppclient is offline");
+                        break;
+                    }
+                    mLock.unlock();
+                    Cursor logCursor = null;
                     try {
-                        String logTxt = mlogsInQueue.poll();
-                        if (logTxt == null) {
-                            mlogsInQueue.wait();
-                            continue;
-                        }
-                        if (mbConnected && sendLogLine(logTxt))
-                            continue;
-                        else {
-                            writeLogLine(logTxt);
+                        logCursor = mSqLiteDatabase.rawQuery(
+                                LOGDATABASE_QUERY_LOG, null);
+                        if (logCursor != null) {
+                            local(TAG, "we have " + logCursor.getCount()
+                                    + " offline logs");
+                            logCursor.moveToFirst();
+                            int sentId = -1;
+                            while (logCursor.isAfterLast()) {
+                                sentId = logCursor.getInt(0);
+                                String logTxt = logCursor.getString(1);
+                                String logTime = logCursor.getString(2);
+                                local(TAG, "<offline-log> " + logTxt + " "
+                                        + logTime);
+                                logCursor.moveToNext();
+                            }
+                            // we have sent offline-log which id is less than
+                            // sentId, so we can delete them
+                            int count = mSqLiteDatabase.delete(
+                                    LOGDATABASE_TABLE_NAME, "(id <= ?)",
+                                    new String[] { "" + sentId });
+                            local(TAG, "" + count + " logs are deleted");
+                        } else {
+                            local(TAG, "query with null cursor ");
+                            mbLogined = false;
                         }
                     } catch (Exception e) {
-                        mQuitTask = true;
+                        local(TAG, "query offline log fails with " + e.getMessage());
+                        mbLogined = false;
+                        if (logCursor != null) {
+                            logCursor.close();
+                        }
                     }
 
                 }
-            }
+            }else if(what == CMD_ADD_LOGS){
+                mLock.lock();
+                String logmsg = (String)msg.obj;
+                if(mbLogined == true){
+                    mXmppClient.sendLogPacket(logmsg);
+                } else {
+                    if (mSqLiteDatabase != null) {
+                        try {
+                            ContentValues cv = new ContentValues();
+                            cv.put(LOGDATABASE_COLUMN_LOGMSG, logmsg);
+                            mSqLiteDatabase.insert(LOGDATABASE_TABLE_NAME,
+                                    null, cv);
+                        } catch (Exception e) {
+                            local(TAG,
+                                    "offline log fail to insert into database "
+                                            + e.getMessage());
+                            local(TAG, "\t original msg is " + logmsg);
+                        }
+                    } else {
+                        local(TAG,
+                                "offline log can not be inserted into database. msg is "
+                                        + logmsg);
+                    }
 
-        }
-
-        @Override
-        public synchronized void start() {
-            mQuitTask = false;
-            mlogsInQueue.clear();
-            super.start();
-        }
-
-        public void quit() {
-            synchronized (mlogsInQueue) {
-                try {
-                    mQuitTask = true;
-                    mlogsInQueue.notifyAll();
-                    wait();
-                    Log.e(TAG, "LogThread quit");
-                    mlogsInQueue.clear();
-                } catch (Exception e) {
-                    // TODO: handle exception
                 }
-
+                mLock.unlock();
             }
-        }
-
-        public void addLog(String logTxt) {
-            synchronized (mlogsInQueue) {
-                int currentIndex = mlogsInQueue.size();
-                if (currentIndex >= mMaxiumLogsInQueu) {
-                    mlogsInQueue.poll();
-                }
-                mlogsInQueue.offer(logTxt);
-                mlogsInQueue.notifyAll();
-            }
-            return;
-
         }
 
     }
 
     public void stop() {
-
-        mRunning = false;
-
-        mLogThread.quit();
-        mLogThread = null;
+        mLock.lock();
+        mXmppClient.removeXmppClientCallback(this);
         try {
-            if (mLocalLogFileWrite != null) {
-                mLocalLogFileWrite.flush();
-                mLocalLogFileWrite.close();
-
-            }
-
+            mbLogined = false;
+            mLogWorkingThread.quit();
         } catch (Exception e) {
-            // TODO: handle exception
-        } finally {
-            mLocalLogFileWrite = null;
-            mLocalLogFile = null;
+            local(TAG, "stop logworkingthread : " + e.getMessage());
         }
-
-    }
-
-    private void transferLeftOverLogs() {
+        mLogWorkingHandler = null;
         try {
-            long leftSize = mLocalLogFile.length();
-            if (mLocalLogFile.length() != 0) {
-                Log.e(TAG, "transfer leftover logs to server, size :"
-                        + leftSize);
-                BufferedReader reader = new BufferedReader(new FileReader(
-                        mLocalLogFile));
-                boolean bInterrupted = false;
-                while (true) {
-                    String line = reader.readLine();
-                    if (line == null) {
-                        break;
-                    }
-                    if (sendLogLine(line) == false) {
-                        bInterrupted = true;
-                        break;
-                    }
-
-                }
-                reader.close();
-                if (bInterrupted) {
-                    Log.e(TAG,
-                            "transfer leftover logs to server is interrupted");
-                } else {
-                    mLocalLogFile.delete();// delete the old file as leftover
-                                           // logs have been sent to server
-                    mLocalLogFile = mContext.getDir("local.log",
-                            Context.MODE_PRIVATE);
-                    mLocalLogFileWrite = new BufferedWriter(new FileWriter(
-                            mLocalLogFile));
-                }
+            if (mSqLiteDatabase != null) {
+                mSqLiteDatabase.close();
+                mSqLiteDatabase = null;
             }
+            if (mLogDatabase != null)
+                mLogDatabase.close();
+        } catch (Exception e) {
+            local(TAG,
+                    "stop logworkingthread close database fail : "
+                            + e.getMessage());
+        }
+        mLock.unlock();
+        try {
+            mLogWorkingThread.join();
         } catch (Exception e) {
             // TODO: handle exception
         }
 
-        return;
     }
 
-    private boolean writeLogLine(String logTxt) {
-        if (mLocalLogFile == null || mLocalLogFileWrite == null)
-            return false;
-        try {
-            mLocalLogFileWrite.write(logTxt);
-            return true;
-        } catch (Exception e) {
-            Log.e(TAG, "writeLogLine fails: " + e.getMessage());
-            return false;
-        }
+    public void addServerLog(String tag, String txt) {
+        Message msg =  mLogWorkingHandler.obtainMessage();
+        msg.what = CMD_ADD_LOGS;
+        msg.obj = tag + ": " + txt;
+
+        mLogWorkingHandler.sendMessage(msg);
     }
 
-    private boolean sendLogLine(String logTxt) {
-        if (mbConnected == false) {
-            return false;
-        }
-        try {
-
-            Message logMsg = new Message();
-            logMsg.setTo(LOG_DESTINATION);
-            logMsg.setBody(logTxt);
-            // mXmppConnection.sendPacket(logMsg);
-            return true;
-        } catch (Exception e) {
-            Log.e(TAG, "sendLogLine fails: " + e.getMessage());
-            mbConnected = false;
-            return false;
-        }
+    public static String local(String tag, String msg) {
+        String tagWrapper = "com.zm.epad:" + tag;
+        android.util.Log.e(tagWrapper, msg);
+        return tagWrapper;
     }
 
-    public static String getComposedLogText(String tag, String msg) {
-        mLogDate.setTime(System.currentTimeMillis());
-        String timeInfo = mSimpleDateFormat.format(mLogDate);
-        return new String(tag + " :" + timeInfo + " " + msg);
+    public static void server(String tag, String msg) {
+        String tagWrapper = local(tag, msg);
+        mLogManager.addServerLog(tagWrapper, msg);
     }
 
-    public static void v(String tag, String msg) {
-        Log.v(tag, msg);
-        if (!mRunning)
-            return;
-
-        mLogManager.mLogThread.addLog(getComposedLogText("V/" + tag, msg));
-    }
-
-    public static void d(String tag, String msg) {
-        Log.d(tag, msg);
-        if (!mRunning)
-            return;
-
-        mLogManager.mLogThread.addLog(getComposedLogText("D/" + tag, msg));
-    }
-
-    public static void i(String tag, String msg) {
-        Log.i(tag, msg);
-        if (!mRunning)
-            return;
-
-        mLogManager.mLogThread.addLog(getComposedLogText("I/" + tag, msg));
-    }
-
-    public static void w(String tag, String msg) {
-        Log.w(tag, msg);
-        if (!mRunning)
-            return;
-
-        mLogManager.mLogThread.addLog(getComposedLogText("W/" + tag, msg));
-    }
-
-    public static void e(String tag, String msg) {
-        Log.e(tag, msg);
-        if (!mRunning)
-            return;
-
-        mLogManager.mLogThread.addLog(getComposedLogText("E/" + tag, msg));
-    }
 }

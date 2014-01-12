@@ -1,7 +1,7 @@
 package com.zm.epad.plugins;
 
 import com.zm.epad.R;
-
+import com.zm.epad.core.LogManager;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.admin.DeviceAdminReceiver;
@@ -22,7 +22,7 @@ import android.preference.PreferenceCategory;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceScreen;
 import android.text.TextUtils;
-import android.util.Log;
+
 import android.widget.Toast;
 
 import java.util.List;
@@ -1022,7 +1022,7 @@ public class RemoteDeviceAdmin extends PreferenceActivity {
                     .getString(expired ? R.string.expiration_status_past
                             : R.string.expiration_status_future);
             showToast(context, message);
-            Log.v(TAG, message);
+            LogManager.local(TAG, message);
         }
     }
 }

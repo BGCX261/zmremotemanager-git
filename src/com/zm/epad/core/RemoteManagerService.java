@@ -16,7 +16,7 @@ import android.os.IBinder;
 
 public class RemoteManagerService extends Service {
     
-    
+    private String TAG = "RemoteManagerService";
     private boolean     mbInitialized = false;
     private Bundle      mLoginBundle = new Bundle();
     private XmppClient  mXmppClient = null;
@@ -78,7 +78,7 @@ public class RemoteManagerService extends Service {
         mXmppClient.addXmppClientCallback(mNetCmdDispatcher);
         
         mLogManager = new LogManager(this, mXmppClient);
-        mXmppClient.addXmppClientCallback(mLogManager);
+        mLogManager.start();
         
         mNetworkStatusMonitor = new NetworkStatusMonitor(this);
         mNetworkStatusMonitor.addReportee(mXmppClient);
@@ -92,8 +92,8 @@ public class RemoteManagerService extends Service {
         mXmppClient.login(mLoginBundle.getString("username"), 
                 mLoginBundle.getString("password"), Build.SERIAL);
 
-        mLogManager.start();
 
+        LogManager.server(TAG, "RemoteManagerService started");
         mbInitialized = true;
         
         

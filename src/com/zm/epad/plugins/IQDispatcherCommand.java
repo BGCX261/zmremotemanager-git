@@ -4,7 +4,7 @@ import org.xmlpull.v1.XmlPullParser;
 
 import android.app.Application;
 import android.content.Context;
-import android.util.Log;
+import com.zm.epad.core.LogManager;
 import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.provider.IQProvider;
 import org.jivesoftware.smack.packet.Packet;
@@ -26,7 +26,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 	
 	public IQDispatcherCommand(Context context, String namespace)
 	{
-		Log.v(TAG, "create: "+namespace);
+        LogManager.local(TAG, "create: " + namespace);
 		mContext = context;
 		mStrElementName = "command";
 		mStrNameSpace = namespace;
@@ -38,12 +38,12 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     public IQ parseXMLStream(XmlPullParser parser){
 		IQ ret = null;
 		
-		Log.v(TAG, "parseXMLStream");
+        LogManager.local(TAG, "parseXMLStream");
 		try{
 			ret = mProvider.parseIQ(parser);
 		}catch(Exception e)
 		{
-			Log.e(TAG, "parseXMLStream:"+e.toString());
+            LogManager.local(TAG, "parseXMLStream:" + e.toString());
 		}
 		
         return ret;
@@ -54,20 +54,20 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     	   	
     	if(!(packet instanceof ZMIQCommand))
     	{
-    		Log.w(TAG,"not ZMIQCommand");
+            LogManager.local(TAG, "not ZMIQCommand");
     		return false;
     	}
     	boolean ret = true;
 
     	ICommand cmd = ((ZMIQCommand)packet).getCommand();
-    	Log.v(TAG, "handlePacket:"+cmd.getType());
+        LogManager.local(TAG, "handlePacket:" + cmd.getType());
     	
     	if(cmd.getType().equals("app"))
     	{
     		ret = handleCommand4App((ICommand4App)cmd);
     	}else
     	{
-    		Log.w(TAG, "bad command: "+cmd.getType());
+            LogManager.local(TAG, "bad command: " + cmd.getType());
     		ret = false;
     	}
     	return ret;
@@ -76,7 +76,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     private boolean handleCommand4App(ICommand4App cmd)
     {
     	boolean ret = false;    	
-    	Log.v(TAG, "handleCommand4App:"+cmd.getAction());
+        LogManager.local(TAG, "handleCommand4App:" + cmd.getAction());
     	
     	if(cmd.getAction().equals(Constants.XMPP_APP_ENABLE))
     	{
@@ -104,11 +104,11 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     	}
     	else
     	{
-    		Log.d(TAG,"bad action");
+            LogManager.local(TAG, "bad action");
     		return false;
     	}
     	
-    	Log.v(TAG, "return:"+ret);
+        LogManager.local(TAG, "return:" + ret);
     	return ret;
     	
     }
