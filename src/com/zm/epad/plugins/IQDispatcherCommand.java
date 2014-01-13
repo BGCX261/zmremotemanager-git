@@ -4,35 +4,46 @@ import org.xmlpull.v1.XmlPullParser;
 
 import android.app.Application;
 import android.content.Context;
+import android.os.HandlerThread;
+
 import com.zm.epad.core.LogManager;
+import com.zm.epad.core.XmppClient;
+
 import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.provider.IQProvider;
 import org.jivesoftware.smack.packet.Packet;
 
 import com.zm.epad.core.NetCmdDispatcher.CmdDispatchInfo;
 import com.zm.xmpp.communication.Constants;
+import com.zm.xmpp.communication.client.ResultFactory;
 import com.zm.xmpp.communication.client.ZMIQCommand;
 import com.zm.xmpp.communication.client.ZMIQCommandProvider;
+import com.zm.xmpp.communication.client.ZMIQResult;
 import com.zm.xmpp.communication.command.ICommand;
 import com.zm.xmpp.communication.command.ICommand4App;
 import com.zm.xmpp.communication.command.ICommand4Query;
+import com.zm.xmpp.communication.result.IResult;
 
 public class IQDispatcherCommand extends CmdDispatchInfo {
 	private static final String  TAG="IQDispatcherCommand";
 	
 	private Context mContext;
+	private XmppClient mXmppClient;
 	private ZMIQCommandProvider mProvider;
 	private RemotePkgsManager mPkgManager;
+	private ResultFactory mResultFactory;
 
 	
-	public IQDispatcherCommand(Context context, String namespace)
+	public IQDispatcherCommand(Context context, String namespace, XmppClient XmppCliet)
 	{
         LogManager.local(TAG, "create: " + namespace);
 		mContext = context;
+		
 		mStrElementName = "command";
 		mStrNameSpace = namespace;
 		mPkgManager = new RemotePkgsManager(mContext);		
 		mProvider = new ZMIQCommandProvider();
+		mResultFactory = new ResultFactory(mContext);
 	}
 	
 	@Override
@@ -108,10 +119,18 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     	else
     	{
             LogManager.local(TAG, "bad action");
-    		return false;
+    	}
+    	   	
+    	IResult result = mResultFactory.getResult(ResultFactory.RESULT_NORMAL, 
+    			cmd.getId(), ret==true?"OK":"NG");
+    	if(result != null)
+    	{
+    		ZMIQResult resultIQ = new ZMIQResult();
+        	resultIQ.setResult(result);
+        	mXmppClient.sendPacketAsync((Packet)resultIQ);
     	}
     	
-        LogManager.local(TAG, "return:" + ret);
+        LogManager.local(TAG, "handleCommand4App return:" + ret);
     	return ret;
     	
     }
@@ -119,27 +138,45 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     private boolean handleCommand4Query(ICommand4Query cmd)
     {
     	boolean ret = false;
+    	IResult result = null;
     	String action = cmd.getAction();
-    	LogManager.local(TAG, "handleCommand4App:" + action);
+    	LogManager.local(TAG, "handleCommand4Query:" + action);
     	
     	if(action.equals(Constants.XMPP_QUERY_APP))
     	{
-    		
+    		result = mResultFactory.getResult(ResultFactory.RESULT_APP,cmd.getId(),null);
     	}
     	else if(action.equals(Constants.XMPP_QUERY_DEVICE))
     	{
-    		
+    		result = mResultFactory.getResult(ResultFactory.RESULT_DEVICE,cmd.getId(),null);
     	}
     	else if(action.equals(Constants.XMPP_QUERY_ENV))
     	{
-    		
+    		result = mResultFactory.getResult(ResultFactory.RESULT_ENV,cmd.getId(),null);
     	}
     	else
     	{
     		LogManager.local(TAG, "bad action");
     	}
-    	
-    	LogManager.local(TAG, "return:" + ret);
+
+    	ZMIQResult resultIQ = new ZMIQResult();
+    	if(result != null)
+    	{
+    		ret = true;
+        	resultIQ.setResult(result);
+        	mXmppClient.sendPacketAsync((Packet)resultIQ);
+    	}else
+    	{
+        	result = mResultFactory.getResult(ResultFactory.RESULT_NORMAL, 
+        			cmd.getId(), "NG");
+        	if(result != null)
+        	{
+            	resultIQ.setResult(result);
+            	mXmppClient.sendPacketAsync((Packet)resultIQ);
+        	}
+    	}
+
+    	LogManager.local(TAG, "handleCommand4Query return: "+ret);
     	return ret;
     }
 		

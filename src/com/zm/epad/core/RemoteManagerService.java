@@ -72,7 +72,7 @@ public class RemoteManagerService extends Service {
         
         mNetCmdDispatcher = new NetCmdDispatcher();        
         mNetCmdDispatcher.registerDispacher(new IQDispatcherCommand(this, 
-        		Constants.XMPP_NAMESPACE_CENTER));
+        		Constants.XMPP_NAMESPACE_CENTER, mXmppClient));
         
         mXmppClient = new XmppClient(this);
         mXmppClient.addXmppClientCallback(mNetCmdDispatcher);
