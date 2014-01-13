@@ -112,4 +112,8 @@
     <string name="debug_disable">Disable</string>
     <string name="debug_install">Install</string>
     <string name="debug_remove">Remove</string>
-  </resources>
+    
+    <!-- Strings used by zmtech_authenticator -->
+    <string name="acc_label">ZMTech Account Authenticator</string>
+    <string name="acc_title_fmt">ZMTech Account Format</string>
+</resources>

@@ -5,18 +5,18 @@
        >
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.ACCESS_ALL_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
 
-    <!-- uses-permission android:name="android.permission.STATUS_BAR_SERVICE" />
+    <!--
+    uses-permission android:name="android.permission.STATUS_BAR_SERVICE" />
     <uses-permission android:name="android.permission.STATUS_BAR" />
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
-    <uses-permission android:name="android.permission.REMOTE_AUDIO_PLAYBACK" / -->
+    <uses-permission android:name="android.permission.REMOTE_AUDIO_PLAYBACK" /
+    -->
 
     <uses-permission android:name="android.permission.MANAGE_USERS" />
     <uses-permission android:name="android.permission.READ_PROFILE" />
@@ -24,81 +24,104 @@
     <uses-permission android:name="android.permission.CONFIGURE_WIFI_DISPLAY" />
     <!-- uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" / -->
 
+
     <!-- Networking and telephony -->
-    <!-- uses-permission android:name="android.permission.BLUETOOTH" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" / -->
+    <!--
+    uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" /
+    -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <!-- uses-permission android:name="android.permission.MANAGE_NETWORK_POLICY" / -->
-    <uses-permission android:name="android.permission.INTERNET"/>
-    
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- Physical hardware -->
-    <!--  uses-permission android:name="android.permission.MANAGE_USB" />
+    <!--
+    uses-permission android:name="android.permission.MANAGE_USB" />
     <uses-permission android:name="android.permission.DEVICE_POWER" />
     <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS" />
     <uses-permission android:name="android.permission.UPDATE_DEVICE_STATS" />
     <uses-permission android:name="android.permission.MASTER_CLEAR" />
-    <uses-permission android:name="android.permission.VIBRATE" / -->
-
-
+    <uses-permission android:name="android.permission.VIBRATE" /
+    -->
+    <uses-permission
+        android:name="android.permission.GET_ACCOUNTS" />
+    <uses-permission android:name="android.permission.MANAGE_ACCOUNTS"/>
+    <uses-permission
+        android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
     
-
     <application
-        android:persistent="true"
-        android:allowClearUserData="false"
         android:allowBackup="false"
+        android:allowClearUserData="false"
         android:hardwareAccelerated="true"
-        android:process="system"
-        >
+        android:persistent="true"
+        android:process="system" >
+        <service android:name=".core.RemoteManagerService" />
+        
+        <service android:name=".plugins.RemoteAccountService" 
+            android:exported="true"
+            android:enabled="true"
+            >
+            <intent-filter>
+                <action android:name="android.accounts.AccountAuthenticator" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accounts.AccountAuthenticator"
+                android:resource="@xml/zmtech_authenticator" />
+        </service>
 
-        <service android:name=".core.RemoteManagerService"/>
-
-    
-        <receiver android:name=".core.BootReceiver">
+        <receiver android:name=".core.BootReceiver" >
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
-       <!-- Device Admin Samples -->
+        <!-- Device Admin Samples -->
 
-        <activity android:name="com.zm.epad.plugins.RemoteDeviceAdmin"
-                android:label="@string/activity_remote_device_admin">
+        <activity
+            android:name="com.zm.epad.plugins.RemoteDeviceAdmin"
+            android:label="@string/activity_remote_device_admin" >
         </activity>
 
-        <receiver android:name="com.zm.epad.plugins.RemoteDeviceAdmin$RemoteDeviceAdminReceiver"
-                android:label="@string/remote_device_admin"
-                android:description="@string/remote_device_admin_description"
-                android:permission="android.permission.BIND_DEVICE_ADMIN">
-            <meta-data android:name="android.app.device_admin"
-                       android:resource="@xml/remote_device_admin" />
+        <receiver
+            android:name="com.zm.epad.plugins.RemoteDeviceAdmin$RemoteDeviceAdminReceiver"
+            android:description="@string/remote_device_admin_description"
+            android:label="@string/remote_device_admin"
+            android:permission="android.permission.BIND_DEVICE_ADMIN" >
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/remote_device_admin" />
+
             <intent-filter>
                 <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
             </intent-filter>
         </receiver>
-        
-         <activity android:name=".ui.DebugActivityHome">
-             <intent-filter>
+
+        <activity android:name=".ui.DebugActivityHome" >
+            <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter >
+            </intent-filter>
         </activity>
-                
-         <activity android:name=".ui.DebugActivity"
-            android:excludeFromRecents="true"
-            >
-             <intent-filter>
+        <activity
+            android:name=".ui.DebugActivity"
+            android:excludeFromRecents="true" >
+            <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter >
+            </intent-filter>
         </activity>
-        <activity android:name=".ui.DebugActivitySender">
-             <intent-filter>
+        <activity android:name=".ui.DebugActivitySender" >
+            <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter >
+            </intent-filter>
         </activity>
     </application>
+
 </manifest>
