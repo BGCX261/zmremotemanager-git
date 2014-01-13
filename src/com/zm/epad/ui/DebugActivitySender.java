@@ -10,11 +10,13 @@ import org.jivesoftware.smack.XMPPConnection;
 
 import android.app.Activity;
 import android.content.Context;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
+import android.os.Build;
 
 public class DebugActivitySender extends Activity {
     public static final String TAG = "DebugActivitySender";
@@ -187,7 +189,7 @@ public class DebugActivitySender extends Activity {
 
         ZMIQCommand cmdIQ = new ZMIQCommand();
         cmdIQ.setCommand(Command);
-        cmdIQ.setTo("dengfanping@com.zm.openfire/zhimotech");
+        cmdIQ.setTo("dengfanping@com.zm.openfire/"+Build.SERIAL);
         cmdIQ.setFrom("test@com.zm.openfire/zhimotech");
         cmdIQ.setPacketID("xyzzd");
         testConnection.sendPacket(cmdIQ);
