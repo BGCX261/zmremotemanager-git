@@ -15,14 +15,15 @@ public class Command4App extends AbstractCommand implements ICommand4App{
 		
 	}
 	
-	public Command4App(String direction,String id,String action,String time,
-			String appName,String version,String url){
-		
+	public Command4App(String direction,String id,String action,String time,String appName,String version,String url){
 		this.direction=direction;
 		this.id=id;
 		this.action=action;
-		this.issuetime=time;
-		this.app=new Application(appName,version,url);
+		this.issueTime=time;
+		Application app=new Application(appName,version,url);
+		this.app=app;
+		
+		
 	}
 
 	public Command4App(String direction,String id,String action,String time,
@@ -31,16 +32,16 @@ public class Command4App extends AbstractCommand implements ICommand4App{
 		this.direction=direction;
 		this.id=id;
 		this.action=action;
-		this.issuetime=time;
+		this.issueTime=time;
 		this.app=new Application(appName,version,url);
 
 		this.userId = userId;
 		this.validation = validation;
 	}
 
-    public Application getApp() {
-    	return app;
-    }
+	public Application getApp() {
+		return app;
+	}
 
 	public void setApp(Application app) {
 		this.app = app;
@@ -59,7 +60,7 @@ public class Command4App extends AbstractCommand implements ICommand4App{
 		buf.append("/action=");
 		buf.append(this.action);
 		buf.append("/issuetime=");
-		buf.append(this.issuetime);		
+		buf.append(this.issueTime);		
 		if(this.app!=null){
 			buf.append("/appname=");
 			buf.append(this.app.getAppName());
@@ -67,6 +68,7 @@ public class Command4App extends AbstractCommand implements ICommand4App{
 			buf.append(this.app.getVersion());
 			buf.append("/url=");
 			buf.append(this.app.getUrl());
+			
 		}
 		buf.append("/userId=");
 		buf.append(this.userId);
@@ -82,7 +84,9 @@ public class Command4App extends AbstractCommand implements ICommand4App{
 		StringBuffer buf=new StringBuffer();
 		buf.append("<command xmlns=\"");
 		buf.append(this.direction);
-		buf.append("\" type=\"app\">");
+		buf.append("\" type=\"");
+		buf.append(type);		
+		buf.append("\">");
 		buf.append("<id>");
 		buf.append(this.id);
 		buf.append("</id>");
@@ -90,10 +94,9 @@ public class Command4App extends AbstractCommand implements ICommand4App{
 		buf.append(this.action);
 		buf.append("</action>");
 		buf.append("<issuetime>");
-		buf.append(this.issuetime);
+		buf.append(this.issueTime);
 		buf.append("</issuetime>");
-		if(this.app != null)
-		{
+		if(this.app!=null){
 			buf.append("<appname>");
 			buf.append(this.app.getAppName());
 			buf.append("</appname>");
@@ -208,7 +211,7 @@ public class Command4App extends AbstractCommand implements ICommand4App{
 		}else if(paraName.equals("id")){
 			this.setId(value);
 		}else if(paraName.equals("issuetime")){
-			this.setIssuetime(value);
+			this.setIssueTime(value);
 		}else if(paraName.equals("appname")){
 			this.setAppName(value);
 		}else if(paraName.equals("version")){
