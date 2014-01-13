@@ -14,7 +14,7 @@ public class BootReceiver extends BroadcastReceiver {
 	        Intent serviceIntent = new Intent();
             serviceIntent.setComponent(new ComponentName("com.zm.epad",
                     "com.zm.epad.core.RemoteManagerService"));
-	        context.startService(serviceIntent);
+	        //context.startService(serviceIntent);
 	    }
 
 	}
