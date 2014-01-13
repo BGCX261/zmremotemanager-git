@@ -4,7 +4,10 @@ import org.xmlpull.v1.XmlPullParser;
 
 import android.app.Application;
 import android.content.Context;
+import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Looper;
+import android.os.Message;
 
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.XmppClient;
@@ -27,11 +30,15 @@ import com.zm.xmpp.communication.result.IResult;
 public class IQDispatcherCommand extends CmdDispatchInfo {
 	private static final String  TAG="IQDispatcherCommand";
 	
+	private static final int EVT_COMMAND = 1;
+	
 	private Context mContext;
 	private XmppClient mXmppClient;
 	private ZMIQCommandProvider mProvider;
 	private RemotePkgsManager mPkgManager;
 	private ResultFactory mResultFactory;
+	private HandlerThread mThread;
+	private Handler mHandler;
 
 	
 	public IQDispatcherCommand(Context context, String namespace, XmppClient XmppCliet)
@@ -41,9 +48,16 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 		
 		mStrElementName = "command";
 		mStrNameSpace = namespace;
+		mXmppClient = XmppCliet;
+		
 		mPkgManager = new RemotePkgsManager(mContext);		
 		mProvider = new ZMIQCommandProvider();
 		mResultFactory = new ResultFactory(mContext);
+		
+		mThread = new HandlerThread(TAG);
+		mThread.start();
+		mHandler = new Handler(mThread.getLooper(), new IQCommandCallback());
+		
 	}
 	
 	@Override
@@ -69,22 +83,48 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
             LogManager.local(TAG, "not ZMIQCommand");
     		return false;
     	}
-    	boolean ret = true;
 
     	ICommand cmd = ((ZMIQCommand)packet).getCommand();
         LogManager.local(TAG, "handlePacket:" + cmd.getType());
+        
+        return postCommand(cmd);
+    }
+    
+    private boolean postCommand(ICommand cmd)
+    {
+    	Message msg = mHandler.obtainMessage(EVT_COMMAND,cmd);
+
+    	return mHandler.sendMessage(msg);
+    }
+    
+    private class IQCommandCallback implements Handler.Callback{
+
+		@Override
+		public boolean handleMessage(Message msg) {
+			
+			boolean ret = false;
+			
+			switch(msg.what){
+			case EVT_COMMAND:
+				ICommand cmd = (ICommand)msg.obj;
+		    	if(cmd.getType().equals("app"))
+		    	{
+		    		ret = handleCommand4App((ICommand4App)cmd);
+		    	}else if(cmd.getType().equals("query"))
+		    	{
+		    		ret = handleCommand4Query((ICommand4Query)cmd);
+		    	}else{
+		            LogManager.local(TAG, "bad command: " + cmd.getType());
+		    		ret = false;
+		    	}
+		    	break;
+			default:
+				break;
+			}
+
+	    	return ret;
+		}
     	
-    	if(cmd.getType().equals("app"))
-    	{
-    		ret = handleCommand4App((ICommand4App)cmd);
-    	}else if(cmd.getType().equals("query"))
-    	{
-    		ret = handleCommand4Query((ICommand4Query)cmd);
-    	}else{
-            LogManager.local(TAG, "bad command: " + cmd.getType());
-    		ret = false;
-    	}
-    	return ret;
     }
 
     private boolean handleCommand4App(ICommand4App cmd)
@@ -179,5 +219,5 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     	LogManager.local(TAG, "handleCommand4Query return: "+ret);
     	return ret;
     }
-		
+	
 }
