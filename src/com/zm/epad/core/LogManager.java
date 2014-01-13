@@ -11,6 +11,7 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 
+
 import java.util.concurrent.locks.ReentrantLock;
 
 public class LogManager implements XmppClient.XmppClientCallback {
@@ -103,7 +104,7 @@ public class LogManager implements XmppClient.XmppClientCallback {
                 mbLogined = false;
             }
         } else if (xmppClientEvent == XmppClient.XMPPCLIENT_EVENT_CONNECTION_UPDATE_STATUS) {
-            boolean bNetworkConnected = ((Boolean) args[0]).booleanValue();
+            boolean bNetworkConnected = ((Integer)args[0]).equals(0)?false:true;
             if (bNetworkConnected == false && mbLogined != bNetworkConnected) {
                 bUpdateLoginStatus = true;
                 mbLogined = false;
@@ -157,8 +158,8 @@ public class LogManager implements XmppClient.XmppClientCallback {
                         logCursor = mSqLiteDatabase.rawQuery(
                                 LOGDATABASE_QUERY_LOG, null);
                         if (logCursor != null) {
-                            local(TAG, "we have " + logCursor.getCount()
-                                    + " offline logs");
+                            //local(TAG, "we have " + logCursor.getCount()
+                            //        + " offline logs");
                             logCursor.moveToFirst();
                             int sentId = -1;
                             while (logCursor.isAfterLast()) {
@@ -174,7 +175,7 @@ public class LogManager implements XmppClient.XmppClientCallback {
                             int count = mSqLiteDatabase.delete(
                                     LOGDATABASE_TABLE_NAME, "(id <= ?)",
                                     new String[] { "" + sentId });
-                            local(TAG, "" + count + " logs are deleted");
+                            //local(TAG, "" + count + " logs are deleted");
                         } else {
                             local(TAG, "query with null cursor ");
                             mbLogined = false;
