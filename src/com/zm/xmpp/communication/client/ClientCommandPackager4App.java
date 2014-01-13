@@ -19,7 +19,7 @@ public class ClientCommandPackager4App implements IClientCommandPackager{
 
 		if(c instanceof ICommand4App)
 		{
-			((ICommand4App) c).configCommand(paraName, value);
+			((ICommand4App) c).toCommand(paraName, value);
 		}
 		return;
 	}

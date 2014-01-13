@@ -203,7 +203,7 @@ public class Command4App extends AbstractCommand implements ICommand4App{
 	}
 
 	@Override
-	public void configCommand(String paraName, String value) {
+	public void toCommand(String paraName, String value) {
 		// TODO Auto-generated method stub
 
 		if(paraName.equals("action")){
