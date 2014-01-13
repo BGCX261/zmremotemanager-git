@@ -12,6 +12,7 @@ public class ClientCommandUtil {
 	
 	public static void init(){
 		packagers.put(ClientCommandPackager4App.name, new ClientCommandPackager4App());
+		packagers.put(ClientCommandPackager4Query.name, new ClientCommandPackager4Query());
 		initialed=true;
 	}
 	

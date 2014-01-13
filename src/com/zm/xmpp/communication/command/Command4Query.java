@@ -3,7 +3,7 @@ package com.zm.xmpp.communication.command;
 import com.zm.epad.structure.Application;
 import com.zm.xmpp.communication.Constants;
 
-public class Command4Query extends AbstractCommand implements ICommand{
+public class Command4Query extends AbstractCommand implements ICommand4Query{
 
 	private final static String type="query";
 
@@ -57,6 +57,18 @@ public class Command4Query extends AbstractCommand implements ICommand{
 		buf.append("</issuetime>");
 		buf.append("</command>");
 		return buf.toString();
+	}
+
+	@Override
+	public void toCommand(String paraName, String value) {
+		// TODO Auto-generated method stub
+		if(paraName.equals("action")){
+			this.setAction(value);
+		}else if(paraName.equals("id")){
+			this.setId(value);
+		}else if(paraName.equals("issuetime")){
+			this.setIssueTime(value);
+		}
 	}
 
 }

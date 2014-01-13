@@ -15,6 +15,7 @@ import com.zm.xmpp.communication.client.ZMIQCommand;
 import com.zm.xmpp.communication.client.ZMIQCommandProvider;
 import com.zm.xmpp.communication.command.ICommand;
 import com.zm.xmpp.communication.command.ICommand4App;
+import com.zm.xmpp.communication.command.ICommand4Query;
 
 public class IQDispatcherCommand extends CmdDispatchInfo {
 	private static final String  TAG="IQDispatcherCommand";
@@ -65,8 +66,10 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     	if(cmd.getType().equals("app"))
     	{
     		ret = handleCommand4App((ICommand4App)cmd);
-    	}else
+    	}else if(cmd.getType().equals("query"))
     	{
+    		ret = handleCommand4Query((ICommand4Query)cmd);
+    	}else{
             LogManager.local(TAG, "bad command: " + cmd.getType());
     		ret = false;
     	}
@@ -111,6 +114,33 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
         LogManager.local(TAG, "return:" + ret);
     	return ret;
     	
+    }
+    
+    private boolean handleCommand4Query(ICommand4Query cmd)
+    {
+    	boolean ret = false;
+    	String action = cmd.getAction();
+    	LogManager.local(TAG, "handleCommand4App:" + action);
+    	
+    	if(action.equals(Constants.XMPP_QUERY_APP))
+    	{
+    		
+    	}
+    	else if(action.equals(Constants.XMPP_QUERY_DEVICE))
+    	{
+    		
+    	}
+    	else if(action.equals(Constants.XMPP_QUERY_ENV))
+    	{
+    		
+    	}
+    	else
+    	{
+    		LogManager.local(TAG, "bad action");
+    	}
+    	
+    	LogManager.local(TAG, "return:" + ret);
+    	return ret;
     }
 		
 }
