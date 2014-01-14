@@ -94,17 +94,15 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     	{
             LogManager.local(TAG, "not ZMIQCommand");
     		return false;
-    	}
-
-    	ICommand cmd = ((ZMIQCommand)packet).getCommand();
-        LogManager.local(TAG, "handlePacket:" + cmd.getType());
+    	}        
         
-        return postCommand(cmd);
+        return postIQCommand((ZMIQCommand)packet);
     }
     
-    private boolean postCommand(ICommand cmd)
+    private boolean postIQCommand(ZMIQCommand iq)
     {
-    	Message msg = mHandler.obtainMessage(EVT_COMMAND,cmd);
+    	LogManager.local(TAG, "handlePacket:" + iq.getCommand().getType());
+    	Message msg = mHandler.obtainMessage(EVT_COMMAND,iq);
 
     	return mHandler.sendMessage(msg);
     }
@@ -118,17 +116,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 			
 			switch(msg.what){
 			case EVT_COMMAND:
-				ICommand cmd = (ICommand)msg.obj;
-		    	if(cmd.getType().equals("app"))
-		    	{
-		    		ret = handleCommand4App((ICommand4App)cmd);
-		    	}else if(cmd.getType().equals("query"))
-		    	{
-		    		ret = handleCommand4Query((ICommand4Query)cmd);
-		    	}else{
-		            LogManager.local(TAG, "bad command: " + cmd.getType());
-		    		ret = false;
-		    	}
+				ret = handleIQCommand((ZMIQCommand)msg.obj);
 		    	break;
 			default:
 				break;
@@ -136,10 +124,47 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 
 	    	return ret;
 		}
-    	
+   	
     }
 
-    private boolean handleCommand4App(ICommand4App cmd)
+	private boolean handleIQCommand(ZMIQCommand iq)
+	{
+		IResult ret = null;
+		ICommand cmd = iq.getCommand();
+		LogManager.local(TAG, "handleIQCommand:"+cmd.getType());
+		
+    	if(cmd.getType().equals("app"))
+    	{
+    		ret = handleCommand4App((ICommand4App)cmd);
+    	}else if(cmd.getType().equals("query"))
+    	{
+    		ret = handleCommand4Query((ICommand4Query)cmd);
+    	}else{
+            LogManager.local(TAG, "bad command: " + cmd.getType());
+    		return false;
+    	}
+    	
+    	ZMIQResult resultIQ = new ZMIQResult();
+    	resultIQ.setTo(iq.getFrom());
+    	resultIQ.setFrom(iq.getTo());
+    	if(ret != null)
+    	{
+        	resultIQ.setResult(ret);
+        	mXmppClient.sendPacketAsync((Packet)resultIQ);
+    	}else
+    	{
+    		ret = mResultFactory.getResult(ResultFactory.RESULT_NORMAL, 
+        			cmd.getId(), "NG");
+        	if(ret != null)
+        	{
+            	resultIQ.setResult(ret);
+            	mXmppClient.sendPacketAsync((Packet)resultIQ);
+        	}
+    	}
+    	return ret == null?false:true;
+	}
+	
+    private IResult handleCommand4App(ICommand4App cmd)
     {
     	boolean ret = false;    	
         LogManager.local(TAG, "handleCommand4App:" + cmd.getAction());
@@ -175,21 +200,14 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     	   	
     	IResult result = mResultFactory.getResult(ResultFactory.RESULT_NORMAL, 
     			cmd.getId(), ret==true?"OK":"NG");
-    	if(result != null)
-    	{
-    		ZMIQResult resultIQ = new ZMIQResult();
-        	resultIQ.setResult(result);
-        	mXmppClient.sendPacketAsync((Packet)resultIQ);
-    	}
     	
-        LogManager.local(TAG, "handleCommand4App return:" + ret);
-    	return ret;
+        LogManager.local(TAG, "handleCommand4App return:"+ret);
+    	return result;
     	
     }
     
-    private boolean handleCommand4Query(ICommand4Query cmd)
+    private IResult handleCommand4Query(ICommand4Query cmd)
     {
-    	boolean ret = false;
     	IResult result = null;
     	String action = cmd.getAction();
     	LogManager.local(TAG, "handleCommand4Query:" + action);
@@ -211,25 +229,8 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     		LogManager.local(TAG, "bad action");
     	}
 
-    	ZMIQResult resultIQ = new ZMIQResult();
-    	if(result != null)
-    	{
-    		ret = true;
-        	resultIQ.setResult(result);
-        	mXmppClient.sendPacketAsync((Packet)resultIQ);
-    	}else
-    	{
-        	result = mResultFactory.getResult(ResultFactory.RESULT_NORMAL, 
-        			cmd.getId(), "NG");
-        	if(result != null)
-        	{
-            	resultIQ.setResult(result);
-            	mXmppClient.sendPacketAsync((Packet)resultIQ);
-        	}
-    	}
-
-    	LogManager.local(TAG, "handleCommand4Query return: "+ret);
-    	return ret;
+    	LogManager.local(TAG, "handleCommand4Query return: "+result.toXML());
+    	return result;
     }
 	
 }
