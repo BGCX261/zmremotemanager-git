@@ -20,6 +20,8 @@ public class DebugActivityHome extends Activity {
     private Button mConnectBtn = null;
     private Button mAdvancedBtn = null;
     private EditText mIpText = null;
+    private EditText mNameText = null;
+    private EditText mPwdText = null;
     private Context mContext = null;
 
     @Override
@@ -35,6 +37,9 @@ public class DebugActivityHome extends Activity {
 
         mConnectBtn = (Button) findViewById(R.id.button1);
         mIpText = (EditText) findViewById(R.id.editText1);
+        mNameText = (EditText) findViewById(R.id.editText2);
+        mPwdText = (EditText) findViewById(R.id.editText3);
+        
         mAdvancedBtn = (Button) findViewById(R.id.button2);
 
         mConnectBtn.setOnClickListener(new OnClickListener() {
@@ -43,10 +48,14 @@ public class DebugActivityHome extends Activity {
             public void onClick(View arg0) {
                 // TODO Auto-generated method stub
                 String ip = mIpText.getText().toString();
+                String username = mNameText.getText().toString();
+                String password = mPwdText.getText().toString();
                 LogManager.local(TAG, "ip: " + ip);
                 Intent intent = new Intent();
                 intent.setClass(mContext, DebugActivity.class);
                 intent.putExtra("ServerIP", ip);
+                intent.putExtra("UserName", username);
+                intent.putExtra("Password", password);
                 startActivity(intent);
             }
 

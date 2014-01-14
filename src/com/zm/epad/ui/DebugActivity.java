@@ -25,6 +25,8 @@ public class DebugActivity extends ListActivity {
     private static String TEST_XMPP = "test xmpp";
     private static String TEST_DEVICE_ADMIN = "test device admin";
     private String ip = null;
+    private String username = null;
+    private String password = null;
     private Context mContext = null;
 
     LogManager mLogManager = null;
@@ -35,6 +37,8 @@ public class DebugActivity extends ListActivity {
         super.onCreate(savedInstanceState);
 
         ip = getIntent().getExtras().getString("ServerIP");
+        username = getIntent().getExtras().getString("UserName");
+        password = getIntent().getExtras().getString("Password");
         LogManager.local(TAG, ip);
 
         connectLogManager(ip);
@@ -104,8 +108,8 @@ public class DebugActivity extends ListActivity {
 
         Bundle args = new Bundle();
         args.putString("server", ip);
-        args.putString("username", "dengfanping");
-        args.putString("password", "123");
+        args.putString("username", username);
+        args.putString("password", password);
         args.putString("resource", "zhimotech");
 
         intent.putExtras(args);
