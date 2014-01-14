@@ -1,10 +1,22 @@
 package com.zm.xmpp.communication.client;
 
 import java.util.HashMap;
+import java.util.List;
 
 import android.content.Context;
+import android.content.pm.IPackageManager;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.ParceledListSlice;
+import android.content.pm.UserInfo;
+import android.os.Bundle;
+import android.os.IUserManager;
+import android.os.ServiceManager;
+import android.os.UserManager;
 
 import com.zm.epad.core.LogManager;
+import com.zm.epad.structure.Application;
+import com.zm.epad.structure.Configuration;
+import com.zm.epad.structure.Environment;
 import com.zm.xmpp.communication.result.IResult;
 import com.zm.xmpp.communication.result.ResultApp;
 import com.zm.xmpp.communication.result.ResultDevice;
@@ -75,6 +87,46 @@ public class ResultFactory {
 	
 	private IResult ConfigResultApp(ResultApp result)
 	{
+		IUserManager iUm = IUserManager.Stub.asInterface(ServiceManager.getService("user"));
+		IPackageManager iPm = IPackageManager.Stub.asInterface(ServiceManager.getService("package"));		
+
+		List<UserInfo>userList = null;
+		try{
+			userList = iUm.getUsers(true);
+		}catch(Exception e){
+			LogManager.local(TAG, "ConfigResultApp:"+e.toString());
+			return null;
+		}
+
+		for(UserInfo ui: userList)
+		{
+			Environment env = new Environment();
+			env.setEnvId(String.valueOf(ui.id));
+			
+			List<ApplicationInfo> appList = null;
+			try{
+				ParceledListSlice<ApplicationInfo> slice = iPm.getInstalledApplications(0, ui.id);
+				appList = slice.getList();
+			}catch(Exception e){
+				LogManager.local(TAG, "getInstalledApplications:"+e.toString());
+				continue;
+			}
+			
+			
+			for(ApplicationInfo ai:appList)
+			{
+				Application app = new Application();
+				
+				app.setName(ai.name);
+				app.setAppName(ai.packageName);
+				app.setEnabled(String.valueOf(ai.enabled));
+				app.setFlag(String.valueOf(ai.flags));
+				
+				env.addApp(app);
+			}
+			result.addEnv(env);
+		}
+		
 		return result;
 	}
 	
@@ -85,6 +137,53 @@ public class ResultFactory {
 	
 	private IResult ConfigResultEnv(ResultEnv result)
 	{
+		IUserManager iUm = IUserManager.Stub.asInterface(ServiceManager.getService("user"));
+		
+		List<UserInfo>userList = null;
+		try{
+			userList = iUm.getUsers(true);
+		}catch(Exception e){
+			LogManager.local(TAG, "ConfigResultEnv:"+e.toString());
+			return null;
+		}
+		
+		for(UserInfo ui: userList)
+		{
+			Environment env = new Environment();
+			Configuration cfg = new Configuration();
+			Bundle Restrictions = null;
+			try{
+				Restrictions = iUm.getUserRestrictions(ui.id);
+			}catch(Exception e){
+				LogManager.local(TAG, "getUserRestrictions:"+e.toString());
+				continue;
+			}			
+			
+			cfg.setNoModifyAccount(
+					String.valueOf(Restrictions.getBoolean(UserManager.DISALLOW_MODIFY_ACCOUNTS)));
+			cfg.setNoConfigWifi(
+					String.valueOf(Restrictions.getBoolean(UserManager.DISALLOW_CONFIG_WIFI)));
+			cfg.setNoInstallApps(
+					String.valueOf(Restrictions.getBoolean(UserManager.DISALLOW_INSTALL_APPS)));
+			cfg.setNoInstallApps(
+					String.valueOf(Restrictions.getBoolean(UserManager.DISALLOW_UNINSTALL_APPS)));
+			cfg.setNoShareLocation(
+					String.valueOf(Restrictions.getBoolean(UserManager.DISALLOW_SHARE_LOCATION)));
+			cfg.setNoInstallUnknownSources(
+					String.valueOf(Restrictions.getBoolean(UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES)));
+			cfg.setNoConfigBluetooth(
+					String.valueOf(Restrictions.getBoolean(UserManager.DISALLOW_CONFIG_BLUETOOTH)));
+			cfg.setNoUsbFileTranster(
+					String.valueOf(Restrictions.getBoolean(UserManager.DISALLOW_USB_FILE_TRANSFER)));
+			cfg.setNoConfigCredentials(
+					String.valueOf(Restrictions.getBoolean(UserManager.DISALLOW_CONFIG_CREDENTIALS)));
+			cfg.setNoRemoveUser(
+					String.valueOf(Restrictions.getBoolean(UserManager.DISALLOW_REMOVE_USER)));
+			
+			env.setConf(cfg);
+			result.addEnv(env);
+		}
+				
 		return result;
 	}
 	
