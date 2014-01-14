@@ -5,6 +5,7 @@ import com.zm.epad.core.LogManager;
 import org.jivesoftware.smack.XMPPConnection;
 
 import android.app.ListActivity;
+import android.app.WallpaperManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -115,8 +116,21 @@ public class DebugActivity extends ListActivity {
         intent.putExtras(args);
 
         try {
-            if (startService(intent) != null)
-                LogManager.local(TAG, "start service succeed");
+            if (startService(intent) != null){
+            	LogManager.local(TAG, "start service succeed");
+
+            	/* don't start the feature now
+            	WallpaperManager wm = WallpaperManager.getInstance(mContext);
+            	try {  
+            		int id = getResources().
+            				getIdentifier("wall", "drawable", "com.zm.epad");
+            		wm.setResource(id);  
+                } catch (Exception e) {
+                    e.printStackTrace();  
+                }
+                */
+
+            }
             else
                 LogManager.local(TAG, "start service failed");
         } catch (Exception e) {
