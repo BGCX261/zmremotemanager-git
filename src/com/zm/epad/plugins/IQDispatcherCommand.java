@@ -214,15 +214,15 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     	
     	if(action.equals(Constants.XMPP_QUERY_APP))
     	{
-    		result = mResultFactory.getResult(ResultFactory.RESULT_APP,cmd.getId(),null);
+    		result = mResultFactory.getResult(ResultFactory.RESULT_APP, cmd.getId());
     	}
     	else if(action.equals(Constants.XMPP_QUERY_DEVICE))
     	{
-    		result = mResultFactory.getResult(ResultFactory.RESULT_DEVICE,cmd.getId(),null);
+    		result = mResultFactory.getResult(ResultFactory.RESULT_DEVICE, cmd.getId());
     	}
     	else if(action.equals(Constants.XMPP_QUERY_ENV))
     	{
-    		result = mResultFactory.getResult(ResultFactory.RESULT_ENV,cmd.getId(),null);
+    		result = mResultFactory.getResult(ResultFactory.RESULT_ENV, cmd.getId());
     	}
     	else
     	{

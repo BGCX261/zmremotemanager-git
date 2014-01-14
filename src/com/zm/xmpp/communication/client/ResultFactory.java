@@ -1,5 +1,7 @@
 package com.zm.xmpp.communication.client;
 
+import java.util.HashMap;
+
 import android.content.Context;
 
 import com.zm.epad.core.LogManager;
@@ -18,13 +20,18 @@ public class ResultFactory {
 	public static final int RESULT_ENV = 4;
 	
 	private Context mContext = null;
+	private HashMap<String, ResultCallback> mCbMap = new HashMap<String, ResultCallback>();
 	
 	public ResultFactory(Context context)
 	{
 		mContext = context;
 	}
 	
-	public IResult getResult(int type, String id, String status)
+	public interface ResultCallback{
+		public void handleResult(IResult result);
+	}
+	
+	public IResult getResult(int type, String id, String status, ResultCallback callback)
 	{
 		IResult ret = null;
 		
@@ -46,12 +53,24 @@ public class ResultFactory {
 			ret = null;
 			break;
 		}
-		if(ret != null)
+
+		if(ret!=null)
 		{
 			ret.setId(id);
 			ret.setStatus(status);
-		}
+		}			
+
 		return ret;
+	}
+	
+	public IResult getResult(int type, String id)
+	{
+		return getResult(type, id, null, null);
+	}
+	
+	public IResult getResult(int type, String id, String status)
+	{
+		return getResult(type, id, status, null);
 	}
 	
 	private IResult ConfigResultApp(ResultApp result)
@@ -67,5 +86,17 @@ public class ResultFactory {
 	private IResult ConfigResultEnv(ResultEnv result)
 	{
 		return result;
-	}	
+	}
+	
+	private void addCallback(String id, ResultCallback callback)
+	{
+		mCbMap.put(id, callback);
+	}
+	
+	private void sendCallback(String id, IResult result)
+	{
+		ResultCallback cb = mCbMap.get(id);
+		cb.handleResult(result);
+		mCbMap.remove(id);
+	}
 }
