@@ -9,6 +9,8 @@ import org.jivesoftware.smack.provider.IQProvider;
 import org.jivesoftware.smack.provider.ProviderManager;
 import org.xmlpull.v1.XmlPullParser;
 
+import com.zm.epad.core.NetCmdDispatcher.CmdDispatchInfo;
+
 import android.util.Log;
 
 import java.util.Collection;
@@ -33,6 +35,11 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
         public String getKey() {
             return mStrNameSpace /* + ":" + mStrElementName */; // can not use
                                                                 // element
+        }
+        
+        public void destroy()
+        {
+        	return;
         }
     }
 
@@ -119,6 +126,11 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
     }
     public void stop() {
         synchronized (mCmdDispacherHashMap) {
+        	Collection<CmdDispatchInfo> collection = mCmdDispacherHashMap.values();
+        	for (Iterator<CmdDispatchInfo> i = collection.iterator(); i.hasNext();){
+        		CmdDispatchInfo info = (CmdDispatchInfo)i.next();
+        		info.destroy();
+        	}
             mCmdDispacherHashMap.clear();
         }
     }

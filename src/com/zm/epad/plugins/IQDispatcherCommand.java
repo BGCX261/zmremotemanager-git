@@ -41,6 +41,18 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 	private Handler mHandler;
 
 	
+	@Override
+	public void destroy() {
+		try{
+			mThread.quit();
+			mThread.join();			
+		}catch(Exception e){
+			LogManager.local(TAG, "destroy:"+e.toString());
+		}
+		
+		super.destroy();
+	}
+
 	public IQDispatcherCommand(Context context, String namespace, XmppClient XmppCliet)
 	{
         LogManager.local(TAG, "create: " + namespace);
