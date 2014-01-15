@@ -114,6 +114,10 @@
     <string name="debug_disable">Disable</string>
     <string name="debug_install">Install</string>
     <string name="debug_remove">Remove</string>
+    <string name="debug_querytext">Send Query Command</string>
+    <string name="debug_appinfo">App</string>
+    <string name="debug_deviceinfo">Device</string>
+    <string name="debug_userinfo">User</string>
     
     <!-- Strings used by zmtech_authenticator -->
     <string name="acc_label">ZMTech Account Authenticator</string>
