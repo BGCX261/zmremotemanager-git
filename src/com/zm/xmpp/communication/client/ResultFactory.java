@@ -1,5 +1,6 @@
 package com.zm.xmpp.communication.client;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -29,10 +30,16 @@ import com.zm.xmpp.communication.result.ResultNormal;
 public class ResultFactory {
 	public static final String TAG = "ClientResultFactory";
 	
+	public static final int RESULT_LENGTH_MAX = 3500;
+	
 	public static final int RESULT_NORMAL = 1;
 	public static final int RESULT_APP = 2;
 	public static final int RESULT_DEVICE = 3;
 	public static final int RESULT_ENV = 4;
+	
+	private static final int RESULT_APPINFO_LENGTH_MAX = 120;
+	private static final int RESULT_APPINFO_LENGTH_TAG = 80;
+	private static final int RESULT_EVNINFO_LENGTH = 500;	
 	
 	private Context mContext = null;
 	private HashMap<String, ResultCallback> mCbMap = new HashMap<String, ResultCallback>();
@@ -46,6 +53,7 @@ public class ResultFactory {
 		public void handleResult(IResult result);
 	}
 	
+	
 	public IResult getResult(int type, String id, String status, ResultCallback callback)
 	{
 		IResult ret = null;
@@ -53,15 +61,6 @@ public class ResultFactory {
 		switch(type){
 		case RESULT_NORMAL:
 			ret = new ResultNormal();
-			break;
-		case RESULT_APP:
-			ret = ConfigResultApp(new ResultApp());
-			break;
-		case RESULT_DEVICE:
-			ret = ConfigResultDevice(new ResultDevice());
-			break;
-		case RESULT_ENV:
-			ret = ConfigResultEnv(new ResultEnv());
 			break;
 		default:
 			LogManager.local(TAG, "bad type: " + type);
@@ -71,11 +70,15 @@ public class ResultFactory {
 
 		if(ret!=null)
 		{
+			if(ret.toXML().length() > RESULT_LENGTH_MAX){
+				LogManager.local(TAG, "can't be solved by 1 resutl. length: " + ret.toXML().length());
+				return null;
+			}
 			ret.setId(id);
 			ret.setStatus(status);
 			ret.setIssueTime(getCurrentTime());
 			ret.setDirection(Constants.XMPP_NAMESPACE_PAD);
-		}			
+		}		
 
 		return ret;
 	}
@@ -90,6 +93,39 @@ public class ResultFactory {
 		return getResult(type, id, status, null);
 	}
 	
+	public List<IResult> getResults(int type, String id)
+	{
+		return getResults(type, id, null);
+	}
+	
+	public List<IResult> getResults(int type, String id, ResultCallback callback) 
+	{
+		List<IResult> resultList = null;
+		
+		switch(type){
+		case RESULT_APP:
+			resultList = ConfigResultApp();
+			break;
+		case RESULT_DEVICE:
+			resultList = ConfigResultDevice();
+			break;
+		case RESULT_ENV:
+			resultList = ConfigResultEnv();
+			break;
+		default:
+			LogManager.local(TAG, "bad type: " + type);
+			return null;
+		}
+		
+		for(IResult r : resultList)
+		{
+			r.setId(id);
+			r.setIssueTime(getCurrentTime());
+			r.setDirection(Constants.XMPP_NAMESPACE_PAD);			
+		}
+		return resultList;
+	}
+	
 	private String getCurrentTime()
 	{
 		Time t=new Time();
@@ -99,8 +135,9 @@ public class ResultFactory {
 		return ret;
 	}
 	
-	private IResult ConfigResultApp(ResultApp result)
+	private List<IResult> ConfigResultApp()
 	{
+		List<IResult> resultList = new ArrayList<IResult>();
 		IUserManager iUm = IUserManager.Stub.asInterface(ServiceManager.getService("user"));
 		IPackageManager iPm = IPackageManager.Stub.asInterface(ServiceManager.getService("package"));		
 
@@ -111,11 +148,12 @@ public class ResultFactory {
 			LogManager.local(TAG, "ConfigResultApp:"+e.toString());
 			return null;
 		}
-
+		ResultApp result = new ResultApp();
 		for(UserInfo ui: userList)
-		{
-			Environment env = new Environment();
+		{	
+			Environment env = new Environment();			
 			env.setId(String.valueOf(ui.id));
+			result.addEnv(env);
 			
 			List<PackageInfo> pkgList = null;
 			try{
@@ -126,32 +164,64 @@ public class ResultFactory {
 				continue;
 			}
 			
-			
 			for(PackageInfo pi:pkgList)
 			{
+				if(result.toXML().length() > RESULT_LENGTH_MAX -
+						(RESULT_APPINFO_LENGTH_MAX + RESULT_APPINFO_LENGTH_TAG))
+				{
+					LogManager.local(TAG, "no space for another appinfo in current result("
+							+resultList.size()+") length:"+result.toXML().length());
+					result.setStatus(String.valueOf(resultList.size()));
+					resultList.add(result);
+					
+					result = new ResultApp();
+					env = new Environment();			
+					env.setId(String.valueOf(ui.id));
+					result.addEnv(env);
+				}
+				
 				Application app = new Application();
 				
-				app.setName(pi.applicationInfo.loadLabel(mContext.getPackageManager()).toString());
-				app.setAppName(pi.packageName);
-				app.setEnabled(String.valueOf(pi.applicationInfo.enabled));
-				app.setFlag(String.valueOf(pi.applicationInfo.flags));
-				app.setVersion(pi.versionName);
+				String name = pi.applicationInfo.loadLabel(mContext.getPackageManager()).toString();
+				String pkgname = pi.packageName;
+				String enabled = String.valueOf(pi.applicationInfo.enabled);
+				String flag = String.valueOf(pi.applicationInfo.flags);
+				String version = pi.versionName;
+				
+				if(name.length() + pkgname.length() + enabled.length() + 
+						flag.length() + version.length() > RESULT_APPINFO_LENGTH_MAX)
+				{
+					//if app info is too long, only save package name, enabled and flag 
+					app.setAppName(pkgname);
+					app.setEnabled(enabled);
+					app.setFlag(flag);
+				}else{
+					app.setName(name);
+					app.setAppName(pkgname);
+					app.setEnabled(enabled);
+					app.setFlag(flag);
+					app.setVersion(version);					
+				}
+
 				
 				env.addApp(app);
-			}
-			result.addEnv(env);
+			}			
 		}
+		result.setStatus("done:"+resultList.size());
+		resultList.add(result);
 		
-		return result;
+		return resultList;
 	}
 	
-	private IResult ConfigResultDevice(ResultDevice result)
+	private List<IResult> ConfigResultDevice()
 	{
-		return result;
+		return null;
 	}
 	
-	private IResult ConfigResultEnv(ResultEnv result)
+	private List<IResult> ConfigResultEnv()
 	{
+		List<IResult> resultList = new ArrayList<IResult>();
+		
 		IUserManager iUm = IUserManager.Stub.asInterface(ServiceManager.getService("user"));
 		
 		List<UserInfo>userList = null;
@@ -162,8 +232,19 @@ public class ResultFactory {
 			return null;
 		}
 		
+		ResultEnv result = new ResultEnv();
 		for(UserInfo ui: userList)
 		{
+			if(result.toXML().length() > RESULT_LENGTH_MAX - RESULT_EVNINFO_LENGTH)
+			{
+				LogManager.local(TAG, "no space for another envinfo in current result("
+						+resultList.size()+") length:"+result.toXML().length());
+				result.setStatus(String.valueOf(resultList.size()));
+				resultList.add(result);
+				
+				result = new ResultEnv();
+			}	
+			
 			Environment env = new Environment();
 			Configuration cfg = new Configuration();
 			Bundle Restrictions = null;
@@ -201,8 +282,11 @@ public class ResultFactory {
 			env.setConf(cfg);
 			result.addEnv(env);
 		}
+		
+		result.setStatus("done");
+		resultList.add(result);
 				
-		return result;
+		return resultList;
 	}
 	
 	private void addCallback(String id, ResultCallback callback)

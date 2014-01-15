@@ -1,5 +1,7 @@
 package com.zm.epad.plugins;
 
+import java.util.List;
+
 import org.xmlpull.v1.XmlPullParser;
 
 import android.app.Application;
@@ -129,44 +131,70 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 
 	private boolean handleIQCommand(ZMIQCommand iq)
 	{
-		IResult ret = null;
+		boolean ret = true;
+		
+		
 		ICommand cmd = iq.getCommand();
 		LogManager.local(TAG, "handleIQCommand:"+cmd.getType());
 		
     	if(cmd.getType().equals("app"))
     	{
-    		ret = handleCommand4App((ICommand4App)cmd);
-    	}else if(cmd.getType().equals("query"))
-    	{
-    		ret = handleCommand4Query((ICommand4Query)cmd);
-    	}else{
-            LogManager.local(TAG, "bad command: " + cmd.getType());
-    		return false;
-    	}
-    	
-    	ZMIQResult resultIQ = new ZMIQResult();
-    	resultIQ.setTo(iq.getFrom());
-    	resultIQ.setFrom(iq.getTo());
-    	if(ret != null)
-    	{
-        	resultIQ.setResult(ret);
-        	mXmppClient.sendPacketAsync((Packet)resultIQ);
-    	}else
-    	{
-    		ret = mResultFactory.getResult(ResultFactory.RESULT_NORMAL, 
-        			cmd.getId(), "NG");
-        	if(ret != null)
+    		IResult result = null;
+    		result = handleCommand4App((ICommand4App)cmd);
+    		
+        	ZMIQResult resultIQ = new ZMIQResult();
+        	resultIQ.setTo(iq.getFrom());
+        	resultIQ.setFrom(iq.getTo());
+        	
+        	if(result != null)
         	{
-            	resultIQ.setResult(ret);
+            	resultIQ.setResult(result);
             	mXmppClient.sendPacketAsync((Packet)resultIQ);
         	}
+        	
+    	}else if(cmd.getType().equals("query"))
+    	{
+    		List<IResult> resultList = null;
+    		try{
+	    		resultList = handleCommand4Query((ICommand4Query)cmd);
+	    		
+	        	if(resultList != null)
+	        	{
+	        		int i = 0;
+	        		for(IResult r : resultList)
+	        		{
+	        			LogManager.local(TAG,"send packet start "+ ++i);
+	                	ZMIQResult resultIQ = new ZMIQResult();
+	                	resultIQ.setTo(iq.getFrom());
+	                	resultIQ.setFrom(iq.getTo());
+	                	
+	                	resultIQ.setResult(r);
+	                	mXmppClient.sendPacket((Packet)resultIQ);
+	                	LogManager.local(TAG,"send packet end "+i);
+	        		}
+	        	}
+    		}catch(Exception e){
+            	ZMIQResult resultIQ = new ZMIQResult();
+            	resultIQ.setTo(iq.getFrom());
+            	resultIQ.setFrom(iq.getTo());
+            	
+            	IResult r = mResultFactory.getResult(ResultFactory.RESULT_NORMAL, cmd.getId(), "NG");
+            	resultIQ.setResult(r);
+            	mXmppClient.sendPacketAsync((Packet)resultIQ);
+    		}
+    	}else{
+            LogManager.local(TAG, "bad command: " + cmd.getType());
+            ret = false;
     	}
-    	return ret == null?false:true;
+    	
+    	return ret;
 	}
 	
     private IResult handleCommand4App(ICommand4App cmd)
     {
-    	boolean ret = false;    	
+    	boolean ret = false; 
+    	IResult result = null;
+    	
         LogManager.local(TAG, "handleCommand4App:" + cmd.getAction());
     	
     	if(cmd.getAction().equals(Constants.XMPP_APP_ENABLE))
@@ -198,7 +226,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
             LogManager.local(TAG, "bad action");
     	}
     	   	
-    	IResult result = mResultFactory.getResult(ResultFactory.RESULT_NORMAL, 
+    	result = mResultFactory.getResult(ResultFactory.RESULT_NORMAL, 
     			cmd.getId(), ret==true?"OK":"NG");
     	
         LogManager.local(TAG, "handleCommand4App return:"+ret);
@@ -206,31 +234,40 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     	
     }
     
-    private IResult handleCommand4Query(ICommand4Query cmd)
+    private List<IResult> handleCommand4Query(ICommand4Query cmd) throws Exception
     {
-    	IResult result = null;
+    	List<IResult> results = null;
     	String action = cmd.getAction();
     	LogManager.local(TAG, "handleCommand4Query:" + action);
     	
     	if(action.equals(Constants.XMPP_QUERY_APP))
     	{
-    		result = mResultFactory.getResult(ResultFactory.RESULT_APP, cmd.getId());
+    		results = mResultFactory.getResults(ResultFactory.RESULT_APP, cmd.getId());
+    		if(results == null)
+    		{
+    			throw new Exception("failed to get app info");
+    		}
     	}
     	else if(action.equals(Constants.XMPP_QUERY_DEVICE))
     	{
-    		result = mResultFactory.getResult(ResultFactory.RESULT_DEVICE, cmd.getId());
+    		results = mResultFactory.getResults(ResultFactory.RESULT_DEVICE, cmd.getId());
     	}
     	else if(action.equals(Constants.XMPP_QUERY_ENV))
     	{
-    		result = mResultFactory.getResult(ResultFactory.RESULT_ENV, cmd.getId());
+    		results = mResultFactory.getResults(ResultFactory.RESULT_ENV, cmd.getId());
+    		if(results == null)
+    		{
+    			throw new Exception("failed to get env info");
+    		}
     	}
     	else
     	{
-    		LogManager.local(TAG, "bad action");
+    		LogManager.local(TAG, "handleCommand4Query bad action");
     	}
+    	
 
-    	LogManager.local(TAG, "handleCommand4Query return: "+result.toXML());
-    	return result;
+    	LogManager.local(TAG, "handleCommand4Query return: "+results.size());
+    	return results;
     }
 	
 }
