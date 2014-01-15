@@ -198,8 +198,8 @@ public class DebugActivity extends ListActivity {
     protected void onDestroy() {
 
         Intent intent = new Intent();
-        intent.setComponent(new ComponentName("com.android.remotemanager",
-                "com.android.remotemanager.RemoteManagerService"));
+        intent.setComponent(new ComponentName("com.zm.epad",
+        		"com.zm.epad.core.RemoteManagerService"));
         try {
             stopService(intent);
 
