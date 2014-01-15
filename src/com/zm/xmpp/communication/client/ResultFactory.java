@@ -6,17 +6,20 @@ import java.util.List;
 import android.content.Context;
 import android.content.pm.IPackageManager;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
 import android.content.pm.ParceledListSlice;
 import android.content.pm.UserInfo;
 import android.os.Bundle;
 import android.os.IUserManager;
 import android.os.ServiceManager;
 import android.os.UserManager;
+import android.text.format.Time;
 
 import com.zm.epad.core.LogManager;
 import com.zm.epad.structure.Application;
 import com.zm.epad.structure.Configuration;
 import com.zm.epad.structure.Environment;
+import com.zm.xmpp.communication.Constants;
 import com.zm.xmpp.communication.result.IResult;
 import com.zm.xmpp.communication.result.ResultApp;
 import com.zm.xmpp.communication.result.ResultDevice;
@@ -70,6 +73,8 @@ public class ResultFactory {
 		{
 			ret.setId(id);
 			ret.setStatus(status);
+			ret.setIssueTime(getCurrentTime());
+			ret.setDirection(Constants.XMPP_NAMESPACE_PAD);
 		}			
 
 		return ret;
@@ -83,6 +88,15 @@ public class ResultFactory {
 	public IResult getResult(int type, String id, String status)
 	{
 		return getResult(type, id, status, null);
+	}
+	
+	private String getCurrentTime()
+	{
+		Time t=new Time();
+		t.setToNow();
+		String ret = String.valueOf(t.year)+String.valueOf(t.month)+String.valueOf(t.monthDay)
+				+String.valueOf(t.hour)+String.valueOf(t.minute)+String.valueOf(t.second);
+		return ret;
 	}
 	
 	private IResult ConfigResultApp(ResultApp result)
@@ -101,26 +115,27 @@ public class ResultFactory {
 		for(UserInfo ui: userList)
 		{
 			Environment env = new Environment();
-			env.setEnvId(String.valueOf(ui.id));
+			env.setId(String.valueOf(ui.id));
 			
-			List<ApplicationInfo> appList = null;
+			List<PackageInfo> pkgList = null;
 			try{
-				ParceledListSlice<ApplicationInfo> slice = iPm.getInstalledApplications(0, ui.id);
-				appList = slice.getList();
+				ParceledListSlice<PackageInfo> slice = iPm.getInstalledPackages(0, ui.id);
+				pkgList = slice.getList();
 			}catch(Exception e){
 				LogManager.local(TAG, "getInstalledApplications:"+e.toString());
 				continue;
 			}
 			
 			
-			for(ApplicationInfo ai:appList)
+			for(PackageInfo pi:pkgList)
 			{
 				Application app = new Application();
 				
-				app.setName(ai.name);
-				app.setAppName(ai.packageName);
-				app.setEnabled(String.valueOf(ai.enabled));
-				app.setFlag(String.valueOf(ai.flags));
+				app.setName(pi.applicationInfo.loadLabel(mContext.getPackageManager()).toString());
+				app.setAppName(pi.packageName);
+				app.setEnabled(String.valueOf(pi.applicationInfo.enabled));
+				app.setFlag(String.valueOf(pi.applicationInfo.flags));
+				app.setVersion(pi.versionName);
 				
 				env.addApp(app);
 			}
@@ -152,12 +167,15 @@ public class ResultFactory {
 			Environment env = new Environment();
 			Configuration cfg = new Configuration();
 			Bundle Restrictions = null;
+			
+			env.setId(String.valueOf(ui.id));
+			
 			try{
 				Restrictions = iUm.getUserRestrictions(ui.id);
 			}catch(Exception e){
 				LogManager.local(TAG, "getUserRestrictions:"+e.toString());
 				continue;
-			}			
+			}
 			
 			cfg.setNoModifyAccount(
 					String.valueOf(Restrictions.getBoolean(UserManager.DISALLOW_MODIFY_ACCOUNTS)));
