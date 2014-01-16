@@ -10,6 +10,8 @@ import org.jivesoftware.smack.provider.ProviderManager;
 
 import com.zm.epad.core.LogManager;
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -307,6 +309,14 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         }
         return;
     }
+    
+    private boolean isNetworkConnected()
+    {
+        ConnectivityManager cm =
+                (ConnectivityManager)mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo info = cm.getActiveNetworkInfo();
+        return info.isConnected();
+    }
 
     private void handleConnectionStatus(Message msg) {
         try {
@@ -315,10 +325,31 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             if (connected == 0) {
                 dispatchXmppClientEvent(
                         XMPPCLIENT_EVENT_CONNECTION_UPDATE_STATUS, 0, msg.obj);
+                
+                //when it's not closed by error and network is on
+                if(msg.obj==null && isNetworkConnected()){
+                	LogManager.local(TAG,"ready to reconnect");
+                    if (mCurrentStatus == XMPPCLIENT_STATUS_IDLE) {
+                        mPrevStatus = XMPPCLIENT_STATUS_IDLE;
+                        LogManager.local(TAG,
+                                "\t xmppclient not working, do nothing");
+                    } else if (mPrevStatus == XMPPCLIENT_STATUS_STARTING
+                            || mPrevStatus == XMPPCLIENT_STATUS_STARTED) {
+                        LogManager.local(TAG, "\t xmppclient re-start");
+                        handleStartCmdLocked();
+                    } else if (mPrevStatus == XMPPCLIENT_STATUS_LOGINING
+                            || mPrevStatus == XMPPCLIENT_STATUS_LOGINED) {
+                        LogManager.local(TAG, "\t xmppclient re-login");
+                        handleStartCmdLocked();
+                        handleLoginCmdLocked();
+                    }            	
+                }
+                
             } else {
                 dispatchXmppClientEvent(
                         XMPPCLIENT_EVENT_CONNECTION_UPDATE_STATUS, 1);
             }
+          
         } finally {
             mStatusLock.unlock();
         }
