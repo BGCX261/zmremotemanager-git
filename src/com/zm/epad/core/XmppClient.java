@@ -577,5 +577,12 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         }
         return true;
     }
+    
+    public boolean sendPacketAsync(Packet packet, long delayMillis) {
+
+            Message msg = mXmppClientHandler.obtainMessage(CMD_SEND_PACKET_ASYNC, packet);
+            return mXmppClientHandler.sendMessageDelayed(msg, delayMillis);
+
+    }
 
 }

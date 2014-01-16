@@ -149,7 +149,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
         	if(result != null)
         	{
             	resultIQ.setResult(result);
-            	mXmppClient.sendPacketAsync((Packet)resultIQ);
+            	mXmppClient.sendPacketAsync((Packet)resultIQ, 0);
         	}
         	
     	}else if(cmd.getType().equals("query"))
@@ -163,13 +163,13 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 	        		int i = 0;
 	        		for(IResult r : resultList)
 	        		{
-	        			LogManager.local(TAG,"send packet start "+ ++i);
+	        			LogManager.local(TAG,"send packet start "+ (i+1));
 	                	ZMIQResult resultIQ = new ZMIQResult();
 	                	resultIQ.setTo(iq.getFrom());
 	                	resultIQ.setFrom(iq.getTo());
 	                	
 	                	resultIQ.setResult(r);
-	                	mXmppClient.sendPacket((Packet)resultIQ);
+	                	mXmppClient.sendPacketAsync((Packet)resultIQ, (1000)*i++);
 	                	LogManager.local(TAG,"send packet end "+i);
 	        		}
 	        	}
@@ -180,7 +180,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
             	
             	IResult r = mResultFactory.getResult(ResultFactory.RESULT_NORMAL, cmd.getId(), "NG");
             	resultIQ.setResult(r);
-            	mXmppClient.sendPacketAsync((Packet)resultIQ);
+            	mXmppClient.sendPacketAsync((Packet)resultIQ, 0);
     		}
     	}else{
             LogManager.local(TAG, "bad command: " + cmd.getType());
