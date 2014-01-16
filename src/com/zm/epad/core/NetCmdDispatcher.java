@@ -11,7 +11,7 @@ import org.xmlpull.v1.XmlPullParser;
 
 import com.zm.epad.core.NetCmdDispatcher.CmdDispatchInfo;
 
-import android.util.Log;
+import com.zm.epad.core.LogManager;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -54,7 +54,7 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
         public IQ parseIQ(XmlPullParser parser) {
 
             String namespace = parser.getNamespace();
-            Log.v(TAG, "parseIQ: " + namespace);
+            LogManager.local(TAG, "parseIQ: " + namespace);
 
             CmdDispatchInfo cmdDispatchInfo = null;
             synchronized (mCmdDispacherHashMap) {
@@ -70,8 +70,8 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
         public boolean accept(Packet packet) {
             String namespace = packet.getXmlns();
 
-            Log.v(TAG, "accept: " + namespace);
-            Log.v(TAG, "pakcet info " + packet.toXML());
+            LogManager.local(TAG, "accept: " + namespace);
+            LogManager.local(TAG, "pakcet info " + packet.toXML());
 
             if (namespace == null)
                 return false;
@@ -85,8 +85,8 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
         public void processPacket(Packet packet) {
 
             String key = packet.getXmlns();
-            Log.v(TAG, "processPacket: " + key);
-            Log.v(TAG, "processPacket pakcet info " + packet.toXML());
+            LogManager.local(TAG, "processPacket: " + key);
+            LogManager.local(TAG, "processPacket pakcet info " + packet.toXML());
             if (key == null) {
                 return;
             }
@@ -140,7 +140,7 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
         if (xmppClientEvent == XmppClient.XMPPCLIENT_EVENT_CONNECT) {
             if (args.length > 1) {
                 int connSuc = ((Integer) args[0]).intValue();
-                Log.v(TAG, "reportXMPPClientEvent connect to server : "
+                LogManager.local(TAG, "reportXMPPClientEvent connect to server : "
                         + connSuc);
 
                 if (connSuc == 1) {
@@ -156,7 +156,7 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
                                 .next();
                         prdManager.addIQProvider(info.mStrElementName,
                                 info.mStrNameSpace, mCmdHandler);
-                        Log.v(TAG, "addIQProvider: " + info.mStrElementName
+                        LogManager.local(TAG, "addIQProvider: " + info.mStrElementName
                                 + ", " + info.mStrNameSpace);
                     }
 

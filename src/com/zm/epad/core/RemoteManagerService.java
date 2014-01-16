@@ -95,7 +95,7 @@ public class RemoteManagerService extends Service {
         mXmppClient.login(mLoginBundle.getString("username"),
                 mLoginBundle.getString("password"), Build.SERIAL);
 
-        LogManager.server(TAG, "RemoteManagerService started");
+        LogManager.local(TAG, "RemoteManagerService started");
         mbInitialized = true;
 
     }
