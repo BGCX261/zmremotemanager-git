@@ -20,6 +20,7 @@ import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.nfc.NfcAdapter;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IUserManager;
 import android.os.ServiceManager;
@@ -95,6 +96,7 @@ public class ResultFactory {
 			}
 			ret.setId(id);
 			ret.setStatus(status);
+			ret.setDeviceId(Build.SERIAL);
 			ret.setIssueTime(getCurrentTime());
 			ret.setDirection(Constants.XMPP_NAMESPACE_PAD);
 		}		
@@ -142,6 +144,7 @@ public class ResultFactory {
 		for(IResult r : resultList)
 		{
 			r.setId(id);
+			r.setDeviceId(Build.SERIAL);
 			r.setIssueTime(getCurrentTime());
 			r.setDirection(Constants.XMPP_NAMESPACE_PAD);		
 		}
