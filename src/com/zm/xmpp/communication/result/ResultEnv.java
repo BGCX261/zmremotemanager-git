@@ -52,6 +52,9 @@ public class ResultEnv extends AbstractResult implements IResult{
 		buf.append("\" type=\"");
 		buf.append(type);		
 		buf.append("\">");
+		buf.append("<deviceid>");
+		buf.append(this.deviceId);
+		buf.append("</deviceid>");
 		buf.append("<id>");
 		buf.append(this.id);
 		buf.append("</id>");
@@ -110,6 +113,8 @@ public class ResultEnv extends AbstractResult implements IResult{
 		buf.append("\r\n");
 		buf.append("id=");
 		buf.append(this.id);
+		buf.append("/deviceid=");
+		buf.append(this.deviceId);
 		buf.append("/status=");
 		buf.append(this.status);
 		buf.append("/errorcode=");

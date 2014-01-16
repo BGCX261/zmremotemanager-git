@@ -44,6 +44,9 @@ public class ResultDevice extends AbstractResult implements IResult{
 		buf.append("\" type=\"");
 		buf.append(type);		
 		buf.append("\">");
+		buf.append("<deviceid>");
+		buf.append(this.deviceId);
+		buf.append("</deviceid>");
 		buf.append("<id>");
 		buf.append(this.id);
 		buf.append("</id>");
