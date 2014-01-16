@@ -61,7 +61,10 @@ public class ResultDevice extends AbstractResult implements IResult{
 		buf.append("</bt>");		
 		buf.append("<nfc>");
 		buf.append(this.device.getNfc());
-		buf.append("</nfc>");		
+		buf.append("</nfc>");
+		buf.append("<ip>");
+		buf.append(this.device.getIp());
+		buf.append("</ip>");
 		buf.append("<gps>");
 		buf.append(this.device.getGps());
 		buf.append("</gps>");
@@ -94,6 +97,8 @@ public class ResultDevice extends AbstractResult implements IResult{
 		buf.append(this.device.getBt());
 		buf.append("/nfc=");
 		buf.append(this.device.getNfc());
+		buf.append("/ip=");
+		buf.append(this.device.getIp());
 		buf.append("/gps=");
 		buf.append(this.device.getGps());
 		buf.append("/amode=");
