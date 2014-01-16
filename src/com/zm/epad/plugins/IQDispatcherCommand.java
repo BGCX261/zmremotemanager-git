@@ -1,5 +1,6 @@
 package com.zm.epad.plugins;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -251,6 +252,10 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     	else if(action.equals(Constants.XMPP_QUERY_DEVICE))
     	{
     		results = mResultFactory.getResults(ResultFactory.RESULT_DEVICE, cmd.getId());
+     		if(results == null)
+     		{
+     			throw new Exception("failed to get device info");
+     		}
     	}
     	else if(action.equals(Constants.XMPP_QUERY_ENV))
     	{
