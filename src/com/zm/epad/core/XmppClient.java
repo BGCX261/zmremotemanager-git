@@ -277,7 +277,6 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             mPrevStatus = mCurrentStatus = XMPPCLIENT_STATUS_IDLE;
             mXmppConnection = null;
             mXmppClientHandler = null;
-            mStatusLock.notifyAll();
         } finally {
             mStatusLock.unlock();
         }
@@ -437,7 +436,6 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     public void stop() {
         LogManager.local(TAG, "stop xmppclient");
         try {
-            mStatusLock.lock();
             if (mXmppClientHandler == null) {
                 LogManager.local(TAG, "xmppclient already stopped");
                 return;
@@ -457,7 +455,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 LogManager.local(TAG, e.toString());
             }
         } finally {
-            mStatusLock.unlock();
+
         }
 
         LogManager.local(TAG, "xmppclient stopped");

@@ -147,12 +147,12 @@ public class LogManager implements XmppClient.XmppClientCallback {
                     return;
                 }
                 while (true) {
-                    mLock.lock();
+
                     if (mbLogined == false) {
                         local(TAG, "xmppclient is offline");
                         break;
                     }
-                    mLock.unlock();
+
                     Cursor logCursor = null;
                     try {
                         logCursor = mSqLiteDatabase.rawQuery(
@@ -252,11 +252,16 @@ public class LogManager implements XmppClient.XmppClientCallback {
     }
 
     public void addServerLog(String tag, String txt) {
-        Message msg =  mLogWorkingHandler.obtainMessage();
-        msg.what = CMD_ADD_LOGS;
-        msg.obj = tag + ": " + txt;
+    	
+    	//keep safe when LogManager stop unexpectedly
+    	if(mLogWorkingHandler != null)
+    	{
+            Message msg =  mLogWorkingHandler.obtainMessage();
+            msg.what = CMD_ADD_LOGS;
+            msg.obj = tag + ": " + txt;
 
-        mLogWorkingHandler.sendMessage(msg);
+            mLogWorkingHandler.sendMessage(msg);    		
+    	}
     }
 
     public static String local(String tag, String msg) {
