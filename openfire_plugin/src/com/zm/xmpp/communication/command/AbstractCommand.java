@@ -3,7 +3,7 @@ package com.zm.xmpp.communication.command;
 public abstract class AbstractCommand {
 	protected String id;
 	protected String action;
-	protected String issuetime;
+	protected String issueTime;
 	protected String direction;
 	
 	public String getDirection() {
@@ -24,11 +24,11 @@ public abstract class AbstractCommand {
 	public void setAction(String action) {
 		this.action = action;
 	}
-	public String getIssuetime() {
-		return issuetime;
+	public String getIssueTime() {
+		return issueTime;
 	}
-	public void setIssuetime(String issuetime) {
-		this.issuetime = issuetime;
+	public void setIssueTime(String issuetime) {
+		this.issueTime = issuetime;
 	}
 	
 	

@@ -6,8 +6,8 @@ public interface ICommand {
 	public void setId(String id) ;
 	public String getAction();
 	public void setAction(String action);
-	public String getIssuetime() ;
-	public void setIssuetime(String issuetime);
+	public String getIssueTime() ;
+	public void setIssueTime(String issuetime);
 	public String getDirection() ;
 	public void setDirection(String direction);
 	public String toString();

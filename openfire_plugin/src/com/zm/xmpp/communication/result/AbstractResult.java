@@ -3,21 +3,23 @@ package com.zm.xmpp.communication.result;
 public abstract class AbstractResult {
 	protected String id;
 	protected String status;
-	protected String errorcode;
+	protected String errorCode;
 	protected String direction;
-	protected String issuetime;
+	protected String issueTime;
+	protected String deviceId;
 	
-	public String getIssuetime() {
-		return issuetime;
+	
+	public String getIssueTime() {
+		return issueTime;
 	}
-	public void setIssuetime(String issuetime) {
-		this.issuetime = issuetime;
+	public void setIssueTime(String issuetime) {
+		this.issueTime = issuetime;
 	}
-	public String getErrorcode() {
-		return errorcode;
+	public String getErrorCode() {
+		return errorCode;
 	}
-	public void setErrorcode(String errorcode) {
-		this.errorcode = errorcode;
+	public void setErrorCode(String errorcode) {
+		this.errorCode = errorcode;
 	}
 	public String getId() {
 		return id;
@@ -36,6 +38,12 @@ public abstract class AbstractResult {
 	}
 	public void setDirection(String direction) {
 		this.direction = direction;
+	}
+	public String getDeviceId() {
+		return deviceId;
+	}
+	public void setDeviceId(String deviceId) {
+		this.deviceId = deviceId;
 	}
 
 

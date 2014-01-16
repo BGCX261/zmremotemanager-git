@@ -11,5 +11,5 @@ public interface ICommand4App extends ICommand {
 	public void setAppUrl(String url);
 	public void setUserId(int userId);
 	public void setValidation(String validation);
-	public void configCommand(String paraName,String value);
+	public void toCommand(String paraName,String value);
 }

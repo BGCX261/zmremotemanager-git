@@ -14,13 +14,13 @@ public class ResultNormal extends AbstractResult implements IResult{
 	public ResultNormal(String id,String status){
 		this.id=id;
 		this.status=status;
-		this.errorcode="0";
+		this.errorCode="0";
 	}
 	
 	public ResultNormal(String id,String status,String errorcode){
 		this.id=id;
 		this.status=status;
-		this.errorcode=errorcode;
+		this.errorCode=errorcode;
 	}	
 	
 	public String getType(){
@@ -32,7 +32,12 @@ public class ResultNormal extends AbstractResult implements IResult{
 		StringBuffer buf=new StringBuffer();
 		buf.append("<result xmlns=\"");
 		buf.append(this.direction);
-		buf.append("\" type=\"normal\">");
+		buf.append("\" type=\"");
+		buf.append(type);		
+		buf.append("\">");
+		buf.append("<deviceid>");
+		buf.append(this.deviceId);
+		buf.append("</deviceid>");
 		buf.append("<id>");
 		buf.append(this.id);
 		buf.append("</id>");
@@ -40,7 +45,7 @@ public class ResultNormal extends AbstractResult implements IResult{
 		buf.append(this.status);
 		buf.append("</status>");
 		buf.append("<errorcode>");
-		buf.append(this.errorcode);
+		buf.append(this.errorCode);
 		buf.append("</errorcode>");
 		
 		buf.append("</result>");
@@ -50,13 +55,16 @@ public class ResultNormal extends AbstractResult implements IResult{
 	@Override
 	public String toString(){
 		StringBuffer buf=new StringBuffer();
-		buf.append("Normal Result:[");
+		buf.append(type);
+		buf.append(" Result:[");
 		buf.append("id=");
 		buf.append(this.id);
+		buf.append("/deviceid=");
+		buf.append(this.deviceId);
 		buf.append("/status=");
 		buf.append(this.status);
 		buf.append("/errorcode=");
-		buf.append(this.errorcode);
+		buf.append(this.errorCode);
 		buf.append("]");		
 		return buf.toString();
 		
