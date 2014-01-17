@@ -3,9 +3,13 @@ package com.zm.xmpp.communication.client;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import android.bluetooth.BluetoothAdapter;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.IPackageManager;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
@@ -14,6 +18,7 @@ import android.content.pm.UserInfo;
 import android.provider.Settings;
 import android.location.Criteria;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -23,6 +28,7 @@ import android.nfc.NfcAdapter;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IUserManager;
+import android.os.Looper;
 import android.os.ServiceManager;
 import android.os.UserManager;
 import android.text.format.Time;
@@ -54,7 +60,6 @@ public class ResultFactory {
 	private static final int RESULT_EVNINFO_LENGTH = 500;	
 	
 	private Context mContext = null;
-	private HashMap<String, ResultCallback> mCbMap = new HashMap<String, ResultCallback>();
 	
 	public ResultFactory(Context context)
 	{
@@ -76,7 +81,7 @@ public class ResultFactory {
 			break;
 		case RESULT_DEVICE:
 			try{
-				ret = ConfigResultDevice();
+				ret = ConfigResultDevice(id, callback);
 			}catch(Exception e){
 				LogManager.local(TAG, "getResult:"+e.toString());
 				ret = null;
@@ -127,8 +132,12 @@ public class ResultFactory {
 		case RESULT_NORMAL:
 		case RESULT_DEVICE:
 			IResult ret = getResult(type, id, "done:0", callback);
-			resultList = new ArrayList<IResult>();
-			resultList.add(ret);
+			if(ret != null){
+				resultList = new ArrayList<IResult>();
+				resultList.add(ret);
+			}else{
+				return null;
+			}
 			break;
 		case RESULT_APP:
 			resultList = ConfigResultApp();
@@ -151,7 +160,7 @@ public class ResultFactory {
 		return resultList;
 	}
 	
-	private String getCurrentTime()
+	private static String getCurrentTime()
 	{
 		Time t=new Time();
 		t.setToNow();
@@ -238,9 +247,10 @@ public class ResultFactory {
 		return resultList;
 	}
 	
-	private IResult ConfigResultDevice()
+	private IResult ConfigResultDevice(String id, ResultCallback callback)
 	{		
 		Device device = new Device();
+		boolean sync = false;
         
         WifiInfo info = ((WifiManager)mContext.
         		getSystemService(Context.WIFI_SERVICE)).getConnectionInfo();
@@ -275,46 +285,6 @@ public class ResultFactory {
         }
         LogManager.local(TAG, "NFC:"+device.getNfc());
         
-        LocationManager lm = (LocationManager) mContext.getSystemService(Context.LOCATION_SERVICE);
-        if(lm.isProviderEnabled(LocationManager.GPS_PROVIDER)){
-            Criteria criteria = new Criteria();
-            criteria.setAccuracy(Criteria.ACCURACY_FINE);
-            criteria.setAltitudeRequired(false);
-            criteria.setBearingRequired(false);
-            criteria.setCostAllowed(true);
-            criteria.setPowerRequirement(Criteria.POWER_LOW);
-            
-            String provider = lm.getBestProvider(criteria, true);
-            Location location = lm.getLastKnownLocation(provider);
-            
-            //location need to be retrieved asynchronously
-            //try{
-            //    int wait = 0;
-            //
-            //    while(location == null && wait < 40){            	
-            //    	wait++;
-            //   	Thread.sleep(500);
-            //    	location = lm.getLastKnownLocation(provider);
-            //    	LogManager.local(TAG, "wait:"+wait);
-            //    }            	
-            //}catch(Exception e){
-            //	LogManager.local(TAG, "Exception:"+e.toString());
-            //}
-
-            if(location != null)
-            {
-                double longitude= location.getLongitude();
-                double  latitude = location.getLatitude();
-                device.setGps(String.valueOf(longitude+","+latitude));             	
-            }else{
-            	device.setGps("null");
-            }
-      
-        }else{
-        	device.setGps("null");
-        }
-        LogManager.local(TAG, "GPS:"+device.getGps());
-        
         device.setAmode(String.valueOf(Settings.Global.getInt(mContext.getContentResolver(),
                 Settings.Global.AIRPLANE_MODE_ON, 0) != 0));
         LogManager.local(TAG, "Airplane mode:"+device.getAmode());
@@ -322,10 +292,35 @@ public class ResultFactory {
         device.setMnet("null");
         LogManager.local(TAG, "Mobile Network:"+device.getMnet());
         
-        ResultDevice result = new ResultDevice();
-        result.setDevice(device);
+        LocationManager lm = (LocationManager) mContext.getSystemService(Context.LOCATION_SERVICE);
+
+        Criteria criteria = new Criteria();
+        criteria.setAccuracy(Criteria.ACCURACY_COARSE);
+        criteria.setAltitudeRequired(false);
+        criteria.setBearingRequired(false);
+        criteria.setCostAllowed(true);
+        criteria.setPowerRequirement(Criteria.POWER_LOW);
         
-		return result;
+        lm.requestLocationUpdates(100, 0, criteria,
+        		new LocationResultCallbackHandler(id, device, callback), null);   
+        
+        List<String> providers =  lm.getProviders(true);
+        if(providers == null || providers.size() == 0){
+        	LogManager.local(TAG, "all location providers are disabled");
+        	device.setGps("null");
+        	sync = true;
+        	LogManager.local(TAG, "GPS:"+device.getGps());
+        }
+
+        if(sync == true || callback == null){
+            ResultDevice result = new ResultDevice();
+            result.setDevice(device);
+            
+    		return result;       	
+        }else{
+        	return null;
+        }
+
 	}
 	
 	private List<IResult> ConfigResultEnv()
@@ -399,15 +394,133 @@ public class ResultFactory {
 		return resultList;
 	}
 	
-	private void addCallback(String id, ResultCallback callback)
-	{
-		mCbMap.put(id, callback);
+	private class ResultCallbackHandler{
+		protected String mId = null;
+		protected ResultCallback mCallback = null;
+		
+		public ResultCallbackHandler(String id, ResultCallback callback)
+		{
+			mId = id;
+			mCallback = callback;
+		}
+		
+		public void sendResult(IResult result)
+		{
+			if(mCallback != null){
+				result.setId(mId);
+				result.setDeviceId(Build.SERIAL);
+				result.setIssueTime(getCurrentTime());
+				result.setDirection(Constants.XMPP_NAMESPACE_PAD);
+				
+				mCallback.handleResult(result);
+			}	
+		}
 	}
 	
-	private void sendCallback(String id, IResult result)
-	{
-		ResultCallback cb = mCbMap.get(id);
-		cb.handleResult(result);
-		mCbMap.remove(id);
+	private class LocationResultCallbackHandler 
+		extends ResultCallbackHandler implements LocationListener{
+
+		private Device mDevice;
+		private boolean mbDone;
+		private Timer mTimer;
+
+		public LocationResultCallbackHandler(String id, ResultCallback callback) {
+			this(id, null, callback);
+			// TODO Auto-generated constructor stub
+		}
+
+		public LocationResultCallbackHandler(String id, 
+				Device device, ResultCallback callback) {
+			super(id, callback);
+			mDevice = device;
+			mbDone = false;
+			
+			mTimer = new Timer();
+			TimerTask task = new TimerTask(){
+
+				@Override
+				public void run() {
+					// TODO Auto-generated method stub
+					mDevice.setGps("null");			
+					LogManager.local(TAG, "GPS time out");
+					
+		            ResultDevice result = new ResultDevice();
+		            result.setDevice(mDevice);
+		            
+		            mbDone = true;
+					sendResult(result);
+					
+					stopGetLocation();
+				}
+				
+			};
+			//if can't get location in 60 seconds, stop and send null
+			mTimer.schedule(task, 60000);	
+		}
+		
+		private void stopGetLocation(){
+			((LocationManager) mContext.getSystemService(Context.LOCATION_SERVICE)).removeUpdates(this);
+			mTimer.cancel();
+		}
+		
+		@Override
+		public void onLocationChanged(Location location) {
+			// TODO Auto-generated method stub
+			LogManager.local(TAG, "GPS onLocationChanged");
+			if(location != null){
+                double longitude= location.getLongitude();
+                double  latitude = location.getLatitude();
+                if(mDevice != null)
+                {
+                    mDevice.setGps(String.valueOf(longitude+","+latitude));               
+                    LogManager.local(TAG, "GPS:"+mDevice.getGps());
+                    
+                    ResultDevice result = new ResultDevice();
+                    result.setDevice(mDevice);
+                    result.setStatus("done:0");
+                    
+                    sendResult(result);               	
+                }
+                mbDone = true;
+			}
+			if(mbDone == true){
+				stopGetLocation();
+			}
+		}
+
+		@Override
+		public void onStatusChanged(String provider, int status, Bundle extras) {
+			// TODO Auto-generated method stub
+			//do nothing
+			LogManager.local(TAG, "GPS onStatusChanged:"+status);
+		}
+
+		@Override
+		public void onProviderEnabled(String provider) {
+			// TODO Auto-generated method stub
+			// do nothing
+			LogManager.local(TAG, "GPS onProviderEnabled:"+provider);
+		}
+
+		@Override
+		public void onProviderDisabled(String provider) {
+			// TODO Auto-generated method stub
+			LogManager.local(TAG, "GPS onProviderDisabled:"+provider);
+			if(mbDone == false){
+				mDevice.setGps("null");			
+				LogManager.local(TAG, "GPS disabled");
+				
+	            ResultDevice result = new ResultDevice();
+	            result.setDevice(mDevice);
+	            
+	            mbDone = true;
+				sendResult(result);
+			}
+			if(mbDone == true){
+				stopGetLocation();
+			}
+		}
+		
 	}
+	
 }

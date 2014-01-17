@@ -34,6 +34,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 	private static final String  TAG="IQDispatcherCommand";
 	
 	private static final int EVT_COMMAND = 1;
+	private static final int EVT_CALLBACK = 2;
 	
 	private Context mContext;
 	private XmppClient mXmppClient;
@@ -121,6 +122,11 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 			case EVT_COMMAND:
 				ret = handleIQCommand((ZMIQCommand)msg.obj);
 		    	break;
+			case EVT_CALLBACK:
+				if(msg.obj instanceof Packet){
+					ret = mXmppClient.sendPacketAsync((Packet)msg.obj, 0);
+				}
+				break;
 			default:
 				break;
 			}
@@ -157,7 +163,8 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     	{
     		List<IResult> resultList = null;
     		try{
-	    		resultList = handleCommand4Query((ICommand4Query)cmd);
+	    		resultList = handleCommand4Query((ICommand4Query)cmd, 
+	    				new CommandResultCallback(iq.getTo(), iq.getFrom()));
 	    		
 	        	if(resultList != null)
 	        	{
@@ -235,7 +242,8 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     	
     }
     
-    private List<IResult> handleCommand4Query(ICommand4Query cmd) throws Exception
+    private List<IResult> handleCommand4Query(ICommand4Query cmd, 
+    		CommandResultCallback callback) throws Exception
     {
     	List<IResult> results = null;
     	String action = cmd.getAction();
@@ -251,11 +259,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     	}
     	else if(action.equals(Constants.XMPP_QUERY_DEVICE))
     	{
-    		results = mResultFactory.getResults(ResultFactory.RESULT_DEVICE, cmd.getId());
-     		if(results == null)
-     		{
-     			throw new Exception("failed to get device info");
-     		}
+    		results = mResultFactory.getResults(ResultFactory.RESULT_DEVICE, cmd.getId(), callback);
     	}
     	else if(action.equals(Constants.XMPP_QUERY_ENV))
     	{
@@ -271,8 +275,35 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     	}
     	
 
-    	LogManager.local(TAG, "handleCommand4Query return: "+results.size());
+    	LogManager.local(TAG, "handleCommand4Query return: "+(results==null?0:results.size()));
     	return results;
+    }
+    
+    private class CommandResultCallback implements ResultFactory.ResultCallback{
+    	String mFrom = null;
+    	String mTo = null;
+    	
+    	public CommandResultCallback(String from, String to)
+    	{
+    		mFrom = from;
+    		mTo = to;
+    	}
+    	
+		@Override
+		public void handleResult(IResult result) {
+			// TODO Auto-generated method stub
+	    	LogManager.local(TAG, "handleResult:" + result.getType());
+	    	
+	    	ZMIQResult resultIQ = new ZMIQResult();
+        	resultIQ.setTo(mTo);
+        	resultIQ.setFrom(mFrom);
+	    	resultIQ.setResult(result);
+	    	
+	    	Message msg = mHandler.obtainMessage(EVT_CALLBACK, resultIQ);
+
+	    	mHandler.sendMessage(msg);			
+		}
+    	
     }
 	
 }
