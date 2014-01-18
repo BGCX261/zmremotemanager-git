@@ -83,12 +83,12 @@
         <!-- Device Admin Samples -->
 
         <activity
-            android:name="com.zm.epad.plugins.RemoteDeviceAdmin"
+            android:name="com.zm.epad.ui.RemoteDeviceAdmin"
             android:label="@string/activity_remote_device_admin" >
         </activity>
 
         <receiver
-            android:name="com.zm.epad.plugins.RemoteDeviceAdmin$RemoteDeviceAdminReceiver"
+            android:name=".ui.RemoteDeviceAdmin$RemoteDeviceAdminReceiver"
             android:description="@string/remote_device_admin_description"
             android:label="@string/remote_device_admin"
             android:permission="android.permission.BIND_DEVICE_ADMIN" >

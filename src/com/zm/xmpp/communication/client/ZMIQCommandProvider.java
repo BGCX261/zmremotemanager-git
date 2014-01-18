@@ -5,7 +5,7 @@ import org.jivesoftware.smack.provider.IQProvider;
 import org.xmlpull.v1.XmlPullParser;
 
 import com.zm.xmpp.communication.command.ICommand;
-import android.util.Log;
+import com.zm.epad.core.LogManager;
 
 public class ZMIQCommandProvider implements IQProvider {
 
@@ -22,7 +22,7 @@ public class ZMIQCommandProvider implements IQProvider {
             String namespace = parser.getNamespace();
             command.setDirection(namespace);
             iq.setXmlns(namespace);
-            Log.e(TAG,
+            LogManager.local(TAG,
                     "receive command type:" + type + " namespace:"
                             + iq.getXmlns());
 
@@ -36,7 +36,7 @@ public class ZMIQCommandProvider implements IQProvider {
                 }
             }
             iq.setCommand(command);
-            Log.e(TAG, command.toString());
+            LogManager.local(TAG, command.toString());
 
         } catch (Exception e) {
             e.printStackTrace();

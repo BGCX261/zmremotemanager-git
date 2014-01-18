@@ -18,7 +18,18 @@ public class ZMIQResult extends IQ {
 
 	@Override
 	public String getChildElementXML() {
-		return result.toXML();
+        if (result != null)
+            return result.toXML();
+        else
+            return null;
 	}
+	
+    public ZMIQResult(IQ requestIQ) {
+        setFrom(requestIQ.getTo());
+        setTo(requestIQ.getFrom());
+    }
 
+    public ZMIQResult() {
+        super();
+    }
 }

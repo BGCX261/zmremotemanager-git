@@ -1,4 +1,4 @@
-package com.zm.epad.plugins;
+package com.zm.epad.ui;
 
 import com.zm.epad.R;
 import com.zm.epad.core.LogManager;

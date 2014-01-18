@@ -5,16 +5,20 @@ package com.zm.epad.plugins;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.RemoteException;
 import android.content.pm.IPackageDeleteObserver;
 import android.content.pm.IPackageInstallObserver;
 import android.content.pm.IPackageManager;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.IUserManager;
+import android.content.pm.UserInfo;
 import android.os.ServiceManager;
+import android.os.UserManager;
 
 import com.zm.epad.core.LogManager;
-import android.net.Uri;
+import com.zm.epad.structure.Application;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -177,13 +181,78 @@ public class RemotePkgsManager {
     /*
      * we nerver return null;
      * */
-    public List<PackageInfo> getInstallPkgs(int flags){
+    public List<PackageInfo> getInstalledPackages(int flags) {
         try {
             return mPackageManager.getInstalledPackages(flags);
         } catch (Exception e) {
             return new ArrayList<PackageInfo>();
         }
     }
+    public List<PackageInfo>getInstalledPackages(int flags, int userId){
+        try {
+            return mPackageManager.getInstalledPackages(flags,userId);
+        } catch (Exception e) {
+            return new ArrayList<PackageInfo>();
+        }
+    }
     
+    public List<UserInfo> getAllUsers() {
+        try {
+            return mUm.getUsers(true);
+        } catch (Exception e) {
+            return new ArrayList<UserInfo>();
+        }
+        
+    }
     
+    public com.zm.epad.structure.Application getZMApplicationInfo(PackageInfo pi) {
+        String name = pi.applicationInfo.loadLabel(mPackageManager).toString();
+        String pkgname = pi.packageName;
+        String enabled = String.valueOf(pi.applicationInfo.enabled);
+        String flag = String.valueOf(pi.applicationInfo.flags);
+        String version = pi.versionName;
+        
+        com.zm.epad.structure.Application zmAppInfo = new  com.zm.epad.structure.Application();
+        zmAppInfo.setName(name);
+        zmAppInfo.setAppName(pkgname);
+        zmAppInfo.setEnabled(enabled);
+        zmAppInfo.setFlag(flag);
+        zmAppInfo.setVersion(version);
+        
+        return zmAppInfo;
+        
+    }
+    
+    public com.zm.epad.structure.Configuration getZMUserConfigInfo(int uid){
+        Bundle userRestrictionInfo = null;
+        try{
+            userRestrictionInfo = mUm.getUserRestrictions(uid);
+        }catch(Exception e){
+            return null;
+         
+        }
+        com.zm.epad.structure.Configuration cfg = new com.zm.epad.structure.Configuration();
+        cfg.setNoModifyAccount(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_MODIFY_ACCOUNTS)));
+        cfg.setNoConfigWifi(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_CONFIG_WIFI)));
+        cfg.setNoInstallApps(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_INSTALL_APPS)));
+        cfg.setNoInstallApps(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_UNINSTALL_APPS)));
+        cfg.setNoShareLocation(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_SHARE_LOCATION)));
+        cfg.setNoInstallUnknownSources(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES)));
+        cfg.setNoConfigBluetooth(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_CONFIG_BLUETOOTH)));
+        cfg.setNoUsbFileTranster(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_USB_FILE_TRANSFER)));
+        cfg.setNoConfigCredentials(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_CONFIG_CREDENTIALS)));
+        cfg.setNoRemoveUser(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_REMOVE_USER)));
+        
+        return cfg;
+    }
 }
