@@ -164,34 +164,30 @@ public class IQDispatcherCommand extends CmdDispatchInfo{
             List<IResult> resultList = null;
             try {
                 resultList = handleCommand4Query((ICommand4Query) cmd,
-                        new CommandResultCallback(iq));
+                        new CommandResultCallback(iq));               
 
-                
-                //if we need delayed packets sending feature. we could consider 
-                //adding a new function in XmppClient, not here.
-                /*if (resultList != null) {
-                    int i = 0;
+                if (resultList != null) {
+                    //when resultList is not null, send the result immediately
                     for (IResult r : resultList) {
-                        LogManager.local(TAG, "send packet start " + (i + 1));
+                        LogManager.local(TAG, "send packet start ");
                         ZMIQResult resultIQ = new ZMIQResult();
                         resultIQ.setTo(iq.getFrom());
                         resultIQ.setFrom(iq.getTo());
 
                         resultIQ.setResult(r);
-                        mXmppClient.sendPacketAsync((Packet) resultIQ,
-                                (1000) * i++);
-                        LogManager.local(TAG, "send packet end " + i);
+                        mXmppClient.sendPacketAsync((Packet) resultIQ,0);
+                        LogManager.local(TAG, "send packet end ");
                     }
-                }*/
+                }else{
+                    //if resultList is null, the result will be sent from callback
+                }
+
             } catch (Exception e) {
+                //when exception, it means failed to get info, send NG
                 ZMIQResult resultIQ = new ZMIQResult(iq);
-                
-            /*    resultIQ.setTo(iq.getFrom());
-                resultIQ.setFrom(iq.getTo());*/
 
                 IResult r = mResultFactory.getResult(
-                        ResultFactory.RESULT_NORMAL, cmd.getId(), Constants.XMPP_COMMAND_RESULT_NORMAL);
-                
+                        ResultFactory.RESULT_NORMAL, cmd.getId(), "NG");                
                 resultIQ.setResult(r);
                 
                 mXmppClient.sendPacketAsync((Packet) resultIQ, 0);

@@ -14,9 +14,19 @@ import com.zm.xmpp.communication.result.ResultDevice;
 import com.zm.xmpp.communication.result.ResultEnv;
 import com.zm.xmpp.communication.result.ResultNormal;
 
+import android.bluetooth.BluetoothAdapter;
+import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.UserInfo;
+import android.location.LocationManager;
+import android.net.wifi.SupplicantState;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
+import android.nfc.NfcAdapter;
 import android.os.Build;
+import android.os.Bundle;
+import android.os.UserManager;
+import android.provider.Settings;
 import android.text.format.Time;
 
 import java.util.ArrayList;
@@ -186,7 +196,7 @@ public class ResultFactory {
                 }*/
                 
                 
-                Application zmAppInfo = mPkgsManager.getZMApplicationInfo(pi);
+                Application zmAppInfo = getZMApplicationInfo(pi);
         
                 //all related functions are moved to RemotPkgsManager, because it is what he must do :)
                 /*String name = pi.applicationInfo.loadLabel(mContext.getPackageManager()).toString();
@@ -222,7 +232,7 @@ public class ResultFactory {
     
     private IResult ConfigResultDevice(String id, ResultCallback callback){  
 
-        Device device = mDeviceManager.getZMDeviceInfo();
+        Device device = getZMDeviceInfo();
         ResultDevice result = new ResultDevice();
         result.setDevice(device);
         return result;           
@@ -246,7 +256,7 @@ public class ResultFactory {
                 
                 result = new ResultEnv();
             }    */
-            Configuration cfg = mPkgsManager.getZMUserConfigInfo(ui.id);
+            Configuration cfg = getZMUserConfigInfo(ui.id);
             if(cfg == null)
                 continue;
             
@@ -286,6 +296,81 @@ public class ResultFactory {
         }
     }
     
+    private Application getZMApplicationInfo(PackageInfo pi) {
+        String name = mPkgsManager.getApplicationName(pi);
+        String pkgname = pi.packageName;
+        String enabled = String.valueOf(pi.applicationInfo.enabled);
+        String flag = String.valueOf(pi.applicationInfo.flags);
+        String version = pi.versionName;
+        
+        Application zmAppInfo = new  Application();
+        zmAppInfo.setName(name);
+        zmAppInfo.setAppName(pkgname);
+        zmAppInfo.setEnabled(enabled);
+        zmAppInfo.setFlag(flag);
+        zmAppInfo.setVersion(version);
+        
+        return zmAppInfo;
+        
+    }
+    
+    private Device getZMDeviceInfo() {
+        Device device = new Device();
 
+        device.setWifi(mDeviceManager.getWifiName());
+        LogManager.local(TAG,"Wifi:" + device.getWifi());
+
+        device.setBt(mDeviceManager.getBlueToothStatus());
+        LogManager.local(TAG, "BT:" + device.getBt());
+
+        device.setNfc(mDeviceManager.getNfcStatus());
+        LogManager.local(TAG, "NFC:" + device.getNfc());
+        
+        device.setIp(mDeviceManager.getIpAddress());
+        LogManager.local(TAG, "IP:" + device.getIp());
+
+        device.setGps(mDeviceManager.getGpsStatus());
+        LogManager.local(TAG, "GPS:" + device.getGps());
+        
+        device.setAmode(mDeviceManager.getAirplaneMode());
+        LogManager.local(TAG, "Airplane mode:" + device.getAmode());
+
+        device.setMnet(mDeviceManager.getMobileNetwork());
+        LogManager.local(TAG, "Mobile Network:" + device.getMnet());
+        
+        return device;
+    }
+    
+    private Configuration getZMUserConfigInfo(int uid) {
+        Bundle userRestrictionInfo = mPkgsManager.getUserRestrictions(uid);
+        
+        if(userRestrictionInfo == null){
+            return null;
+        }
+
+        Configuration cfg = new Configuration();
+        cfg.setNoModifyAccount(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_MODIFY_ACCOUNTS)));
+        cfg.setNoConfigWifi(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_CONFIG_WIFI)));
+        cfg.setNoInstallApps(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_INSTALL_APPS)));
+        cfg.setNoInstallApps(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_UNINSTALL_APPS)));
+        cfg.setNoShareLocation(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_SHARE_LOCATION)));
+        cfg.setNoInstallUnknownSources(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES)));
+        cfg.setNoConfigBluetooth(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_CONFIG_BLUETOOTH)));
+        cfg.setNoUsbFileTranster(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_USB_FILE_TRANSFER)));
+        cfg.setNoConfigCredentials(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_CONFIG_CREDENTIALS)));
+        cfg.setNoRemoveUser(
+                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_REMOVE_USER)));
+        
+        return cfg;
+    }
     
 }

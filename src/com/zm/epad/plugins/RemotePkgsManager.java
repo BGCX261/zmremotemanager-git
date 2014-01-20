@@ -18,7 +18,6 @@ import android.os.ServiceManager;
 import android.os.UserManager;
 
 import com.zm.epad.core.LogManager;
-import com.zm.epad.structure.Application;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -196,6 +195,10 @@ public class RemotePkgsManager {
         }
     }
     
+    public String getApplicationName(PackageInfo pi) {
+        return pi.applicationInfo.loadLabel(mPackageManager).toString();
+    }
+    
     public List<UserInfo> getAllUsers() {
         try {
             return mUm.getUsers(true);
@@ -205,54 +208,17 @@ public class RemotePkgsManager {
         
     }
     
-    public com.zm.epad.structure.Application getZMApplicationInfo(PackageInfo pi) {
-        String name = pi.applicationInfo.loadLabel(mPackageManager).toString();
-        String pkgname = pi.packageName;
-        String enabled = String.valueOf(pi.applicationInfo.enabled);
-        String flag = String.valueOf(pi.applicationInfo.flags);
-        String version = pi.versionName;
-        
-        com.zm.epad.structure.Application zmAppInfo = new  com.zm.epad.structure.Application();
-        zmAppInfo.setName(name);
-        zmAppInfo.setAppName(pkgname);
-        zmAppInfo.setEnabled(enabled);
-        zmAppInfo.setFlag(flag);
-        zmAppInfo.setVersion(version);
-        
-        return zmAppInfo;
-        
-    }
-    
-    public com.zm.epad.structure.Configuration getZMUserConfigInfo(int uid){
+    public Bundle getUserRestrictions(int userId) {
         Bundle userRestrictionInfo = null;
+        
         try{
-            userRestrictionInfo = mUm.getUserRestrictions(uid);
+            userRestrictionInfo = mUm.getUserRestrictions(userId);
         }catch(Exception e){
             return null;
          
         }
-        com.zm.epad.structure.Configuration cfg = new com.zm.epad.structure.Configuration();
-        cfg.setNoModifyAccount(
-                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_MODIFY_ACCOUNTS)));
-        cfg.setNoConfigWifi(
-                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_CONFIG_WIFI)));
-        cfg.setNoInstallApps(
-                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_INSTALL_APPS)));
-        cfg.setNoInstallApps(
-                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_UNINSTALL_APPS)));
-        cfg.setNoShareLocation(
-                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_SHARE_LOCATION)));
-        cfg.setNoInstallUnknownSources(
-                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES)));
-        cfg.setNoConfigBluetooth(
-                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_CONFIG_BLUETOOTH)));
-        cfg.setNoUsbFileTranster(
-                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_USB_FILE_TRANSFER)));
-        cfg.setNoConfigCredentials(
-                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_CONFIG_CREDENTIALS)));
-        cfg.setNoRemoveUser(
-                String.valueOf(userRestrictionInfo.getBoolean(UserManager.DISALLOW_REMOVE_USER)));
         
-        return cfg;
+        return userRestrictionInfo;
     }
+    
 }

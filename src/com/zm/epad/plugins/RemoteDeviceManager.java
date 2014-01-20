@@ -23,66 +23,84 @@ public class RemoteDeviceManager {
     public RemoteDeviceManager(Context context) {
         mContext = context;
     }
-
-    public com.zm.epad.structure.Device getZMDeviceInfo() {
-        com.zm.epad.structure.Device device = new com.zm.epad.structure.Device();
-
+    
+    public String getWifiName() {
         WifiInfo info = ((WifiManager) mContext
                 .getSystemService(Context.WIFI_SERVICE)).getConnectionInfo();
+        String ret = null;
         // about wifi. We need to figure out what info we want!
         if (info != null
                 && info.getSupplicantState() == SupplicantState.COMPLETED) {
-            device.setWifi(info.getSSID());
-
+            ret = info.getSSID();
+        }
+        
+        return ret;
+    }
+    
+    public String getIpAddress() {
+        
+        String ret = null;
+        
+        //1st check wifi
+        WifiInfo info = ((WifiManager) mContext
+                .getSystemService(Context.WIFI_SERVICE)).getConnectionInfo();
+        if (info != null
+                && info.getSupplicantState() == SupplicantState.COMPLETED) {
             int ipAddr = info.getIpAddress();
             StringBuffer ipBuf = new StringBuffer();
             ipBuf.append(ipAddr & 0xff).append('.')
                     .append((ipAddr >>>= 8) & 0xff).append('.')
                     .append((ipAddr >>>= 8) & 0xff).append('.')
                     .append((ipAddr >>>= 8) & 0xff);
-            device.setIp(ipBuf.toString());
-        } else {
-            device.setWifi("null");
+            ret = ipBuf.toString();
+        }else{
+            //add if support mobile network
         }
-        LogManager.local(TAG,
-                "Wifi:" + device.getWifi() + ";ip:" + device.getIp());
 
+        return ret;
+    }
+    
+    public String getBlueToothStatus() {
         BluetoothAdapter bt = BluetoothAdapter.getDefaultAdapter();
         if (bt == null) {
-            device.setBt("unsupport");
+            return "unsupported";
         } else {
-            device.setBt(bt.isEnabled() ? "on" : "off");
+            return bt.isEnabled() ? "on" : "off";
         }
-        LogManager.local(TAG, "BT:" + device.getBt());
-
+    }
+    
+    public String getNfcStatus() {
         NfcAdapter nfc = NfcAdapter.getDefaultAdapter(mContext);
         if (nfc == null) {
-            device.setNfc("unsupport");
+            return "unsupported";
         } else {
-            device.setNfc(nfc.isEnabled() ? "on" : "off");
-        }
-        LogManager.local(TAG, "NFC:" + device.getNfc());
-
-        device.setAmode(String.valueOf(Settings.Global.getInt(
-                mContext.getContentResolver(),
-                Settings.Global.AIRPLANE_MODE_ON, 0) != 0));
-        LogManager.local(TAG, "Airplane mode:" + device.getAmode());
-
-        device.setMnet("null");
-        LogManager.local(TAG, "Mobile Network:" + device.getMnet());
+            return nfc.isEnabled() ? "on" : "off";
+        }       
+    }
+    
+    public String getMobileNetwork() {
+        //not support mobile network currently
+        return null;
+    }
+    
+    public String getGpsStatus() {
 
         LocationManager lm = (LocationManager) mContext
                 .getSystemService(Context.LOCATION_SERVICE);
 
         if (lm.getProvider("gps") == null) {
-            device.setGps("null");
-            LogManager.local(TAG, "gps is not supported");
+            LogManager.local(TAG, "gps is not available");
+            return null;
         } else {
             boolean bGpsEnabled = lm.isProviderEnabled("gps");
-            device.setGps(bGpsEnabled ? "on" : "off");
-            LogManager.local(TAG, "gps is enabled? " + bGpsEnabled);
-        }
-        return device;
+            return bGpsEnabled ? "on" : "off";
+        }        
+    }
+    
+    public String getAirplaneMode() {
+        return String.valueOf(Settings.Global.getInt(
+                    mContext.getContentResolver(),
+                    Settings.Global.AIRPLANE_MODE_ON, 0) != 0);
     }
 }
 /*

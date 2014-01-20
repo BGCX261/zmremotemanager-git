@@ -29,6 +29,4 @@ public class Constants {
 
     static public final String XMPP_DOMAIN = "com.zm.openfire";
 
-    static public final String XMPP_COMMAND_RESULT_NORMAL = "NG";
-
 }

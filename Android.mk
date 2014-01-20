@@ -3,12 +3,12 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_TAGS := optional
 
-LOCAL_SRC_FILES := $(call all-java-files-under, src)
+LOCAL_SRC_FILES := $(call all-java-files-under, src) 
 
 
 #LOCAL_JAVA_LIBRARIES := services telephony-common
 
-LOCAL_STATIC_JAVA_LIBRARIES := smackxmpp
+LOCAL_STATIC_JAVA_LIBRARIES := smackxmpp zmcommon
 
 LOCAL_PACKAGE_NAME := RemoteManager
 LOCAL_CERTIFICATE := platform
