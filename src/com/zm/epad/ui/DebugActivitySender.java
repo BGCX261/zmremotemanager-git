@@ -10,7 +10,9 @@ import com.zm.xmpp.communication.command.Command4Query;
 import org.jivesoftware.smack.XMPPConnection;
 
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -30,6 +32,8 @@ public class DebugActivitySender extends Activity {
     private Button mAppInfoBtn = null;
     private Button mDeviceInfoBtn = null;
     private Button mUserInfoBtn = null;
+    
+    private Button mDeviceAdmin = null;
 
     private EditText mNameText = null;
     private EditText mUserIdText = null;
@@ -49,6 +53,8 @@ public class DebugActivitySender extends Activity {
         IP = getIntent().getExtras().getString("ServerIP");
 
         testConnectionOn();
+        mDeviceAdmin = (Button) findViewById(R.id.button0);
+        
         mDisableBtn = (Button) findViewById(R.id.button1);
         mEnableBtn = (Button) findViewById(R.id.button2);
         mRemoveBtn = (Button) findViewById(R.id.button3);
@@ -61,6 +67,17 @@ public class DebugActivitySender extends Activity {
 
         mNameText = (EditText) findViewById(R.id.editText1);
         mUserIdText = (EditText) findViewById(R.id.editText2);
+        
+        mDeviceAdmin.setOnClickListener(new OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                android.content.Intent intent = new Intent();
+                intent.setComponent(new ComponentName("com.zm.epad",
+                        "com.zm.epad.ui.RemoteDeviceAdmin"));
+                startActivity(intent);                
+            }         
+        });
 
         mDisableBtn.setOnClickListener(new OnClickListener() {
 

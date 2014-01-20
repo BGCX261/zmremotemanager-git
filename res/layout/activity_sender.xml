@@ -106,6 +106,12 @@
         android:layout_alignLeft="@+id/button2"
         android:text="@string/debug_userinfo" />
 
-
+    <Button
+        android:id="@+id/button0"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/button5"
+        android:layout_alignParentBottom="true"
+        android:text="@string/debug_deviceadmin" />
 
 </RelativeLayout>

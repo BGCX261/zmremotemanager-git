@@ -108,6 +108,9 @@
     <string name="debug_username">Please Input Your Name</string>
     <string name="debug_password">Please Input Your Password</string>
     <string name="debug_connectbtn">Connect</string>
+    <string name="debug_disconnectbtn">Disconnect</string>
+    <string name="debug_connectstatus">Server Connected</string>
+    <string name="debug_debug">Debug Console</string>
     <string name="debug_advancedbtn">Advanced</string>
     <string name="debug_inputname">Please Input Package Name and useId</string>
     <string name="debug_enable">Enable</string>
@@ -118,7 +121,8 @@
     <string name="debug_appinfo">App</string>
     <string name="debug_deviceinfo">Device</string>
     <string name="debug_userinfo">User</string>
-    
+    <string name="debug_deviceadmin">Remote Device Admin</string>
+        
     <!-- Strings used by zmtech_authenticator -->
     <string name="acc_label">ZMTech Account Authenticator</string>
     <string name="acc_title_fmt">ZMTech Account Format</string>
