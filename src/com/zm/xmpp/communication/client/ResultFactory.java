@@ -87,11 +87,12 @@ public class ResultFactory {
 
         if(ret!=null)
         {
-            /*
-             * if(ret.toXML().length() > RESULT_LENGTH_MAX){
-             * LogManager.local(TAG, "can't be solved by 1 resutl. length: " +
-             * ret.toXML().length()); return null; }
-             */
+            if(ret.toXML().length() > RESULT_LENGTH_MAX){
+                LogManager.local(TAG, "can't be solved by 1 resutl. length: " +
+                        ret.toXML().length()); 
+                return null; 
+            }
+
             ret.setId(id);
             ret.setStatus(status);
             ret.setDeviceId(Build.SERIAL);
@@ -181,7 +182,7 @@ public class ResultFactory {
                         
             for(PackageInfo pi:pkgList){
                //xmpp protocol is a stream, there is no fixed size concept in streaming transfer.
-               /* if(result.toXML().length() > RESULT_LENGTH_MAX -
+               if(result.toXML().length() > RESULT_LENGTH_MAX -
                         (RESULT_APPINFO_LENGTH_MAX + RESULT_APPINFO_LENGTH_TAG)){
                     
                     LogManager.local(TAG, "no space for another appinfo in current result("
@@ -193,7 +194,7 @@ public class ResultFactory {
                     env = new Environment();            
                     env.setId(String.valueOf(ui.id));
                     result.addEnv(env);
-                }*/
+                }
                 
                 
                 Application zmAppInfo = getZMApplicationInfo(pi);
@@ -247,7 +248,7 @@ public class ResultFactory {
         ResultEnv result = new ResultEnv();
         for(UserInfo ui: userList)
         {
-           /* if(result.toXML().length() > RESULT_LENGTH_MAX - RESULT_EVNINFO_LENGTH)
+            if(result.toXML().length() > RESULT_LENGTH_MAX - RESULT_EVNINFO_LENGTH)
             {
                 LogManager.local(TAG, "no space for another envinfo in current result("
                         +resultList.size()+") length:"+result.toXML().length());
@@ -255,7 +256,7 @@ public class ResultFactory {
                 resultList.add(result);
                 
                 result = new ResultEnv();
-            }    */
+            }
             Configuration cfg = getZMUserConfigInfo(ui.id);
             if(cfg == null)
                 continue;
