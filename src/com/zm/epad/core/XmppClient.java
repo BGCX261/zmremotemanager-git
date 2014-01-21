@@ -13,6 +13,7 @@ import android.os.Message;
 import com.zm.epad.plugins.ProminentFeature;
 
 import org.jivesoftware.smack.Connection;
+import org.jivesoftware.smack.ConnectionConfiguration;
 import org.jivesoftware.smack.ConnectionListener;
 import org.jivesoftware.smack.SmackAndroid;
 import org.jivesoftware.smack.XMPPConnection;
@@ -219,7 +220,12 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         try {
             String serverName = mConnectionInfo.getString("server");
             LogManager.local(TAG, "connect to server:" + serverName);
-            mXmppConnection = new XMPPConnection(serverName);
+            ConnectionConfiguration config = new ConnectionConfiguration(serverName);
+            config.setCompressionEnabled(true);
+            config.setDebuggerEnabled(true);
+            config.setReconnectionAllowed(true);
+
+            mXmppConnection = new XMPPConnection(config);
             mXmppConnection.connect();
 
             mXmppConnectionListener = new XMPPConnectionListener();
