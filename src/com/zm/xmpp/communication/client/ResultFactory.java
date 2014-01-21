@@ -16,6 +16,7 @@ import com.zm.xmpp.communication.result.ResultNormal;
 
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.UserInfo;
 import android.location.LocationManager;
@@ -196,33 +197,11 @@ public class ResultFactory {
                     result.addEnv(env);
                 }
                 
-                
-                Application zmAppInfo = getZMApplicationInfo(pi);
-        
-                //all related functions are moved to RemotPkgsManager, because it is what he must do :)
-                /*String name = pi.applicationInfo.loadLabel(mContext.getPackageManager()).toString();
-                String pkgname = pi.packageName;
-                String enabled = String.valueOf(pi.applicationInfo.enabled);
-                String flag = String.valueOf(pi.applicationInfo.flags);
-                String version = pi.versionName;
-                
-                if(name.length() + pkgname.length() + enabled.length() + 
-                        flag.length() + version.length() > RESULT_APPINFO_LENGTH_MAX)
-                {
-                    //if app info is too long, only save package name, enabled and flag 
-                    app.setAppName(pkgname);
-                    app.setEnabled(enabled);
-                    app.setFlag(flag);
-                }else{
-                    app.setName(name);
-                    app.setAppName(pkgname);
-                    app.setEnabled(enabled);
-                    app.setFlag(flag);
-                    app.setVersion(version);                    
-                }*/
-
-                
-                env.addApp(zmAppInfo);
+               //only give non-system app info to server
+                if((pi.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0){
+                    Application zmAppInfo = getZMApplicationInfo(pi);                
+                    env.addApp(zmAppInfo);                    
+                }
             }            
         }
         result.setStatus("done:"+resultList.size());
