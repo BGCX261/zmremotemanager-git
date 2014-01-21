@@ -3,18 +3,22 @@ package com.zm.epad.plugins;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.RemoteException;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.IPackageDeleteObserver;
 import android.content.pm.IPackageInstallObserver;
 import android.content.pm.IPackageManager;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.content.pm.UserInfo;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IUserManager;
 import android.os.RemoteException;
+import android.os.UserHandle;
+import android.content.pm.UserInfo;
 import android.os.ServiceManager;
+import android.os.UserManager;
 
 import com.zm.epad.core.LogManager;
 
@@ -22,8 +26,9 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class RemotePkgsManager {
-    public static final String TAG="RemotePkgsManager";
+    public static final String TAG = "RemotePkgsManager";
 
     IPackageManager mPm;
     IUserManager mUm;
@@ -46,11 +51,13 @@ public class RemotePkgsManager {
     class PackageDeleteObserver extends IPackageDeleteObserver.Stub {
         boolean finished;
         boolean result;
+        public String pkgName = "";
 
         public void packageDeleted(String packageName, int returnCode) {
             synchronized (this) {
                 finished = true;
                 result = returnCode == PackageManager.DELETE_SUCCEEDED;
+                pkgName = packageName;
                 notifyAll();
             }
         }
@@ -59,11 +66,13 @@ public class RemotePkgsManager {
     class PackageInstallObserver extends IPackageInstallObserver.Stub {
         boolean finished;
         int result;
+        public String pkgName = "";
 
         public void packageInstalled(String name, int status) {
-            synchronized( this) {
+            synchronized (this) {
                 finished = true;
                 result = status;
+                pkgName = name;
                 notifyAll();
             }
         }
@@ -120,23 +129,25 @@ public class RemotePkgsManager {
     public RemotePkgsManager(Context context){
         try {
             mContext = context;
-            mUm = IUserManager.Stub.asInterface(ServiceManager.getService("user"));
-            mPm = IPackageManager.Stub.asInterface(ServiceManager.getService("package"));
+            mUm = IUserManager.Stub.asInterface(ServiceManager
+                    .getService("user"));
+            mPm = IPackageManager.Stub.asInterface(ServiceManager
+                    .getService("package"));
             mPackageManager = context.getPackageManager();
         } catch (Exception e) {
             // TODO: handle exception
         }
-        
+
     }
-    
-    
-    public boolean enablePkgForUser(String pkgName, int userId){
-        if(pkgName == null)
+
+    public boolean enablePkgForUser(String pkgName, int userId) {
+        LogManager.local(TAG, "enablePkgForUser: " + userId);
+        if (pkgName == null)
             return false;
         try {
-        	//simulate it as pm command
-            mPm.setApplicationEnabledSetting(pkgName, 
-                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED, 0,userId,
+            // simulate it as pm command
+            mPm.setApplicationEnabledSetting(pkgName,
+                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED, 0, userId,
                     "shell:" + android.os.Process.myUid());
         } catch (Exception e) {
             LogManager.local(TAG, "enablePkgForUser:" + e.toString());
@@ -144,12 +155,13 @@ public class RemotePkgsManager {
         }
         return true;
     }
-    
-    public boolean disablePkgForUser(String pkgName, int userId){
+
+    public boolean disablePkgForUser(String pkgName, int userId) {
+        LogManager.local(TAG, "disablePkgForUser: " + userId);
         try {
-        	//simulate it as pm command
-            mPm.setApplicationEnabledSetting(pkgName, 
-                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED, 0,userId,
+            // simulate it as pm command
+            mPm.setApplicationEnabledSetting(pkgName,
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED, 0, userId,
                     "shell:" + android.os.Process.myUid());
         } catch (Exception e) {
             LogManager.local(TAG, "disablePkgForUser:" + e.toString());
@@ -172,24 +184,23 @@ public class RemotePkgsManager {
 
     /*
      * Download an new app?
-     * */
-    public boolean updatePkgForUser(String pkgName, int userId){
+     */
+    public boolean updatePkgForUser(String pkgName, int userId) {
         return false;
     }
-    /*
-     * Special note:
-     * For uninstall and install, userId is not used, because 
-     * PackageManager will use caller's userid.This means 
-     * User A could not install or uninstall apk for other users 
-     * except for himself
-     * 
-     * */
-    public boolean uninstallPkgForUser(String pkgName,int userId){
-        if(pkgName == null)
+
+    public boolean unistallPkgForAll(String pkgName) {
+        boolean ret = false;
+
+        if (pkgName == null)
             return false;
-        PackageDeleteObserver obs = new PackageDeleteObserver();
+
         try {
-            mPm.deletePackageAsUser(pkgName, obs, 0,0);
+            PackageDeleteObserver obs = new PackageDeleteObserver();
+
+            // delete as owner(0)
+            mPm.deletePackageAsUser(pkgName, obs, 0,
+                    PackageManager.DELETE_ALL_USERS);
 
             synchronized (obs) {
                 while (!obs.finished) {
@@ -198,37 +209,82 @@ public class RemotePkgsManager {
                     } catch (InterruptedException e) {
                     }
                 }
+
+                ret = obs.result;
             }
-        } catch (RemoteException e) {
+        } catch (Exception e) {
             LogManager.local(TAG, "uninstallPkgForUser:" + e.toString());
            return false;
         }
-        return obs.result;
-        
-        
+
+        return ret;
     }
-    //zhimo://apkname-->/sdcard/xxx/apkname
-    private String getRealPath(String apkLocation){
-        if(apkLocation == null)
+
+    public boolean uninstallPkgForUser(String pkgName, int userId) {
+        boolean ret = false;
+
+        LogManager.local(TAG, "uninstallPkgForUser: " + userId);
+        if (pkgName == null)
+            return false;
+
+        try {
+            if (UserHandle.myUserId() == userId) {
+                // deletePackageAsUser can't be called from other user in system
+                // process
+                PackageDeleteObserver obs = new PackageDeleteObserver();
+
+                mPm.deletePackageAsUser(pkgName, obs, userId, 0);
+
+                synchronized (obs) {
+                    while (!obs.finished) {
+                        try {
+                            obs.wait();
+                        } catch (InterruptedException e) {
+                        }
+                    }
+                }
+                ret = obs.result;
+            } else {
+                mPm.setApplicationBlockedSettingAsUser(pkgName, true, userId);
+                ret = true;
+            }
+        } catch (Exception e) {
+            LogManager.local(TAG, "uninstallPkgForUser:" + e.toString());
+        }
+
+        if (isBlockedOrUnstalledByAll(pkgName)) {
+            ret = unistallPkgForAll(pkgName);
+        }
+
+        return ret;
+    }
+
+    // zhimo://apkname-->/sdcard/xxx/apkname
+    private String getRealPath(String apkLocation) {
+        if (apkLocation == null)
             return null;
-        if(apkLocation.startsWith("http://"))
+        if (apkLocation.startsWith("http://"))
             return apkLocation;
-        else if(apkLocation.startsWith("zhimo://")){
-            String realApkLocation = apkLocation.substring(apkLocation.lastIndexOf("/"));
+        else if (apkLocation.startsWith("zhimo://")) {
+            String realApkLocation = apkLocation.substring(apkLocation
+                    .lastIndexOf("/"));
             File file = Environment.getExternalStorageDirectory();
             realApkLocation = file.getAbsolutePath() + "/" + realApkLocation;
             return realApkLocation;
         } else
             return apkLocation;
     }
-    public boolean installPkgForUser(String apkLocation,int userId){
+
+    public boolean installPkgForUser(String apkLocation, int userId) {
+        LogManager.local(TAG, "installPkgForUser: " + userId);
         apkLocation = getRealPath(apkLocation);
-        if(apkLocation == null)
+        if (apkLocation == null)
             return false;
         PackageInstallObserver obs = new PackageInstallObserver();
         try {
             Uri apkURI = Uri.parse(apkLocation);
-             mPm.installPackage(apkURI, obs, 0,null);
+            mPm.installPackage(apkURI, obs, PackageManager.INSTALL_ALL_USERS,
+                    null);
             synchronized (obs) {
                 while (!obs.finished) {
                     try {
@@ -237,11 +293,23 @@ public class RemotePkgsManager {
                     }
                 }
                 if (obs.result == PackageManager.INSTALL_SUCCEEDED) {
+                    List<UserInfo> userList = getAllUsers();
+                    for (UserInfo u : userList) {
+                        // block all users except requested user
+                        if (u.id != userId) {
+                            mPm.setApplicationBlockedSettingAsUser(obs.pkgName,
+                                    true, u.id);
+                        }
+                    }
                     return true;
+                } else if (obs.result == PackageManager.INSTALL_FAILED_ALREADY_EXISTS) {
+                    // if already installed
+                    return InstallExsitedPackage(obs.pkgName, userId);
                 } else {
-                   /* System.err.println("Failure ["
-                            + installFailureToString(obs.result)
-                            + "]");*/
+                    /*
+                     * System.err.println("Failure [" +
+                     * installFailureToString(obs.result) + "]");
+                     */
                     return false;
                 }
             }
@@ -250,10 +318,10 @@ public class RemotePkgsManager {
             return false;
         }
     }
-    
+
     /*
      * we nerver return null;
-     * */
+     */
     public List<PackageInfo> getInstalledPackages(int flags) {
         try {
             return mPackageManager.getInstalledPackages(flags);
@@ -261,38 +329,89 @@ public class RemotePkgsManager {
             return new ArrayList<PackageInfo>();
         }
     }
-    public List<PackageInfo>getInstalledPackages(int flags, int userId){
+
+    public List<PackageInfo> getInstalledPackages(int flags, int userId) {
         try {
-            return mPackageManager.getInstalledPackages(flags,userId);
+            return mPackageManager.getInstalledPackages(flags, userId);
         } catch (Exception e) {
             return new ArrayList<PackageInfo>();
         }
     }
-    
+
     public String getApplicationName(PackageInfo pi) {
         return pi.applicationInfo.loadLabel(mPackageManager).toString();
     }
-    
+
     public List<UserInfo> getAllUsers() {
         try {
             return mUm.getUsers(true);
         } catch (Exception e) {
             return new ArrayList<UserInfo>();
         }
-        
+
     }
-    
+
     public Bundle getUserRestrictions(int userId) {
         Bundle userRestrictionInfo = null;
-        
-        try{
+
+        try {
             userRestrictionInfo = mUm.getUserRestrictions(userId);
-        }catch(Exception e){
+        } catch (Exception e) {
             return null;
-         
         }
-        
+
         return userRestrictionInfo;
     }
-    
+
+    private boolean InstallExsitedPackage(String packageName, int userId) {
+
+        boolean ret = false;
+        try {
+            ApplicationInfo info = mPm.getApplicationInfo(packageName,
+                    PackageManager.GET_UNINSTALLED_PACKAGES, userId);
+            LogManager.local(TAG, "installExisting: " + packageName);
+            if (info == null
+                    || (info.flags & ApplicationInfo.FLAG_INSTALLED) == 0) {
+                if (mPm.installExistingPackageAsUser(packageName, userId) == PackageManager.INSTALL_SUCCEEDED) {
+                    ret = true;
+                }
+            } else if ((info.flags & ApplicationInfo.FLAG_BLOCKED) != 0) {
+                LogManager.local(TAG, "unblock: " + packageName);
+                mPm.setApplicationBlockedSettingAsUser(packageName, false,
+                        userId);
+                ret = true;
+            }
+        } catch (Exception e) {
+            LogManager.local(TAG, e.toString());
+        }
+
+        LogManager.local(TAG, "InstallExsitedPackage: " + ret);
+        return ret;
+    }
+
+    private boolean isBlockedOrUnstalledByAll(String packageName) {
+
+        boolean ret = true;
+        try {
+            List<UserInfo> userList = getAllUsers();
+            for (UserInfo u : userList) {
+                ApplicationInfo info = mPm.getApplicationInfo(packageName,
+                        PackageManager.GET_UNINSTALLED_PACKAGES, u.id);
+                if (info != null
+                        && ((info.flags & ApplicationInfo.FLAG_INSTALLED) != 0)
+                        && ((info.flags & ApplicationInfo.FLAG_BLOCKED) == 0)) {
+                    // find one not blocked
+                    ret = false;
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            LogManager.local(TAG, e.toString());
+            ret = false;
+        }
+
+        LogManager.local(TAG, "isBlockedOrUnstalledByAll: " + ret);
+        return ret;
+    }
+
 }
