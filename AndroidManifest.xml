@@ -52,6 +52,8 @@
     <uses-permission android:name="android.permission.MANAGE_ACCOUNTS"/>
     <uses-permission
         android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
+    <uses-permission
+        android:name="android.permission.PACKAGE_VERIFICATION_AGENT" />
     
     <application
         android:label="@string/app_name"
@@ -98,6 +100,13 @@
 
             <intent-filter>
                 <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name=".plugin.RemotePkgsManager$PackageVerificationReciver">
+            <intent-filter>
+                <action android:name="android.intent.action.PACKAGE_NEEDS_VERIFICATION" />
+                <data android:mimeType="application/vnd.android.package-archive" />
             </intent-filter>
         </receiver>
 

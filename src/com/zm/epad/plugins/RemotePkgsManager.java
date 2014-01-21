@@ -1,21 +1,20 @@
 package com.zm.epad.plugins;
 
-
-
+import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.net.Uri;
-import android.os.RemoteException;
+import android.content.Intent;
 import android.content.pm.IPackageDeleteObserver;
 import android.content.pm.IPackageInstallObserver;
 import android.content.pm.IPackageManager;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.UserInfo;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IUserManager;
-import android.content.pm.UserInfo;
+import android.os.RemoteException;
 import android.os.ServiceManager;
-import android.os.UserManager;
 
 import com.zm.epad.core.LogManager;
 
@@ -23,9 +22,26 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class RemotePkgsManager {
     public static final String TAG="RemotePkgsManager";
+
+    IPackageManager mPm;
+    IUserManager mUm;
+    PackageManager mPackageManager;
+    Context mContext;
+    private static final ArrayList<PackageVerificationItem> mWhitelist = new ArrayList<PackageVerificationItem>();
+    private static final ArrayList<PackageVerificationItem> mBlacklist = new ArrayList<PackageVerificationItem>();
+    // lock used to protect white and black list. if debug, can re-name it.
+    private static Object mLock = new Object();
+
+    // TODO: I cannot define the item info exactly right now.
+    private static class PackageVerificationItem {
+        String packageName;
+
+        PackageVerificationItem(String name) {
+            packageName = name;
+        }
+    }
 	
     class PackageDeleteObserver extends IPackageDeleteObserver.Stub {
         boolean finished;
@@ -39,6 +55,7 @@ public class RemotePkgsManager {
             }
         }
     }
+
     class PackageInstallObserver extends IPackageInstallObserver.Stub {
         boolean finished;
         int result;
@@ -51,10 +68,55 @@ public class RemotePkgsManager {
             }
         }
     }
-    IPackageManager mPm;
-    IUserManager mUm;
-    PackageManager mPackageManager;
-    Context mContext;
+
+    // PackageManagerService will broadcast in InstallParams.handleStartCopy()
+    public static class PackageVerificationReciver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if(action.equals(Intent.ACTION_PACKAGE_NEEDS_VERIFICATION)) {
+                final int verificationId = intent.getIntExtra(PackageManager.EXTRA_VERIFICATION_ID, 0);
+                final String packageName = intent.getStringExtra(PackageManager.EXTRA_VERIFICATION_PACKAGE_NAME);
+                if (checkInWhitelist(packageName)) {
+                    verifyPendingInstall(verificationId, PackageManager.VERIFICATION_ALLOW);
+                } else if (checkInBlacklist(packageName)) {
+                    verifyPendingInstall(verificationId, PackageManager.VERIFICATION_REJECT);
+                }
+            }
+        }
+
+        private boolean checkInWhitelist(String packageName) {
+            synchronized(mLock) {
+                for (PackageVerificationItem item : mWhitelist) {
+                    if (item.packageName == packageName) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private boolean checkInBlacklist(String packageName) {
+            synchronized(mLock) {
+                for (PackageVerificationItem item : mBlacklist) {
+                    if (item.packageName == packageName) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private void verifyPendingInstall(int verificationId, int verificationCode) {
+            IPackageManager pm = IPackageManager.Stub.asInterface(ServiceManager.getService("package"));
+            try {
+                pm.verifyPendingInstall(verificationId, verificationCode);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     public RemotePkgsManager(Context context){
         try {
             mContext = context;
@@ -96,6 +158,18 @@ public class RemotePkgsManager {
         return true;
     }
     
+    // recieve the white or black list from server.
+    public void updateWhiteOrBlacklist() {
+        // TODO: empty implement right now, need @dujiang do the following.
+        // the following are only for testing.
+
+        // keep the lock to update.
+        synchronized(mLock) {
+            // api demos
+            mWhitelist.add(new PackageVerificationItem("com.example.android.apis"));
+        }
+    }
+
     /*
      * Download an new app?
      * */
