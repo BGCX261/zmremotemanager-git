@@ -79,7 +79,7 @@ public class RemotePkgsManager {
     }
 
     // PackageManagerService will broadcast in InstallParams.handleStartCopy()
-    public static class PackageVerificationReciver extends BroadcastReceiver {
+    public static class PackageVerificationReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
@@ -90,6 +90,8 @@ public class RemotePkgsManager {
                     verifyPendingInstall(verificationId, PackageManager.VERIFICATION_ALLOW);
                 } else if (checkInBlacklist(packageName)) {
                     verifyPendingInstall(verificationId, PackageManager.VERIFICATION_REJECT);
+                } else {
+                    verifyPendingInstall(verificationId, PackageManager.VERIFICATION_ALLOW);
                 }
             }
         }

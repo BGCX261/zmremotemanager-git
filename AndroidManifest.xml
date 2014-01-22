@@ -104,9 +104,13 @@
             </intent-filter>
         </receiver>
 
-        <receiver android:name=".plugin.RemotePkgsManager$PackageVerificationReciver">
+        <receiver
+            android:name=".plugins.RemotePkgsManager$PackageVerificationReceiver"
+            android:permission="android.permission.BIND_PACKAGE_VERIFIER"
+            android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.PACKAGE_NEEDS_VERIFICATION" />
+                <action android:name="android.intent.action.PACKAGE_VERIFIED" />
                 <data android:mimeType="application/vnd.android.package-archive" />
             </intent-filter>
         </receiver>
