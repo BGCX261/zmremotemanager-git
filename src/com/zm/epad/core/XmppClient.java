@@ -8,6 +8,14 @@ import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.packet.Packet;
 import org.jivesoftware.smack.provider.ProviderManager;
 
+import org.jivesoftware.smackx.filetransfer.FileTransfer;
+import org.jivesoftware.smackx.filetransfer.FileTransfer.Status;
+import org.jivesoftware.smackx.filetransfer.FileTransferListener;
+import org.jivesoftware.smackx.filetransfer.FileTransferManager;
+import org.jivesoftware.smackx.filetransfer.FileTransferRequest;
+import org.jivesoftware.smackx.filetransfer.IncomingFileTransfer;
+import org.jivesoftware.smackx.filetransfer.OutgoingFileTransfer;
+
 import com.zm.epad.core.LogManager;
 import android.content.Context;
 import android.net.ConnectivityManager;
@@ -19,6 +27,7 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -583,6 +592,23 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             Message msg = mXmppClientHandler.obtainMessage(CMD_SEND_PACKET_ASYNC, packet);
             return mXmppClientHandler.sendMessageDelayed(msg, delayMillis);
 
+    }
+       
+    public void sendFile(File file, final String description) {
+        try {
+            String usrName = mConnectionInfo.getString("username");
+            String usrResource = mConnectionInfo.getString("resource");
+
+            FileTransferManager fileTransferManager = new FileTransferManager(
+                    mXmppConnection);
+            
+            OutgoingFileTransfer fileTransfer = fileTransferManager
+                    .createOutgoingFileTransfer("capture@com.zm.openfire/default");
+            fileTransfer.sendFile(file, description);
+
+        } catch (Exception e) {
+            LogManager.local(TAG, e.toString());
+        }
     }
 
 }

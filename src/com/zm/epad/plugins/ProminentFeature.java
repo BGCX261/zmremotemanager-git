@@ -3,20 +3,24 @@ package com.zm.epad.plugins;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Timer;
-import java.util.TimerTask;
+
+
+import android.net.Uri;
 
 import com.zm.epad.core.LogManager;
 
-import android.R;
+
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.WallpaperManager;
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.database.Cursor;
 import android.hardware.Camera;
 import android.os.Handler;
 import android.os.IBinder;
@@ -24,8 +28,6 @@ import android.os.Message;
 import android.os.Messenger;
 import android.provider.MediaStore;
 import android.text.format.Time;
-import android.view.SurfaceHolder;
-import android.view.SurfaceHolder.Callback;
 import android.view.SurfaceView;
 
 public class ProminentFeature {
@@ -51,7 +53,7 @@ public class ProminentFeature {
         }
     }
 
-    public void takeScreenshot() {
+    public void takeScreenshot(final Handler handler) {
         LogManager.local(TAG, "takeScreenshot");
         ComponentName cn = new ComponentName("com.android.systemui",
                 "com.android.systemui.screenshot.TakeScreenshotService");
@@ -63,7 +65,7 @@ public class ProminentFeature {
                 LogManager.local(TAG, "onServiceConnected");
                 Messenger messenger = new Messenger(service);
                 Message msg = Message.obtain(null, 1);
-                msg.replyTo = new Messenger(new Handler());
+                msg.replyTo = new Messenger(handler);
 
                 try {
                     messenger.send(msg);
@@ -79,6 +81,77 @@ public class ProminentFeature {
         };
         mContext.bindService(intent, conn, Context.BIND_AUTO_CREATE);
 
+    }
+    
+    public File getLatestScreenshot() {
+
+        File ret = null;
+        try {
+            String[] proj = { MediaStore.Images.Media.TITLE,
+                    MediaStore.Images.Media.DATE_MODIFIED,
+                    MediaStore.Images.Media.SIZE, MediaStore.Images.Media.DATA,
+                    MediaStore.Images.Media._ID };
+
+            ContentResolver resolver = mContext.getContentResolver();
+            Cursor cursor = MediaStore.Images.Media.query(resolver,
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, proj);
+
+            String title = null;
+            long time = Long.MIN_VALUE;
+            int size = 0;
+            String data = null;
+            int id = 0;
+
+            cursor.moveToFirst();
+            do {
+                if (time < cursor.getLong(cursor
+                        .getColumnIndex(MediaStore.Images.Media.DATE_MODIFIED))) {
+                    time = cursor
+                            .getLong(cursor
+                                    .getColumnIndex(MediaStore.Images.Media.DATE_MODIFIED));
+                    title = cursor.getString(cursor
+                            .getColumnIndex(MediaStore.Images.Media.TITLE));
+                    size = cursor.getInt(cursor
+                            .getColumnIndex(MediaStore.Images.Media.SIZE));
+                    data = cursor.getString(cursor
+                            .getColumnIndex(MediaStore.Images.Media.DATA));
+                    id = cursor.getInt(cursor
+                            .getColumnIndex(MediaStore.Images.Media._ID));
+                }
+            } while (cursor.moveToNext());
+
+            LogManager.local(TAG, "media data:" + data);
+            LogManager.local(TAG, "media id:" + id);
+
+            Uri fileUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                    .buildUpon().appendPath(String.valueOf(id)).build();
+            LogManager.local(TAG, "data Uri:" + fileUri.toString());
+            InputStream in = resolver.openInputStream(fileUri);
+
+            ret = new File(mContext.getFilesDir().getAbsolutePath()
+                    + "/temp.png");
+            ret.createNewFile();
+            FileOutputStream out = new FileOutputStream(ret);
+            byte[] buffer = new byte[size];
+            in.read(buffer);
+            out.write(buffer);
+            out.flush();
+            out.close();
+            in.close();
+
+            LogManager.local(TAG, String.valueOf(ret.canRead()));
+            LogManager.local(TAG, String.valueOf(ret.canWrite()));
+            LogManager.local(TAG, String.valueOf(ret.canExecute()));
+            LogManager.local(TAG, String.valueOf(ret.exists()));
+            LogManager.local(TAG, ret.toString());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        LogManager.local(TAG, ret == null ? "null"
+                : (ret.toString() + "|" + ret.length()));
+        return ret;
     }
 
     public void startCamera() {

