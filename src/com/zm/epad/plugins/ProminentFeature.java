@@ -1,6 +1,7 @@
 package com.zm.epad.plugins;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,11 +18,13 @@ import android.app.NotificationManager;
 import android.app.WallpaperManager;
 import android.content.ComponentName;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.hardware.Camera;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -176,6 +179,52 @@ public class ProminentFeature {
                 .build(); 
         
         NotifyManager.notify(0, n);
+    }
+    
+    public void saveFileAsImage(File file){
+        
+        ContentValues values = new ContentValues();
+        ContentResolver resolver = mContext.getContentResolver();
+        
+        try{
+            long time = System.currentTimeMillis();
+            String fileName = String.valueOf(time)+"_"+file.getName();
+            File dir = new File(Environment.getExternalStoragePublicDirectory(
+                    Environment.DIRECTORY_PICTURES), "Recieved");
+            String filePath = new File(dir, fileName).getAbsolutePath();
+            LogManager.local(TAG, "file path: "+filePath);
+            
+            dir.mkdir();
+            
+            values.put(MediaStore.Images.ImageColumns.DATA, filePath);
+            values.put(MediaStore.Images.ImageColumns.TITLE, fileName);
+            values.put(MediaStore.Images.ImageColumns.DISPLAY_NAME, fileName);
+            values.put(MediaStore.Images.ImageColumns.DATE_TAKEN, time);
+            values.put(MediaStore.Images.ImageColumns.DATE_ADDED, time/1000);
+            values.put(MediaStore.Images.ImageColumns.DATE_MODIFIED, time/1000);
+            values.put(MediaStore.Images.ImageColumns.MIME_TYPE, "image/jpg");
+            Uri uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+            LogManager.local(TAG, "file Uri: "+uri.toString());
+            
+            FileInputStream in = new FileInputStream(file);
+            OutputStream out = resolver.openOutputStream(uri);
+            byte[] buffer = new byte[(int)file.length()];
+            in.read(buffer);
+            out.write(buffer);
+            out.flush();
+            out.close();
+            in.close();
+            
+            values.clear();
+            long length = new File(filePath).length();
+            values.put(MediaStore.Images.ImageColumns.SIZE, length);
+            resolver.update(uri, values, null, null);
+            
+            LogManager.local(TAG, "file length: "+String.valueOf(length));
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+
     }
 
     // can't start camera in system server
