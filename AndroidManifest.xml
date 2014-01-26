@@ -48,14 +48,12 @@
     <uses-permission android:name="android.permission.MASTER_CLEAR" />
     <uses-permission android:name="android.permission.VIBRATE" /
     -->
-    <uses-permission
-        android:name="android.permission.GET_ACCOUNTS" />
+    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
     <uses-permission android:name="android.permission.MANAGE_ACCOUNTS"/>
-    <uses-permission
-        android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
-    <uses-permission
-        android:name="android.permission.PACKAGE_VERIFICATION_AGENT" />
-    
+    <uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
+    <uses-permission android:name="android.permission.PACKAGE_VERIFICATION_AGENT" />
+    <uses-permission android:name="android.permission.SET_ACTIVITY_WATCHER" />
+
     <application
         android:label="@string/app_name"
         android:icon="@drawable/icon"
@@ -63,7 +61,9 @@
         android:allowClearUserData="false"
         android:hardwareAccelerated="true"
         android:persistent="true"
-        android:process="system" >
+        android:process="system"
+        android:name=".core.RemoteManagerApplication" >
+
         <service android:name=".core.RemoteManagerService" />
         
         <service android:name=".plugins.RemoteAccountService" 
