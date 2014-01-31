@@ -3,22 +3,20 @@ package com.zm.epad.plugins;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.net.Uri;
-import android.os.RemoteException;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.IPackageDeleteObserver;
 import android.content.pm.IPackageInstallObserver;
 import android.content.pm.IPackageManager;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.UserInfo;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IUserManager;
 import android.os.RemoteException;
-import android.os.UserHandle;
-import android.content.pm.UserInfo;
 import android.os.ServiceManager;
-import android.os.UserManager;
+import android.os.UserHandle;
 
 import com.zm.epad.core.LogManager;
 
@@ -26,8 +24,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-
-public class RemotePkgsManager {
+public class RemotePackageManager {
     public static final String TAG = "RemotePkgsManager";
 
     IPackageManager mPm;
@@ -47,7 +44,7 @@ public class RemotePkgsManager {
             packageName = name;
         }
     }
-	
+
     class PackageDeleteObserver extends IPackageDeleteObserver.Stub {
         boolean finished;
         boolean result;
@@ -128,7 +125,7 @@ public class RemotePkgsManager {
         }
     }
 
-    public RemotePkgsManager(Context context){
+    public RemotePackageManager(Context context){
         try {
             mContext = context;
             mUm = IUserManager.Stub.asInterface(ServiceManager
@@ -137,7 +134,6 @@ public class RemotePkgsManager {
                     .getService("package"));
             mPackageManager = context.getPackageManager();
         } catch (Exception e) {
-            // TODO: handle exception
         }
 
     }
@@ -171,7 +167,7 @@ public class RemotePkgsManager {
         }
         return true;
     }
-    
+
     // recieve the white or black list from server.
     public void updateWhiteOrBlacklist() {
         // TODO: empty implement right now, need @dujiang do the following.

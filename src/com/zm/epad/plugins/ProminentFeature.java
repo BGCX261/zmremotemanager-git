@@ -1,18 +1,5 @@
 package com.zm.epad.plugins;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-
-
-import android.net.Uri;
-
-import com.zm.epad.core.LogManager;
-
-
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.WallpaperManager;
@@ -24,6 +11,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.hardware.Camera;
+import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
@@ -33,9 +21,18 @@ import android.provider.MediaStore;
 import android.text.format.Time;
 import android.view.SurfaceView;
 
-public class ProminentFeature {
+import com.zm.epad.core.LogManager;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
+public class ProminentFeature {
     public static final String TAG = "ProminentFeature";
+
     private Context mContext;
     private Camera mCamera;
     private SurfaceView mSurfaceView;
@@ -87,7 +84,6 @@ public class ProminentFeature {
     }
     
     public File getLatestScreenshot() {
-
         File ret = null;
         try {
             String[] proj = { MediaStore.Images.Media.TITLE,
@@ -162,10 +158,8 @@ public class ProminentFeature {
         try {
             mContext.startActivity(intent);
         } catch (Exception e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
-
     }
 
     public void sendNotify(String title, String text) {
@@ -245,7 +239,6 @@ public class ProminentFeature {
 
                 @Override
                 public void onPictureTaken(byte[] data, Camera camera) {
-                    // TODO Auto-generated method stub
                     File file_name = null;
                     LogManager.local(TAG, "onPictureTaken");
 
@@ -259,7 +252,6 @@ public class ProminentFeature {
                             file_name.createNewFile();
                         }
                     } catch (final Exception e1) {
-                        // TODO Auto-generated catch block
                         e1.printStackTrace();
                     }
 
@@ -275,10 +267,7 @@ public class ProminentFeature {
                 }
             });
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
-
     }
-
 }

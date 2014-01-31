@@ -1,24 +1,5 @@
 package com.zm.epad.core;
 
-
-import org.jivesoftware.smack.Connection;
-import org.jivesoftware.smack.ConnectionListener;
-import org.jivesoftware.smack.SmackAndroid;
-import org.jivesoftware.smack.XMPPConnection;
-import org.jivesoftware.smack.packet.Packet;
-import org.jivesoftware.smack.provider.ProviderManager;
-
-import org.jivesoftware.smackx.filetransfer.FileTransfer;
-import org.jivesoftware.smackx.filetransfer.FileTransfer.Status;
-import org.jivesoftware.smackx.filetransfer.FileTransferListener;
-import org.jivesoftware.smackx.filetransfer.FileTransferManager;
-import org.jivesoftware.smackx.filetransfer.FileTransferRequest;
-import org.jivesoftware.smackx.filetransfer.IncomingFileTransfer;
-import org.jivesoftware.smackx.filetransfer.OutgoingFileTransfer;
-
-import com.zm.epad.core.LogManager;
-import com.zm.epad.plugins.ProminentFeature;
-
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -29,13 +10,26 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 
+import com.zm.epad.plugins.ProminentFeature;
+
+import org.jivesoftware.smack.Connection;
+import org.jivesoftware.smack.ConnectionListener;
+import org.jivesoftware.smack.SmackAndroid;
+import org.jivesoftware.smack.XMPPConnection;
+import org.jivesoftware.smack.packet.Packet;
+import org.jivesoftware.smack.provider.ProviderManager;
+import org.jivesoftware.smackx.filetransfer.FileTransferListener;
+import org.jivesoftware.smackx.filetransfer.FileTransferManager;
+import org.jivesoftware.smackx.filetransfer.FileTransferRequest;
+import org.jivesoftware.smackx.filetransfer.IncomingFileTransfer;
+import org.jivesoftware.smackx.filetransfer.OutgoingFileTransfer;
+
 import java.io.File;
 import java.util.ArrayList;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
+    private static final String TAG = "XmppClient";
 
     public static final int XMPPCLIENT_EVENT_CONNECT = 1;
     public static final int XMPPCLIENT_EVENT_LOGIN = 2;
@@ -57,21 +51,46 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     static final int XMPPCLIENT_STATUS_LOGINING = 3;
     static final int XMPPCLIENT_STATUS_LOGINED = 4;
     static final int XMPPCLIENT_STATUS_ERROR = 5;
+    private int mCurrentStatus = XMPPCLIENT_STATUS_IDLE;
+    private int mPrevStatus = mCurrentStatus;
+    static private SmackAndroid mSmackAndroid = null;
 
     static final String[] XMPPCLIENT_STATUS_STRINGS = { " idle ", " starting ",
             " started ", " logining ", " logined ", " error " };
 
     private ReentrantLock mStatusLock = new ReentrantLock();
-    private int mCurrentStatus = XMPPCLIENT_STATUS_IDLE;
-    private int mPrevStatus = mCurrentStatus;
+
+    private XmppClientThreadHandler mXmppClientHandler = null;
+    private HandlerThread mXmppHandlerThread = null;
+    private Context mContext;
+    private ArrayList<XmppClientCallback> mXmppClientCallbacks;
+    private Connection mXmppConnection = null;
+    private Bundle mConnectionInfo = null;
+    private XMPPConnectionListener mXmppConnectionListener = null;
+    private FileTransferManager mFTManager = null;
 
     public interface XmppClientCallback {
         public Object reportXMPPClientEvent(int xmppClientEvent, Object... args);
     }
 
-    static private String TAG = "XmppClient";
+    public XmppClient(Context context) {
+        mContext = context;
+        mXmppClientCallbacks = new ArrayList<XmppClient.XmppClientCallback>();
+        mConnectionInfo = new Bundle();
+    }
 
-    static private SmackAndroid mSmackAndroid = null;
+    static public void initializeXMPPEnvironment(Context context) {
+        if (mSmackAndroid == null) {
+            mSmackAndroid = SmackAndroid.init(context);
+        }
+    }
+
+    static public void destroyXMPPEnvironment() {
+        if (mSmackAndroid != null) {
+            mSmackAndroid.onDestroy();
+            mSmackAndroid = null;
+        }
+    }
 
     @Override
     public void reportNetworkStatus(boolean bConnected) {
@@ -87,22 +106,6 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         } finally {
             mStatusLock.unlock();
         }
-
-    }
-
-    static public void initializeXMPPEnvironment(Context context) {
-        if (mSmackAndroid == null) {
-            mSmackAndroid = SmackAndroid.init(context);
-        }
-        return;
-    }
-
-    static public void destroyXMPPEnvironment() {
-        if (mSmackAndroid != null) {
-            mSmackAndroid.onDestroy();
-            mSmackAndroid = null;
-        }
-        return;
     }
 
     private class XMPPConnectionListener implements ConnectionListener {
@@ -204,7 +207,6 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         } finally {
             mStatusLock.unlock();
         }
-
     }
 
     private void dispatchXmppClientEvent(int xmppClientEvent, Object... args) {
@@ -212,6 +214,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             callback.reportXMPPClientEvent(xmppClientEvent, args);
         }
     }
+
     private void handleStartCmdLocked() {
         try {
             String serverName = mConnectionInfo.getString("server");
@@ -231,10 +234,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         } catch (Exception e) {
             LogManager.local(TAG, "handleStartCmd ERR: " + e.toString());
             transitionToStatusLocked(XMPPCLIENT_STATUS_ERROR);
-            dispatchXmppClientEvent(
-                    XMPPCLIENT_EVENT_CONNECT,
-                    0);
-
+            dispatchXmppClientEvent(XMPPCLIENT_EVENT_CONNECT, 0);
         }
     }
 
@@ -264,10 +264,8 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         } catch (Exception e) {
             LogManager.local(TAG, "handleLoginCmd ERR: " + e.toString());
             transitionToStatusLocked(XMPPCLIENT_STATUS_ERROR);
-            dispatchXmppClientEvent(XMPPCLIENT_EVENT_LOGIN,
-                    false);
+            dispatchXmppClientEvent(XMPPCLIENT_EVENT_LOGIN, false);
         }
-
     }
 
     private void handleLogoutCmd(boolean bNetworkConnect) {
@@ -278,8 +276,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 transitionToStatusLocked(XMPPCLIENT_STATUS_IDLE);
             else
                 transitionToStatusLocked(XMPPCLIENT_STATUS_ERROR);
-            dispatchXmppClientEvent(XMPPCLIENT_EVENT_LOGOUT,
-                    true);
+            dispatchXmppClientEvent(XMPPCLIENT_EVENT_LOGOUT, true);
         } finally {
             mStatusLock.unlock();
         }
@@ -323,8 +320,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         return;
     }
     
-    private boolean isNetworkConnected()
-    {
+    private boolean isNetworkConnected() {
         ConnectivityManager cm =
                 (ConnectivityManager)mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo info = cm.getActiveNetworkInfo();
@@ -357,16 +353,13 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                         handleLoginCmdLocked();
                     }            	
                 }
-                
             } else {
                 dispatchXmppClientEvent(
                         XMPPCLIENT_EVENT_CONNECTION_UPDATE_STATUS, 1);
             }
-          
         } finally {
             mStatusLock.unlock();
         }
-
     }
 
     private void handleSendPacketCmd(Message msg) {
@@ -381,22 +374,6 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         } finally {
             mStatusLock.unlock();
         }
-
-    }
-
-    private XmppClientThreadHandler mXmppClientHandler = null;
-    private HandlerThread mXmppHandlerThread = null;
-    private Context mContext;
-    private ArrayList<XmppClientCallback> mXmppClientCallbacks;
-    private Connection mXmppConnection = null;
-    private Bundle mConnectionInfo = null;
-    private XMPPConnectionListener mXmppConnectionListener = null;
-    private FileTransferManager mFTManager = null;
-
-    public XmppClient(Context context) {
-        mContext = context;
-        mXmppClientCallbacks = new ArrayList<XmppClient.XmppClientCallback>();
-        mConnectionInfo = new Bundle();
     }
 
     public void addXmppClientCallback(XmppClientCallback[] callbacks) {
@@ -408,7 +385,6 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         } finally {
             mStatusLock.unlock();
         }
-
     }
 
     public void addXmppClientCallback(XmppClientCallback callback) {
@@ -500,11 +476,9 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 LogManager.local(TAG, e.toString());
             }
         } finally {
-
         }
 
         LogManager.local(TAG, "xmppclient stopped");
-
     }
 
     public boolean login(String usrName, String password, String resource) {
@@ -593,10 +567,8 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     }
     
     public boolean sendPacketAsync(Packet packet, long delayMillis) {
-
             Message msg = mXmppClientHandler.obtainMessage(CMD_SEND_PACKET_ASYNC, packet);
             return mXmppClientHandler.sendMessageDelayed(msg, delayMillis);
-
     }    
        
     public void sendFile(File file, final String description) {
@@ -661,18 +633,16 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
 
             @Override
             public void run() {
-                // TODO Auto-generated method stub
                 do{
                     //wait for download complete
-                    try{
+                    try {
                         mFileSize = mTempfile.length();
                         LogManager.local(TAG, "receiving file S:"+mFileSize);
                         Thread.sleep(500);
                         LogManager.local(TAG, "receiving file E:"+mTempfile.length());
-                    }catch(Exception e){
+                    } catch (Exception e){
                         e.printStackTrace();
                     }
-                    
                 }while(mTempfile.length() != mFileSize);
                 
                 ProminentFeature f = new ProminentFeature(mContext);
@@ -681,6 +651,5 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 }                
             }
         }
-
     }
 }

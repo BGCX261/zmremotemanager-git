@@ -33,7 +33,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo{
     private Context mContext;
     private XmppClient mXmppClient;
     private ZMIQCommandProvider mProvider;
-    private RemotePkgsManager mPkgManager;
+    private RemotePackageManager mPkgManager;
     private RemoteDeviceManager mDeviceManager;
     private ResultFactory mResultFactory;
     private HandlerThread mThread;
@@ -61,7 +61,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo{
         mStrNameSpace = namespace;
         mXmppClient = XmppCliet;
 
-        mPkgManager = new RemotePkgsManager(mContext);
+        mPkgManager = new RemotePackageManager(mContext);
         mDeviceManager = new RemoteDeviceManager(mContext);
         mProvider = new ZMIQCommandProvider();
         mResultFactory = new ResultFactory(mPkgManager,mDeviceManager);

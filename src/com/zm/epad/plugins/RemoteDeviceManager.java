@@ -1,19 +1,15 @@
 package com.zm.epad.plugins;
 
-import com.zm.epad.core.LogManager;
-
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
-import android.location.Criteria;
 import android.location.LocationManager;
-import android.location.LocationProvider;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.nfc.NfcAdapter;
 import android.provider.Settings;
 
-import java.util.List;
+import com.zm.epad.core.LogManager;
 
 public class RemoteDeviceManager {
     public static final String TAG = "RemoteDeviceManager";
@@ -38,7 +34,6 @@ public class RemoteDeviceManager {
     }
     
     public String getIpAddress() {
-        
         String ret = null;
         
         //1st check wifi
@@ -77,12 +72,12 @@ public class RemoteDeviceManager {
             return nfc.isEnabled() ? "on" : "off";
         }       
     }
-    
+
     public String getMobileNetwork() {
-        //not support mobile network currently
+        // not support mobile network currently
         return null;
     }
-    
+
     public String getGpsStatus() {
 
         LocationManager lm = (LocationManager) mContext
@@ -96,7 +91,7 @@ public class RemoteDeviceManager {
             return bGpsEnabled ? "on" : "off";
         }        
     }
-    
+
     public String getAirplaneMode() {
         return String.valueOf(Settings.Global.getInt(
                     mContext.getContentResolver(),

@@ -1,8 +1,16 @@
 package com.zm.xmpp.communication.client;
 
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
+import android.content.pm.UserInfo;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.UserManager;
+import android.text.format.Time;
+
 import com.zm.epad.core.LogManager;
 import com.zm.epad.plugins.RemoteDeviceManager;
-import com.zm.epad.plugins.RemotePkgsManager;
+import com.zm.epad.plugins.RemotePackageManager;
 import com.zm.epad.structure.Application;
 import com.zm.epad.structure.Configuration;
 import com.zm.epad.structure.Device;
@@ -13,22 +21,6 @@ import com.zm.xmpp.communication.result.ResultApp;
 import com.zm.xmpp.communication.result.ResultDevice;
 import com.zm.xmpp.communication.result.ResultEnv;
 import com.zm.xmpp.communication.result.ResultNormal;
-
-import android.bluetooth.BluetoothAdapter;
-import android.content.Context;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageInfo;
-import android.content.pm.UserInfo;
-import android.location.LocationManager;
-import android.net.wifi.SupplicantState;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
-import android.nfc.NfcAdapter;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.UserManager;
-import android.provider.Settings;
-import android.text.format.Time;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,23 +38,19 @@ public class ResultFactory {
     private static final int RESULT_APPINFO_LENGTH_MAX = 120;
     private static final int RESULT_APPINFO_LENGTH_TAG = 80;
     private static final int RESULT_EVNINFO_LENGTH = 500;    
-    
-    
 
-    private RemotePkgsManager mPkgsManager = null;
+    private RemotePackageManager mPkgsManager = null;
     private RemoteDeviceManager mDeviceManager = null;
     
-    
-    public ResultFactory(RemotePkgsManager pkgsManager,
+    public ResultFactory(RemotePackageManager pkgsManager,
             RemoteDeviceManager deviceManager) {
         mPkgsManager = pkgsManager;
         mDeviceManager = deviceManager;
-
     }
+
     public interface ResultCallback{
         public void handleResult(IResult result);
     }
-    
     
     public IResult getResult(int type, String id, String status, ResultCallback callback)
     {
@@ -253,18 +241,16 @@ public class ResultFactory {
         return resultList;
     }
     
-    private class ResultCallbackHandler{
+    private class ResultCallbackHandler {
         protected String mId = null;
         protected ResultCallback mCallback = null;
         
-        public ResultCallbackHandler(String id, ResultCallback callback)
-        {
+        public ResultCallbackHandler(String id, ResultCallback callback) {
             mId = id;
             mCallback = callback;
         }
         
-        public void sendResult(IResult result)
-        {
+        public void sendResult(IResult result) {
             if(mCallback != null){
                 result.setId(mId);
                 result.setDeviceId(Build.SERIAL);
@@ -291,7 +277,6 @@ public class ResultFactory {
         zmAppInfo.setVersion(version);
         
         return zmAppInfo;
-        
     }
     
     private Device getZMDeviceInfo() {
