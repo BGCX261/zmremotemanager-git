@@ -589,14 +589,12 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         mFTManager = new FileTransferManager(conn);
         mFTManager.addFileTransferListener(new XmppFileTransferListener());
     }
-    
+
     private class XmppFileTransferListener implements FileTransferListener {
 
         @Override
         public void fileTransferRequest(FileTransferRequest request) {
-            
             IncomingFileTransfer transfer = request.accept();
-            
             try {
                 LogManager.local(TAG, "Begin receive file:"+request.getRequestor());
                 String fileName = request.getFileName();
@@ -609,7 +607,6 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 Thread saveThread = new Thread(new SaveRunnable(temp, Mime));
                 
                 saveThread.start();
-                
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -620,11 +617,11 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         }
         
         private class SaveRunnable implements Runnable{
-            File mTempfile = null;
-            long mFileSize = 0;
-            String mMime = null;
+            private File mTempfile = null;
+            private long mFileSize = 0;
+            private String mMime = null;
             
-            public SaveRunnable(File file, String Mime){
+            public SaveRunnable(File file, String Mime) {
                 super();
                 mTempfile = file;
                 mMime = Mime;
@@ -633,21 +630,20 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
 
             @Override
             public void run() {
-                do{
+                do {
                     //wait for download complete
                     try {
                         mFileSize = mTempfile.length();
-                        LogManager.local(TAG, "receiving file S:"+mFileSize);
+                        LogManager.local(TAG, "receiving file S:" + mFileSize);
                         Thread.sleep(500);
-                        LogManager.local(TAG, "receiving file E:"+mTempfile.length());
-                    } catch (Exception e){
+                        LogManager.local(TAG, "receiving file E:" + mTempfile.length());
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
-                }while(mTempfile.length() != mFileSize);
+                } while (mTempfile.length() != mFileSize);
                 
-                ProminentFeature f = new ProminentFeature(mContext);
-                if(isImage(mMime)){
-                    f.saveFileAsImage(mTempfile);
+                if (isImage(mMime)) {
+                    ProminentFeature.saveFileAsImage(mContext, mTempfile);
                 }                
             }
         }

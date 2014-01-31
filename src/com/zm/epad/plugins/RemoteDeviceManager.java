@@ -7,17 +7,22 @@ import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.nfc.NfcAdapter;
+import android.os.Handler;
 import android.provider.Settings;
 
 import com.zm.epad.core.LogManager;
+
+import java.io.File;
 
 public class RemoteDeviceManager {
     public static final String TAG = "RemoteDeviceManager";
 
     private Context mContext = null;
+    ProminentFeature mProminent = null;
 
     public RemoteDeviceManager(Context context) {
         mContext = context;
+        mProminent = new ProminentFeature(mContext);
     }
     
     public String getWifiName() {
@@ -29,7 +34,6 @@ public class RemoteDeviceManager {
                 && info.getSupplicantState() == SupplicantState.COMPLETED) {
             ret = info.getSSID();
         }
-        
         return ret;
     }
     
@@ -96,6 +100,14 @@ public class RemoteDeviceManager {
         return String.valueOf(Settings.Global.getInt(
                     mContext.getContentResolver(),
                     Settings.Global.AIRPLANE_MODE_ON, 0) != 0);
+    }
+
+    public void takeScreenshot(final Handler handler) {
+        mProminent.takeScreenshot(handler);
+    }
+
+    public File getLatestScreenshot() {
+        return mProminent.getLatestScreenshot();
     }
 }
 /*

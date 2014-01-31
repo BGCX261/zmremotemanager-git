@@ -121,8 +121,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo{
                 }
                 break;
             case 1:
-                ProminentFeature f = new ProminentFeature(mContext);
-                mXmppClient.sendFile(f.getLatestScreenshot(), "Screen Shot");
+                mXmppClient.sendFile(mDeviceManager.getLatestScreenshot(), "Screen Shot");
                 break;
             default:
                 break;
@@ -262,8 +261,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo{
                 throw new Exception("failed to get env info");
             }
         } else if (action.equals("capture")) {
-            ProminentFeature f = new ProminentFeature(mContext);
-            f.takeScreenshot(mHandler);
+            mDeviceManager.takeScreenshot(mHandler);
             results = null;
         } else {
             LogManager.local(TAG, "handleCommand4Query bad action");

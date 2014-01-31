@@ -80,7 +80,6 @@ public class ProminentFeature {
             }
         };
         mContext.bindService(intent, conn, Context.BIND_AUTO_CREATE);
-
     }
     
     public File getLatestScreenshot() {
@@ -174,13 +173,17 @@ public class ProminentFeature {
         
         NotifyManager.notify(0, n);
     }
-    
-    public void saveFileAsImage(File file){
-        
+
+    // This 2 functions need to move out from this class to a FileUtil class.
+    public void saveFileAsImage(File file) {
+        saveFileAsImage(mContext, file);
+    }
+
+    public static void saveFileAsImage(Context context, File file) {
         ContentValues values = new ContentValues();
-        ContentResolver resolver = mContext.getContentResolver();
+        ContentResolver resolver = context.getContentResolver();
         
-        try{
+        try {
             long time = System.currentTimeMillis();
             String fileName = String.valueOf(time)+"_"+file.getName();
             File dir = new File(Environment.getExternalStoragePublicDirectory(
@@ -215,10 +218,9 @@ public class ProminentFeature {
             resolver.update(uri, values, null, null);
             
             LogManager.local(TAG, "file length: "+String.valueOf(length));
-        }catch(Exception e){
+        } catch(Exception e) {
             e.printStackTrace();
         }
-
     }
 
     // can't start camera in system server
