@@ -1,7 +1,4 @@
 /**
- * $RCSfile$
- * $Revision$
- * $Date$
  *
  * Copyright 2003-2006 Jive Software.
  *
@@ -34,14 +31,14 @@ import java.util.concurrent.*;
  * <p/>
  * The first way that a file is recieved is by calling the
  * {@link #recieveFile()} method. This method, negotiates the appropriate stream
- * method and then returns the <b><i>InputStream</b></i> to read the file
- * data from.
+ * method and then returns the <b><i>InputStream</b></i> to read the file data
+ * from.
  * <p/>
  * The second way that a file can be recieved through this class is by invoking
  * the {@link #recieveFile(File)} method. This method returns immediatly and
  * takes as its parameter a file on the local file system where the file
  * recieved from the transfer will be put.
- *
+ * 
  * @author Alexander Wenckus
  */
 public class IncomingFileTransfer extends FileTransfer {
@@ -49,6 +46,8 @@ public class IncomingFileTransfer extends FileTransfer {
     private FileTransferRequest recieveRequest;
 
     private InputStream inputStream;
+    private IncomingFileTransferProgress callback;
+    private Thread transferThread;
 
     protected IncomingFileTransfer(FileTransferRequest request,
             FileTransferNegotiator transferNegotiator) {
@@ -59,10 +58,11 @@ public class IncomingFileTransfer extends FileTransfer {
     /**
      * Negotiates the stream method to transfer the file over and then returns
      * the negotiated stream.
-     *
+     * 
      * @return The negotiated InputStream from which to read the data.
-     * @throws XMPPException If there is an error in the negotiation process an exception
-     *                       is thrown.
+     * @throws XMPPException
+     *             If there is an error in the negotiation process an exception
+     *             is thrown.
      */
     public InputStream recieveFile() throws XMPPException {
         if (inputStream != null) {
@@ -71,13 +71,31 @@ public class IncomingFileTransfer extends FileTransfer {
 
         try {
             inputStream = negotiateStream();
-        }
-        catch (XMPPException e) {
+        } catch (XMPPException e) {
             setException(e);
             throw e;
         }
 
         return inputStream;
+    }
+
+    public synchronized void recieveFile(final File file,
+            final IncomingFileTransferProgress progress) throws XMPPException {
+        if (progress == null) {
+            throw new IllegalArgumentException(
+                    "Callback progress cannot be null.");
+        }
+        if (transferThread != null && transferThread.isAlive() || isDone()) {
+            throw new IllegalStateException(
+                    "File transfer in progress or has already completed.");
+        }
+        if (isDone() || inputStream != null) {
+            throw new IllegalStateException(
+                    "The negotation process has already"
+                            + " been attempted for this file transfer");
+        }
+        this.callback = progress;
+        recieveFile(file);
     }
 
     /**
@@ -93,37 +111,38 @@ public class IncomingFileTransfer extends FileTransfer {
      * <LI>{@link FileTransfer#getProgress()}
      * <LI>{@link FileTransfer#isDone()}
      * </UL>
-     *
-     * @param file The location to save the file.
-     * @throws XMPPException            when the file transfer fails
-     * @throws IllegalArgumentException This exception is thrown when the the provided file is
-     *                                  either null, or cannot be written to.
+     * 
+     * @param file
+     *            The location to save the file.
+     * @throws XMPPException
+     *             when the file transfer fails
+     * @throws IllegalArgumentException
+     *             This exception is thrown when the the provided file is either
+     *             null, or cannot be written to.
      */
     public void recieveFile(final File file) throws XMPPException {
         if (file != null) {
             if (!file.exists()) {
                 try {
                     file.createNewFile();
-                }
-                catch (IOException e) {
+                } catch (IOException e) {
                     throw new XMPPException(
                             "Could not create file to write too", e);
                 }
             }
             if (!file.canWrite()) {
-                throw new IllegalArgumentException("Cannot write to provided file");
+                throw new IllegalArgumentException(
+                        "Cannot write to provided file");
             }
-        }
-        else {
+        } else {
             throw new IllegalArgumentException("File cannot be null");
         }
 
-        Thread transferThread = new Thread(new Runnable() {
+        transferThread = new Thread(new Runnable() {
             public void run() {
                 try {
                     inputStream = negotiateStream();
-                }
-                catch (XMPPException e) {
+                } catch (XMPPException e) {
                     handleXMPPException(e);
                     return;
                 }
@@ -133,13 +152,11 @@ public class IncomingFileTransfer extends FileTransfer {
                     outputStream = new FileOutputStream(file);
                     setStatus(Status.in_progress);
                     writeToStream(inputStream, outputStream);
-                }
-                catch (XMPPException e) {
+                } catch (XMPPException e) {
                     setStatus(Status.error);
                     setError(Error.stream);
                     setException(e);
-                }
-                catch (FileNotFoundException e) {
+                } catch (FileNotFoundException e) {
                     setStatus(Status.error);
                     setError(Error.bad_file);
                     setException(e);
@@ -151,16 +168,14 @@ public class IncomingFileTransfer extends FileTransfer {
                 if (inputStream != null) {
                     try {
                         inputStream.close();
-                    }
-                    catch (Throwable io) {
+                    } catch (Throwable io) {
                         /* Ignore */
                     }
                 }
                 if (outputStream != null) {
                     try {
                         outputStream.close();
-                    }
-                    catch (Throwable io) {
+                    } catch (Throwable io) {
                         /* Ignore */
                     }
                 }
@@ -184,24 +199,21 @@ public class IncomingFileTransfer extends FileTransfer {
 
                     public InputStream call() throws Exception {
                         return streamNegotiator
-                                .createIncomingStream(recieveRequest.getStreamInitiation());
+                                .createIncomingStream(recieveRequest
+                                        .getStreamInitiation());
                     }
                 });
         streamNegotiatorTask.run();
         InputStream inputStream;
         try {
             inputStream = streamNegotiatorTask.get(15, TimeUnit.SECONDS);
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             throw new XMPPException("Interruption while executing", e);
-        }
-        catch (ExecutionException e) {
+        } catch (ExecutionException e) {
             throw new XMPPException("Error in execution", e);
-        }
-        catch (TimeoutException e) {
+        } catch (TimeoutException e) {
             throw new XMPPException("Request timed out", e);
-        }
-        finally {
+        } finally {
             streamNegotiatorTask.cancel(true);
         }
         setStatus(Status.negotiated);
@@ -210,6 +222,30 @@ public class IncomingFileTransfer extends FileTransfer {
 
     public void cancel() {
         setStatus(Status.cancelled);
+    }
+
+    @Override
+    protected void setStatus(Status status) {
+        Status oldStatus = getStatus();
+        super.setStatus(status);
+        if (callback != null) {
+            callback.incomingFileTransferStatus(oldStatus, status);
+        }
+    }
+
+    @Override
+    protected void setException(Exception exception) {
+        super.setException(exception);
+        if (callback != null) {
+            callback.incomingFileTransferError(exception);
+        }
+    }
+
+    public interface IncomingFileTransferProgress {
+
+        void incomingFileTransferStatus(Status oldStatus, Status newStatus);
+
+        void incomingFileTransferError(Exception e);
     }
 
 }
