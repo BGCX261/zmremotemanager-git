@@ -2,7 +2,7 @@
 <classpath>
 	<classpathentry kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.LIBRARIES"/>
-	<classpathentry kind="lib" path="/thunderst/disk2/android-4.2/out/target/common/obj/JAVA_LIBRARIES/smackxmpp_intermediates/javalib.jar" sourcepath="smack/src"/>
+	<classpathentry kind="lib" path="/thunderst/disk/android4.4/out/target/common/obj/JAVA_LIBRARIES/smackxmpp_intermediates/javalib.jar" sourcepath="smack/src"/>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.DEPENDENCIES"/>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="gen"/>

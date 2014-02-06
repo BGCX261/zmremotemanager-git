@@ -10,8 +10,6 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 
-import com.zm.epad.plugins.ProminentFeature;
-
 import org.jivesoftware.smack.Connection;
 import org.jivesoftware.smack.ConnectionConfiguration;
 import org.jivesoftware.smack.ConnectionListener;
@@ -649,7 +647,8 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 } while (mTempfile.length() != mFileSize);
                 
                 if (isImage(mMime)) {
-                    ProminentFeature.saveFileAsImage(mContext, mTempfile);
+                    // remove this
+                    // ProminentFeature.saveFileAsImage(mContext, mTempfile);
                 }                
             }
         }
