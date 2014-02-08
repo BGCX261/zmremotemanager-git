@@ -11,6 +11,7 @@ import com.zm.xmpp.communication.client.ZMIQResult;
 import com.zm.xmpp.communication.command.ICommand;
 import com.zm.xmpp.communication.command.ICommand4App;
 import com.zm.xmpp.communication.command.ICommand4Query;
+import com.zm.xmpp.communication.command.Command4FileTransfer;
 import com.zm.xmpp.communication.result.IResult;
 
 import org.jivesoftware.smack.packet.IQ;
@@ -198,7 +199,9 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 
                 mXmppClient.sendPacketAsync((Packet) resultIQ, 0);
             }
-        } else {
+        } else if(cmdType.equals("filetransfer")) {
+            handleCommand4FileTransfer((Command4FileTransfer) cmd); 
+        }else {
             LogManager.local(TAG, "bad command: " + cmdType);
             ret = false;
         }
@@ -296,6 +299,10 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
         LogManager.local(TAG, "handleCommand4Query return: "
                 + (results == null ? 0 : results.size()));
         return results;
+    }
+    
+    private void handleCommand4FileTransfer(Command4FileTransfer cmd) {
+        
     }
 
     private class CommandResultCallback implements ResultFactory.ResultCallback {
