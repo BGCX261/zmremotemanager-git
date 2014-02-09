@@ -278,6 +278,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
                 String fileName = mXmppClient.sendObject(
                         png,
                         "screenshot-bmp", "url");
+                png = null;
                 if (fileName == null) {
                     // send screenshot fails
                 } else {

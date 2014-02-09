@@ -688,6 +688,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             return endString;
         }
         //example code from : http://blog.csdn.net/qq247890212/article/details/16358581
+        //about multi-part/data, see http://blog.csdn.net/five3/article/details/7181521
         public String uploadObject(byte[] data, final String desc,
                 String requestUrl) {
             String BOUNDARY = UUID.randomUUID().toString();
