@@ -18,13 +18,14 @@ import org.jivesoftware.smack.packet.Packet;
 import org.xmlpull.v1.XmlPullParser;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
 
 import java.util.List;
 
-public class IQDispatcherCommand extends CmdDispatchInfo{
+public class IQDispatcherCommand extends CmdDispatchInfo {
     private static final String TAG = "IQDispatcherCommand";
 
     private static final int EVT_COMMAND = 101;
@@ -50,8 +51,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo{
 
         super.destroy();
     }
-    
- 
+
     public IQDispatcherCommand(Context context, String namespace,
             XmppClient XmppCliet) {
         LogManager.local(TAG, "create: " + namespace);
@@ -64,7 +64,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo{
         mPkgManager = new RemotePackageManager(mContext);
         mDeviceManager = new RemoteDeviceManager(mContext);
         mProvider = new ZMIQCommandProvider();
-        mResultFactory = new ResultFactory(mPkgManager,mDeviceManager);
+        mResultFactory = new ResultFactory(mPkgManager, mDeviceManager);
 
         mThread = new HandlerThread(TAG);
         mThread.start();
@@ -120,9 +120,11 @@ public class IQDispatcherCommand extends CmdDispatchInfo{
                     ret = mXmppClient.sendPacketAsync((Packet) msg.obj, 0);
                 }
                 break;
-            case 1:
-                mXmppClient.sendFile(mDeviceManager.getLatestScreenshot(), "Screen Shot");
-                break;
+            /*
+             * case 1:
+             * mXmppClient.sendFile(mDeviceManager.getLatestScreenshot(),
+             * "Screen Shot"); break;
+             */
             default:
                 break;
             }
@@ -138,7 +140,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo{
         if (cmd == null) {
             LogManager.local(TAG, "handleIQCommand FAIL: no cmd exist");
         }
-        
+
         String cmdType = cmd.getType();
 
         LogManager.local(TAG, "handleIQCommand:" + cmdType);
@@ -167,10 +169,10 @@ public class IQDispatcherCommand extends CmdDispatchInfo{
             List<IResult> resultList = null;
             try {
                 resultList = handleCommand4Query((ICommand4Query) cmd,
-                        new CommandResultCallback(iq));               
+                        new CommandResultCallback(iq));
 
                 if (resultList != null) {
-                    //when resultList is not null, send the result immediately
+                    // when resultList is not null, send the result immediately
                     for (IResult r : resultList) {
                         LogManager.local(TAG, "send packet start ");
                         ZMIQResult resultIQ = new ZMIQResult();
@@ -178,21 +180,22 @@ public class IQDispatcherCommand extends CmdDispatchInfo{
                         resultIQ.setFrom(iq.getTo());
 
                         resultIQ.setResult(r);
-                        mXmppClient.sendPacketAsync((Packet) resultIQ,0);
+                        mXmppClient.sendPacketAsync((Packet) resultIQ, 0);
                         LogManager.local(TAG, "send packet end ");
                     }
-                }else{
-                    //if resultList is null, the result will be sent from callback
+                } else {
+                    // if resultList is null, the result will be sent from
+                    // callback
                 }
 
             } catch (Exception e) {
-                //when exception, it means failed to get info, send NG
+                // when exception, it means failed to get info, send NG
                 ZMIQResult resultIQ = new ZMIQResult(iq);
 
                 IResult r = mResultFactory.getResult(
-                        ResultFactory.RESULT_NORMAL, cmd.getId(), "NG");                
+                        ResultFactory.RESULT_NORMAL, cmd.getId(), "NG");
                 resultIQ.setResult(r);
-                
+
                 mXmppClient.sendPacketAsync((Packet) resultIQ, 0);
             }
         } else {
@@ -261,8 +264,30 @@ public class IQDispatcherCommand extends CmdDispatchInfo{
                 throw new Exception("failed to get env info");
             }
         } else if (action.equals("capture")) {
-            mDeviceManager.takeScreenshot(mHandler);
-            results = null;
+            /*
+             * @dujiang: Note this: Now, takeScreenshot will return whether
+             * screen capture succeed or failed so, capture cmd should return
+             * result
+             */
+            byte[] png = mDeviceManager.takeScreenshot(mHandler);
+            if (png == null) {
+                // take screenshot fails
+            } else {
+                // @dujiang, please set url parameter form IQ Request.
+                // xmppclient will send bitmap to this url address
+                String fileName = mXmppClient.sendObject(
+                        png,
+                        "screenshot-bmp", "url");
+                if (fileName == null) {
+                    // send screenshot fails
+                } else {
+                    // @dujiang send screenshot succed. FileName represents the
+                    // sented file name. XMPPCLient should tell XMPP Server this
+                    // name
+                }
+            }
+            // @dujiang, construct results back to XMPP Server
+            // results = null;
         } else {
             LogManager.local(TAG, "handleCommand4Query bad action");
         }

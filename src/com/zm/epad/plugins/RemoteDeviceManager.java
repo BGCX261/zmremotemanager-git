@@ -11,6 +11,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.location.LocationManager;
 import android.net.Uri;
@@ -26,10 +29,16 @@ import android.os.Messenger;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.text.format.Time;
+import android.util.DisplayMetrics;
+import android.view.Display;
+import android.view.Surface;
+import android.view.SurfaceControl;
 import android.view.SurfaceView;
+import android.view.WindowManager;
 import android.hardware.Camera;
 import com.zm.epad.core.LogManager;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -41,10 +50,12 @@ public class RemoteDeviceManager {
     public static final String TAG = "RemoteDeviceManager";
 
     private Context mContext = null;
-    private Camera mCamera = null;
-    private SurfaceView mSurfaceView = null;
+
+    private Screenshot mScreenshot = null;
+
     public RemoteDeviceManager(Context context) {
         mContext = context;
+        mScreenshot = new Screenshot(mContext);
     }
 
     public void changeWallPager() {
@@ -59,225 +70,214 @@ public class RemoteDeviceManager {
         }
     }
 
-    public void takeScreenshot(final Handler handler) {
+    private class Screenshot {
+        WindowManager mWindowManager;
+        Display mDisplay;
+        DisplayMetrics mDisplayMetrics;
+        NotificationManager mNotificationManager;
+        private Matrix mDisplayMatrix;
+
+        private Camera mCamera;
+        private SurfaceView mSurfaceView;
+
+        public Screenshot(Context context) {
+            mWindowManager = (WindowManager) context
+                    .getSystemService(Context.WINDOW_SERVICE);
+            mNotificationManager = (NotificationManager) context
+                    .getSystemService(Context.NOTIFICATION_SERVICE);
+            mDisplay = mWindowManager.getDefaultDisplay();
+            mDisplayMetrics = new DisplayMetrics();
+            mDisplay.getRealMetrics(mDisplayMetrics);
+            mDisplayMatrix = new Matrix();
+        }
+
+        public byte[] takeScreenshot() {
+
+            mDisplay.getRealMetrics(mDisplayMetrics);
+            float[] dims = { mDisplayMetrics.widthPixels,
+                    mDisplayMetrics.heightPixels };
+            float degrees = getDegreesForRotation(mDisplay.getRotation());
+            boolean requiresRotation = (degrees > 0);
+            if (requiresRotation) {
+                // Get the dimensions of the device in its native orientation
+                mDisplayMatrix.reset();
+                mDisplayMatrix.preRotate(-degrees);
+                mDisplayMatrix.mapPoints(dims);
+                dims[0] = Math.abs(dims[0]);
+                dims[1] = Math.abs(dims[1]);
+            }
+
+            // Take the screenshot
+            Bitmap screenBitmap = SurfaceControl.screenshot((int) dims[0],
+                    (int) dims[1]);
+            if (screenBitmap == null) {
+                LogManager.local(TAG, "takeScreenshot fails");
+                return null;
+            }
+
+            if (requiresRotation) {
+                // Rotate the screenshot to the current orientation
+                Bitmap ss = Bitmap.createBitmap(mDisplayMetrics.widthPixels,
+                        mDisplayMetrics.heightPixels, Bitmap.Config.ARGB_8888);
+                Canvas c = new Canvas(ss);
+                c.translate(ss.getWidth() / 2, ss.getHeight() / 2);
+                c.rotate(degrees);
+                c.translate(-dims[0] / 2, -dims[1] / 2);
+                c.drawBitmap(screenBitmap, 0, 0, null);
+                c.setBitmap(null);
+                // Recycle the previous bitmap
+                screenBitmap.recycle();
+                screenBitmap = ss;
+            }
+
+            // Optimizations
+            screenBitmap.setHasAlpha(false);
+            screenBitmap.prepareToDraw();
+            byte[] res = null;
+            try {
+                ByteArrayOutputStream out = new ByteArrayOutputStream(screenBitmap.getByteCount());
+                screenBitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+                res = out.toByteArray();
+                out.close();
+            } catch (Exception e) {
+                // TODO: handle exception
+            }
+            return res;
+        }
+
+        private float getDegreesForRotation(int value) {
+            switch (value) {
+            case Surface.ROTATION_90:
+                return 360f - 90f;
+            case Surface.ROTATION_180:
+                return 360f - 180f;
+            case Surface.ROTATION_270:
+                return 360f - 270f;
+            }
+            return 0f;
+        }
+
+        public void takePhotoNG() {
+            LogManager.local(TAG, "camera open");
+            mCamera = Camera.open();
+
+            LogManager.local(TAG, "camera open done");
+            mSurfaceView = new SurfaceView(mContext);
+
+            try {
+                LogManager.local(TAG, "startPreview");
+                mCamera.setPreviewDisplay(mSurfaceView.getHolder());
+                mCamera.startPreview();
+
+                LogManager.local(TAG, "takePicture");
+                mCamera.takePicture(null, null, new Camera.PictureCallback() {
+
+                    @Override
+                    public void onPictureTaken(byte[] data, Camera camera) {
+                        File file_name = null;
+                        LogManager.local(TAG, "onPictureTaken");
+
+                        try {
+                            Time time = new Time();
+                            time.setToNow();
+
+                            file_name = new File("/sdcard/DCIM/Camera/" + "ZM_"
+                                    + time.toString());
+                            if (!file_name.exists()) {
+                                file_name.createNewFile();
+                            }
+                        } catch (final Exception e1) {
+                            e1.printStackTrace();
+                        }
+
+                        try {
+                            final OutputStream os = new FileOutputStream(
+                                    file_name);
+                            os.write(data);
+                            os.close();
+                        } catch (final Exception e) {
+                            e.printStackTrace();
+                        } finally {
+                            mCamera.release();
+                        }
+                    }
+                });
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public byte[] takeScreenshot(final Handler handler) {
         LogManager.local(TAG, "takeScreenshot");
-        ComponentName cn = new ComponentName("com.android.systemui",
-                "com.android.systemui.screenshot.TakeScreenshotService");
-        Intent intent = new Intent();
-        intent.setComponent(cn);
-        ServiceConnection conn = new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName name, IBinder service) {
-                LogManager.local(TAG, "onServiceConnected");
-                Messenger messenger = new Messenger(service);
-                Message msg = Message.obtain(null, 1);
-                msg.replyTo = new Messenger(handler);
+        return mScreenshot.takeScreenshot();
 
-                try {
-                    messenger.send(msg);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName name) {
-                LogManager.local(TAG, "onServiceDisconnected");
-            }
-        };
-        mContext.bindService(intent, conn, Context.BIND_AUTO_CREATE);
-    }
-    
-    public File getLatestScreenshot() {
-        File ret = null;
-        try {
-            String[] proj = { MediaStore.Images.Media.TITLE,
-                    MediaStore.Images.Media.DATE_MODIFIED,
-                    MediaStore.Images.Media.SIZE, MediaStore.Images.Media.DATA,
-                    MediaStore.Images.Media._ID };
-
-            ContentResolver resolver = mContext.getContentResolver();
-            Cursor cursor = MediaStore.Images.Media.query(resolver,
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, proj);
-
-            String title = null;
-            long time = Long.MIN_VALUE;
-            int size = 0;
-            String data = null;
-            int id = 0;
-
-            cursor.moveToFirst();
-            do {
-                if (time < cursor.getLong(cursor
-                        .getColumnIndex(MediaStore.Images.Media.DATE_MODIFIED))) {
-                    time = cursor
-                            .getLong(cursor
-                                    .getColumnIndex(MediaStore.Images.Media.DATE_MODIFIED));
-                    title = cursor.getString(cursor
-                            .getColumnIndex(MediaStore.Images.Media.TITLE));
-                    size = cursor.getInt(cursor
-                            .getColumnIndex(MediaStore.Images.Media.SIZE));
-                    data = cursor.getString(cursor
-                            .getColumnIndex(MediaStore.Images.Media.DATA));
-                    id = cursor.getInt(cursor
-                            .getColumnIndex(MediaStore.Images.Media._ID));
-                }
-            } while (cursor.moveToNext());
-
-            LogManager.local(TAG, "media data:" + data);
-            LogManager.local(TAG, "media id:" + id);
-
-            Uri fileUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-                    .buildUpon().appendPath(String.valueOf(id)).build();
-            LogManager.local(TAG, "data Uri:" + fileUri.toString());
-            InputStream in = resolver.openInputStream(fileUri);
-
-            ret = new File(mContext.getFilesDir().getAbsolutePath()
-                    + "/temp.png");
-            ret.createNewFile();
-            FileOutputStream out = new FileOutputStream(ret);
-            byte[] buffer = new byte[size];
-            in.read(buffer);
-            out.write(buffer);
-            out.flush();
-            out.close();
-            in.close();
-
-            LogManager.local(TAG, String.valueOf(ret.canRead()));
-            LogManager.local(TAG, String.valueOf(ret.canWrite()));
-            LogManager.local(TAG, String.valueOf(ret.canExecute()));
-            LogManager.local(TAG, String.valueOf(ret.exists()));
-            LogManager.local(TAG, ret.toString());
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        LogManager.local(TAG, ret == null ? "null"
-                : (ret.toString() + "|" + ret.length()));
-        return ret;
     }
 
-    public void startCamera() {
-        Intent intent = new Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA);
-        try {
-            mContext.startActivity(intent);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+    /*
+     * public void startCamera() { Intent intent = new
+     * Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA); try {
+     * mContext.startActivity(intent); } catch (Exception e) {
+     * e.printStackTrace(); } }
+     */
 
-    public void sendNotify(String title, String text) {
-        NotificationManager NotifyManager = (NotificationManager) mContext
-                .getSystemService(Context.NOTIFICATION_SERVICE);
-        Notification n = new Notification.Builder(mContext)
-                .setContentTitle(title)
-                .setContentText(text)
-                .setSmallIcon(
-                        mContext.getResources().getIdentifier("icon",
-                                "drawable", "com.zm.epad")).build();
-
-        NotifyManager.notify(0, n);
-    }
+    /*
+     * public void sendNotify(String title, String text) { NotificationManager
+     * NotifyManager = (NotificationManager) mContext
+     * .getSystemService(Context.NOTIFICATION_SERVICE); Notification n = new
+     * Notification.Builder(mContext) .setContentTitle(title)
+     * .setContentText(text) .setSmallIcon(
+     * mContext.getResources().getIdentifier("icon", "drawable",
+     * "com.zm.epad")).build();
+     * 
+     * NotifyManager.notify(0, n); }
+     */
 
     // This 2 functions need to move out from this class to a FileUtil class.
-    public void saveFileAsImage(File file) {
-        ContentValues values = new ContentValues();
-        ContentResolver resolver = mContext.getContentResolver();
-
-        try {
-            long time = System.currentTimeMillis();
-            String fileName = String.valueOf(time) + "_" + file.getName();
-            File dir = new File(
-                    Environment
-                            .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
-                    "Recieved");
-            String filePath = new File(dir, fileName).getAbsolutePath();
-            LogManager.local(TAG, "file path: " + filePath);
-
-            dir.mkdir();
-
-            values.put(MediaStore.Images.ImageColumns.DATA, filePath);
-            values.put(MediaStore.Images.ImageColumns.TITLE, fileName);
-            values.put(MediaStore.Images.ImageColumns.DISPLAY_NAME, fileName);
-            values.put(MediaStore.Images.ImageColumns.DATE_TAKEN, time);
-            values.put(MediaStore.Images.ImageColumns.DATE_ADDED, time / 1000);
-            values.put(MediaStore.Images.ImageColumns.DATE_MODIFIED,
-                    time / 1000);
-            values.put(MediaStore.Images.ImageColumns.MIME_TYPE, "image/jpg");
-            Uri uri = resolver.insert(
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
-            LogManager.local(TAG, "file Uri: " + uri.toString());
-
-            FileInputStream in = new FileInputStream(file);
-            OutputStream out = resolver.openOutputStream(uri);
-            byte[] buffer = new byte[(int) file.length()];
-            in.read(buffer);
-            out.write(buffer);
-            out.flush();
-            out.close();
-            in.close();
-
-            values.clear();
-            long length = new File(filePath).length();
-            values.put(MediaStore.Images.ImageColumns.SIZE, length);
-            resolver.update(uri, values, null, null);
-
-            LogManager.local(TAG, "file length: " + String.valueOf(length));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+    /*
+     * public void saveFileAsImage(File file) { ContentValues values = new
+     * ContentValues(); ContentResolver resolver =
+     * mContext.getContentResolver();
+     * 
+     * try { long time = System.currentTimeMillis(); String fileName =
+     * String.valueOf(time) + "_" + file.getName(); File dir = new File(
+     * Environment
+     * .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+     * "Recieved"); String filePath = new File(dir, fileName).getAbsolutePath();
+     * LogManager.local(TAG, "file path: " + filePath);
+     * 
+     * dir.mkdir();
+     * 
+     * values.put(MediaStore.Images.ImageColumns.DATA, filePath);
+     * values.put(MediaStore.Images.ImageColumns.TITLE, fileName);
+     * values.put(MediaStore.Images.ImageColumns.DISPLAY_NAME, fileName);
+     * values.put(MediaStore.Images.ImageColumns.DATE_TAKEN, time);
+     * values.put(MediaStore.Images.ImageColumns.DATE_ADDED, time / 1000);
+     * values.put(MediaStore.Images.ImageColumns.DATE_MODIFIED, time / 1000);
+     * values.put(MediaStore.Images.ImageColumns.MIME_TYPE, "image/jpg"); Uri
+     * uri = resolver.insert( MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+     * values); LogManager.local(TAG, "file Uri: " + uri.toString());
+     * 
+     * FileInputStream in = new FileInputStream(file); OutputStream out =
+     * resolver.openOutputStream(uri); byte[] buffer = new byte[(int)
+     * file.length()]; in.read(buffer); out.write(buffer); out.flush();
+     * out.close(); in.close();
+     * 
+     * values.clear(); long length = new File(filePath).length();
+     * values.put(MediaStore.Images.ImageColumns.SIZE, length);
+     * resolver.update(uri, values, null, null);
+     * 
+     * LogManager.local(TAG, "file length: " + String.valueOf(length)); } catch
+     * (Exception e) { e.printStackTrace(); } }
+     */
 
     // can't start camera in system server
-    private void takePhotoNG() {
-        LogManager.local(TAG, "camera open");
-        mCamera = Camera.open();
+    /*
+     * private void takePhotoNG() {
+     * 
+     * }
+     */
 
-        LogManager.local(TAG, "camera open done");
-        mSurfaceView = new SurfaceView(mContext);
-
-        try {
-            LogManager.local(TAG, "startPreview");
-            mCamera.setPreviewDisplay(mSurfaceView.getHolder());
-            mCamera.startPreview();
-
-            LogManager.local(TAG, "takePicture");
-            mCamera.takePicture(null, null, new Camera.PictureCallback() {
-
-                @Override
-                public void onPictureTaken(byte[] data, Camera camera) {
-                    File file_name = null;
-                    LogManager.local(TAG, "onPictureTaken");
-
-                    try {
-                        Time time = new Time();
-                        time.setToNow();
-
-                        file_name = new File("/sdcard/DCIM/Camera/" + "ZM_"
-                                + time.toString());
-                        if (!file_name.exists()) {
-                            file_name.createNewFile();
-                        }
-                    } catch (final Exception e1) {
-                        e1.printStackTrace();
-                    }
-
-                    try {
-                        final OutputStream os = new FileOutputStream(file_name);
-                        os.write(data);
-                        os.close();
-                    } catch (final Exception e) {
-                        e.printStackTrace();
-                    } finally {
-                        mCamera.release();
-                    }
-                }
-            });
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
     public String getWifiName() {
         WifiInfo info = ((WifiManager) mContext
                 .getSystemService(Context.WIFI_SERVICE)).getConnectionInfo();
@@ -289,11 +289,11 @@ public class RemoteDeviceManager {
         }
         return ret;
     }
-    
+
     public String getIpAddress() {
         String ret = null;
-        
-        //1st check wifi
+
+        // 1st check wifi
         WifiInfo info = ((WifiManager) mContext
                 .getSystemService(Context.WIFI_SERVICE)).getConnectionInfo();
         if (info != null
@@ -305,13 +305,13 @@ public class RemoteDeviceManager {
                     .append((ipAddr >>>= 8) & 0xff).append('.')
                     .append((ipAddr >>>= 8) & 0xff);
             ret = ipBuf.toString();
-        }else{
-            //add if support mobile network
+        } else {
+            // add if support mobile network
         }
 
         return ret;
     }
-    
+
     public String getBlueToothStatus() {
         BluetoothAdapter bt = BluetoothAdapter.getDefaultAdapter();
         if (bt == null) {
@@ -320,14 +320,14 @@ public class RemoteDeviceManager {
             return bt.isEnabled() ? "on" : "off";
         }
     }
-    
+
     public String getNfcStatus() {
         NfcAdapter nfc = NfcAdapter.getDefaultAdapter(mContext);
         if (nfc == null) {
             return "unsupported";
         } else {
             return nfc.isEnabled() ? "on" : "off";
-        }       
+        }
     }
 
     public String getMobileNetwork() {
@@ -346,13 +346,13 @@ public class RemoteDeviceManager {
         } else {
             boolean bGpsEnabled = lm.isProviderEnabled("gps");
             return bGpsEnabled ? "on" : "off";
-        }        
+        }
     }
 
     public String getAirplaneMode() {
         return String.valueOf(Settings.Global.getInt(
-                    mContext.getContentResolver(),
-                    Settings.Global.AIRPLANE_MODE_ON, 0) != 0);
+                mContext.getContentResolver(),
+                Settings.Global.AIRPLANE_MODE_ON, 0) != 0);
     }
 }
 /*
