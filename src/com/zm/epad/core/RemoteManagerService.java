@@ -1,14 +1,6 @@
 package com.zm.epad.core;
 
-
-import android.accounts.AbstractAccountAuthenticator;
-import android.accounts.Account;
-import android.accounts.AccountAuthenticatorResponse;
-import android.accounts.AccountManager;
-import android.accounts.NetworkErrorException;
 import android.app.Service;
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
@@ -17,35 +9,32 @@ import android.os.IBinder;
 import com.zm.epad.plugins.IQDispatcherCommand;
 import com.zm.xmpp.communication.Constants;
 
+/**
+ * Core Service.
+ */
 public class RemoteManagerService extends Service {
-
-    private String TAG = "RemoteManagerService";
+    private final static String TAG = "RemoteManagerService";
     private boolean mbInitialized = false;
     private Bundle mLoginBundle = new Bundle();
     private XmppClient mXmppClient = null;
     private LogManager mLogManager = null;
     private NetworkStatusMonitor mNetworkStatusMonitor = null;
     private NetCmdDispatcher mNetCmdDispatcher = null;
-    
-   
 
     @Override
     public void onCreate() {
         super.onCreate();
         XmppClient.initializeXMPPEnvironment(this);
-
     }
 
     @Override
     public IBinder onBind(Intent intent) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-
         mNetworkStatusMonitor.stop();
         mLogManager.stop();
         mXmppClient.stop();
@@ -70,7 +59,6 @@ public class RemoteManagerService extends Service {
         mLoginBundle.putString("resource", data.getString("resource"));
 
         mbInitialized = true;
-        
   
         mXmppClient = new XmppClient(this);
         
@@ -96,7 +84,5 @@ public class RemoteManagerService extends Service {
                 mLoginBundle.getString("password"), Build.SERIAL);
 
         LogManager.local(TAG, "RemoteManagerService started");
-        mbInitialized = true;
-
     }
 }

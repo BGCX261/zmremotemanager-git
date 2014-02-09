@@ -1,26 +1,7 @@
 package com.zm.epad.core;
 
-
-import org.jivesoftware.smack.Connection;
-import org.jivesoftware.smack.ConnectionConfiguration;
-import org.jivesoftware.smack.ConnectionListener;
-import org.jivesoftware.smack.SmackAndroid;
-import org.jivesoftware.smack.XMPPConnection;
-import org.jivesoftware.smack.packet.Packet;
-import org.jivesoftware.smack.provider.ProviderManager;
-
-import org.jivesoftware.smackx.filetransfer.FileTransfer;
-import org.jivesoftware.smackx.filetransfer.FileTransfer.Status;
-import org.jivesoftware.smackx.filetransfer.FileTransferListener;
-import org.jivesoftware.smackx.filetransfer.FileTransferManager;
-import org.jivesoftware.smackx.filetransfer.FileTransferRequest;
-import org.jivesoftware.smackx.filetransfer.IncomingFileTransfer;
-import org.jivesoftware.smackx.filetransfer.OutgoingFileTransfer;
-
-import com.zm.epad.core.LogManager;
-import com.zm.epad.plugins.ProminentFeature;
-
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
@@ -30,13 +11,33 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 
-import java.io.File;
+import org.jivesoftware.smack.Connection;
+import org.jivesoftware.smack.ConnectionConfiguration;
+import org.jivesoftware.smack.ConnectionListener;
+import org.jivesoftware.smack.SmackAndroid;
+import org.jivesoftware.smack.XMPPConnection;
+import org.jivesoftware.smack.packet.Packet;
+import org.jivesoftware.smack.provider.ProviderManager;
+/*import org.jivesoftware.smack.util.Base64.OutputStream;
+ import org.jivesoftware.smackx.filetransfer.FileTransferListener;
+ import org.jivesoftware.smackx.filetransfer.FileTransferManager;
+ import org.jivesoftware.smackx.filetransfer.FileTransferRequest;
+ import org.jivesoftware.smackx.filetransfer.IncomingFileTransfer;
+ import org.jivesoftware.smackx.filetransfer.OutgoingFileTransfer;*/
+
+import java.io.DataOutputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
+import java.util.Date;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.Locale;
+import java.util.UUID;
+import java.net.URL;
 
 public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
+    private static final String TAG = "XmppClient";
 
     public static final int XMPPCLIENT_EVENT_CONNECT = 1;
     public static final int XMPPCLIENT_EVENT_LOGIN = 2;
@@ -51,6 +52,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     static final int CMD_LOGOUT = 4;
     static final int CMD_QUIT = 5;
     static final int CMD_SEND_PACKET_ASYNC = 6;
+    static final int CMD_SEND_OBJECT_ASYNC = 7;
 
     static final int XMPPCLIENT_STATUS_IDLE = 0;
     static final int XMPPCLIENT_STATUS_STARTING = 1;
@@ -58,21 +60,48 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     static final int XMPPCLIENT_STATUS_LOGINING = 3;
     static final int XMPPCLIENT_STATUS_LOGINED = 4;
     static final int XMPPCLIENT_STATUS_ERROR = 5;
+    private int mCurrentStatus = XMPPCLIENT_STATUS_IDLE;
+    private int mPrevStatus = mCurrentStatus;
+    static private SmackAndroid mSmackAndroid = null;
 
     static final String[] XMPPCLIENT_STATUS_STRINGS = { " idle ", " starting ",
             " started ", " logining ", " logined ", " error " };
 
     private ReentrantLock mStatusLock = new ReentrantLock();
-    private int mCurrentStatus = XMPPCLIENT_STATUS_IDLE;
-    private int mPrevStatus = mCurrentStatus;
+
+    private XmppClientThreadHandler mXmppClientHandler = null;
+    private HandlerThread mXmppHandlerThread = null;
+    private Context mContext;
+    private ArrayList<XmppClientCallback> mXmppClientCallbacks;
+    private Connection mXmppConnection = null;
+    private Bundle mConnectionInfo = null;
+    private XMPPConnectionListener mXmppConnectionListener = null;
+    private TransferService mTransferService = null;
+
+    // private FileTransferManager mFTManager = null;
 
     public interface XmppClientCallback {
         public Object reportXMPPClientEvent(int xmppClientEvent, Object... args);
     }
 
-    static private String TAG = "XmppClient";
+    public XmppClient(Context context) {
+        mContext = context;
+        mXmppClientCallbacks = new ArrayList<XmppClient.XmppClientCallback>();
+        mConnectionInfo = new Bundle();
+    }
 
-    static private SmackAndroid mSmackAndroid = null;
+    static public void initializeXMPPEnvironment(Context context) {
+        if (mSmackAndroid == null) {
+            mSmackAndroid = SmackAndroid.init(context);
+        }
+    }
+
+    static public void destroyXMPPEnvironment() {
+        if (mSmackAndroid != null) {
+            mSmackAndroid.onDestroy();
+            mSmackAndroid = null;
+        }
+    }
 
     @Override
     public void reportNetworkStatus(boolean bConnected) {
@@ -88,22 +117,6 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         } finally {
             mStatusLock.unlock();
         }
-
-    }
-
-    static public void initializeXMPPEnvironment(Context context) {
-        if (mSmackAndroid == null) {
-            mSmackAndroid = SmackAndroid.init(context);
-        }
-        return;
-    }
-
-    static public void destroyXMPPEnvironment() {
-        if (mSmackAndroid != null) {
-            mSmackAndroid.onDestroy();
-            mSmackAndroid = null;
-        }
-        return;
     }
 
     private class XMPPConnectionListener implements ConnectionListener {
@@ -205,7 +218,6 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         } finally {
             mStatusLock.unlock();
         }
-
     }
 
     private void dispatchXmppClientEvent(int xmppClientEvent, Object... args) {
@@ -213,15 +225,19 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             callback.reportXMPPClientEvent(xmppClientEvent, args);
         }
     }
+
     private void handleStartCmdLocked() {
         try {
             String serverName = mConnectionInfo.getString("server");
             LogManager.local(TAG, "connect to server:" + serverName);
-            ConnectionConfiguration config = new ConnectionConfiguration(serverName);
+
+            ConnectionConfiguration config = new ConnectionConfiguration(
+                    serverName);
             config.setCompressionEnabled(true);
             config.setDebuggerEnabled(true);
             config.setReconnectionAllowed(true);
-            
+
+
             mXmppConnection = new XMPPConnection(config);
             mXmppConnection.connect();
 
@@ -230,17 +246,13 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
 
             transitionToStatusLocked(XMPPCLIENT_STATUS_STARTED);
 
-            dispatchXmppClientEvent(
-                    XMPPCLIENT_EVENT_CONNECT,
-                    1, mXmppConnection, ProviderManager.getInstance());
+            dispatchXmppClientEvent(XMPPCLIENT_EVENT_CONNECT, 1,
+                    mXmppConnection, ProviderManager.getInstance());
 
         } catch (Exception e) {
             LogManager.local(TAG, "handleStartCmd ERR: " + e.toString());
             transitionToStatusLocked(XMPPCLIENT_STATUS_ERROR);
-            dispatchXmppClientEvent(
-                    XMPPCLIENT_EVENT_CONNECT,
-                    0);
-
+            dispatchXmppClientEvent(XMPPCLIENT_EVENT_CONNECT, 0);
         }
     }
 
@@ -260,20 +272,17 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             String usrResource = mConnectionInfo.getString("resource");
 
             mXmppConnection.login(usrName, usrPwd, usrResource);
-            
-            addFileReceiver(mXmppConnection);
+
+            /* addFileReceiver(mXmppConnection); */
 
             transitionToStatusLocked(XMPPCLIENT_STATUS_LOGINED);
-
-            dispatchXmppClientEvent(XMPPCLIENT_EVENT_LOGIN,
-                    true);
+            mTransferService = new TransferService();
+            dispatchXmppClientEvent(XMPPCLIENT_EVENT_LOGIN, true);
         } catch (Exception e) {
             LogManager.local(TAG, "handleLoginCmd ERR: " + e.toString());
             transitionToStatusLocked(XMPPCLIENT_STATUS_ERROR);
-            dispatchXmppClientEvent(XMPPCLIENT_EVENT_LOGIN,
-                    false);
+            dispatchXmppClientEvent(XMPPCLIENT_EVENT_LOGIN, false);
         }
-
     }
 
     private void handleLogoutCmd(boolean bNetworkConnect) {
@@ -284,8 +293,8 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 transitionToStatusLocked(XMPPCLIENT_STATUS_IDLE);
             else
                 transitionToStatusLocked(XMPPCLIENT_STATUS_ERROR);
-            dispatchXmppClientEvent(XMPPCLIENT_EVENT_LOGOUT,
-                    true);
+            mTransferService = null;
+            dispatchXmppClientEvent(XMPPCLIENT_EVENT_LOGOUT, true);
         } finally {
             mStatusLock.unlock();
         }
@@ -328,11 +337,10 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         }
         return;
     }
-    
-    private boolean isNetworkConnected()
-    {
-        ConnectivityManager cm =
-                (ConnectivityManager)mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+    private boolean isNetworkConnected() {
+        ConnectivityManager cm = (ConnectivityManager) mContext
+                .getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo info = cm.getActiveNetworkInfo();
         return info.isConnected();
     }
@@ -344,10 +352,10 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             if (connected == 0) {
                 dispatchXmppClientEvent(
                         XMPPCLIENT_EVENT_CONNECTION_UPDATE_STATUS, 0, msg.obj);
-                
-                //when it's not closed by error and network is on
-                if(msg.obj==null && isNetworkConnected()){
-                	LogManager.local(TAG,"ready to reconnect");
+
+                // when it's not closed by error and network is on
+                if (msg.obj == null && isNetworkConnected()) {
+                    LogManager.local(TAG, "ready to reconnect");
                     if (mCurrentStatus == XMPPCLIENT_STATUS_IDLE) {
                         mPrevStatus = XMPPCLIENT_STATUS_IDLE;
                         LogManager.local(TAG,
@@ -361,48 +369,29 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                         LogManager.local(TAG, "\t xmppclient re-login");
                         handleStartCmdLocked();
                         handleLoginCmdLocked();
-                    }            	
+                    }
                 }
-                
             } else {
                 dispatchXmppClientEvent(
                         XMPPCLIENT_EVENT_CONNECTION_UPDATE_STATUS, 1);
             }
-          
         } finally {
             mStatusLock.unlock();
         }
-
     }
 
     private void handleSendPacketCmd(Message msg) {
         try {
             mStatusLock.lock();
             mXmppConnection.sendPacket((Packet) msg.obj);
-            dispatchXmppClientEvent(
-                    XMPPCLIENT_EVENT_SENDPACKET_RESULT, true, msg.obj);
+            dispatchXmppClientEvent(XMPPCLIENT_EVENT_SENDPACKET_RESULT, true,
+                    msg.obj);
         } catch (Exception e) {
-            dispatchXmppClientEvent(
-                    XMPPCLIENT_EVENT_SENDPACKET_RESULT, false, msg.obj);
+            dispatchXmppClientEvent(XMPPCLIENT_EVENT_SENDPACKET_RESULT, false,
+                    msg.obj);
         } finally {
             mStatusLock.unlock();
         }
-
-    }
-
-    private XmppClientThreadHandler mXmppClientHandler = null;
-    private HandlerThread mXmppHandlerThread = null;
-    private Context mContext;
-    private ArrayList<XmppClientCallback> mXmppClientCallbacks;
-    private Connection mXmppConnection = null;
-    private Bundle mConnectionInfo = null;
-    private XMPPConnectionListener mXmppConnectionListener = null;
-    private FileTransferManager mFTManager = null;
-
-    public XmppClient(Context context) {
-        mContext = context;
-        mXmppClientCallbacks = new ArrayList<XmppClient.XmppClientCallback>();
-        mConnectionInfo = new Bundle();
     }
 
     public void addXmppClientCallback(XmppClientCallback[] callbacks) {
@@ -414,7 +403,6 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         } finally {
             mStatusLock.unlock();
         }
-
     }
 
     public void addXmppClientCallback(XmppClientCallback callback) {
@@ -434,6 +422,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             mStatusLock.unlock();
         }
     }
+
     private void transitionToStatusLocked(int newStatus) {
         switch (newStatus) {
         case XMPPCLIENT_STATUS_STARTED: {
@@ -506,18 +495,16 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 LogManager.local(TAG, e.toString());
             }
         } finally {
-
         }
 
         LogManager.local(TAG, "xmppclient stopped");
-
     }
 
     public boolean login(String usrName, String password, String resource) {
         if (usrName == null || password == null) {
             LogManager
                     .local(TAG,
-                    "xmppclient login failed,either username or password is null");
+                            "xmppclient login failed,either username or password is null");
             return false;
         }
         if (resource == null && Build.SERIAL == null) {
@@ -543,8 +530,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             }
             transitionToStatusLocked(XMPPCLIENT_STATUS_LOGINING);
             LogManager.local(TAG, "xmppclient login username " + usrName
-                    + " password "
-                    + password + " resource " + resource);
+                    + " password " + password + " resource " + resource);
             mConnectionInfo.putString("username", usrName);
             mConnectionInfo.putString("password", password);
             mConnectionInfo.putString("resource", resource);
@@ -572,6 +558,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     public void sendLogPacket(String msg) {
         // lalalalala
     }
+
     public boolean sendPacket(Packet packet) {
         try {
             mStatusLock.lock();
@@ -597,96 +584,194 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         }
         return true;
     }
-    
+
     public boolean sendPacketAsync(Packet packet, long delayMillis) {
+        Message msg = mXmppClientHandler.obtainMessage(CMD_SEND_PACKET_ASYNC,
+                packet);
+        return mXmppClientHandler.sendMessageDelayed(msg, delayMillis);
+    }
 
-            Message msg = mXmppClientHandler.obtainMessage(CMD_SEND_PACKET_ASYNC, packet);
-            return mXmppClientHandler.sendMessageDelayed(msg, delayMillis);
+    /*
+     * public void sendFile(File file, final String description) { try { String
+     * usrName = mConnectionInfo.getString("username"); String usrResource =
+     * mConnectionInfo.getString("resource");
+     * 
+     * OutgoingFileTransfer fileTransfer = mFTManager
+     * .createOutgoingFileTransfer("capture@com.zm.openfire/default");
+     * fileTransfer.sendFile(file, description);
+     * 
+     * } catch (Exception e) { LogManager.local(TAG, e.toString()); } }
+     */
 
-    }    
-       
-    public void sendFile(File file, final String description) {
+    public String sendObject(byte[] png, final String description,
+            String requestUrl) {
+        if (mTransferService == null)
+            return null;
+        return mTransferService.uploadObject(png, description,
+                requestUrl);
+    }
+
+    public boolean sendObjectAsync(Object targetObject,
+            final String description, String requestUrl) {
         try {
-            String usrName = mConnectionInfo.getString("username");
-            String usrResource = mConnectionInfo.getString("resource");
-            
-            OutgoingFileTransfer fileTransfer = mFTManager
-                    .createOutgoingFileTransfer("capture@com.zm.openfire/default");
-            fileTransfer.sendFile(file, description);
-
-        } catch (Exception e) {
-            LogManager.local(TAG, e.toString());
+            mStatusLock.lock();
+            if (mXmppConnection == null)
+                return false;
+            Message msg = mXmppClientHandler.obtainMessage(
+                    CMD_SEND_OBJECT_ASYNC, null);
+            mXmppClientHandler.sendMessage(msg);
+        } finally {
+            mStatusLock.unlock();
         }
+        return true;
     }
-    
-    private void addFileReceiver(Connection conn){
-        mFTManager = new FileTransferManager(conn);
-        mFTManager.addFileTransferListener(new XmppFileTransferListener());
-    }
-    
-    private class XmppFileTransferListener implements FileTransferListener {
 
-        @Override
-        public void fileTransferRequest(FileTransferRequest request) {
-            
-            IncomingFileTransfer transfer = request.accept();
-            
+    private class TransferService {
+        private static final int TIME_OUT = 10 * 10000000;
+        private static final String CHARSET = "utf-8";
+        public static final String SUCCESS = "1";
+        public static final String FAILURE = "0";
+        public static final String PREFIX = "--";
+        public static final String LINE_END = "\r\n";
+        public static final String CONTENT_TYPE = "multipart/form-data";
+
+        private SimpleDateFormat mSimpleDateFmt = new SimpleDateFormat(
+                "yyyy-MM-dd HH:mmZ", Locale.US);
+
+        public TransferService() {
+        }
+
+        private HttpURLConnection createUrlConnection(String requestUrl,
+                String BOUNDARY) {
+            HttpURLConnection conn = null;
             try {
-                LogManager.local(TAG, "Begin receive file:"+request.getRequestor());
-                String fileName = request.getFileName();
-                String Mime = request.getMimeType();
-
-                File temp = new File(mContext.getFilesDir().getAbsolutePath()
-                        + "/"+fileName);
-                transfer.recieveFile(temp);
-                
-                Thread saveThread = new Thread(new SaveRunnable(temp, Mime));
-                
-                saveThread.start();
-                
+                URL url = new URL(requestUrl);
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setReadTimeout(TIME_OUT);
+                conn.setConnectTimeout(TIME_OUT);
+                conn.setDoInput(true);
+                conn.setDoOutput(true);
+                conn.setUseCaches(false);
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Charset", CHARSET);
+                conn.setRequestProperty("connection", "keep-alive");
+                conn.setRequestProperty("Content-Type", CONTENT_TYPE
+                        + ";boundary=" + BOUNDARY);
+                return conn;
             } catch (Exception e) {
-                e.printStackTrace();
+                LogManager.local(TAG,
+                        "createUrlConnection fails " + e.getMessage());
+                return null;
             }
         }
-        
-        private boolean isImage(String Mime){
-            return Mime.equals("image/jpeg")||Mime.equals("image/png")||Mime.equals("image/bmp");
-        }
-        
-        private class SaveRunnable implements Runnable{
-            File mTempfile = null;
-            long mFileSize = 0;
-            String mMime = null;
-            
-            public SaveRunnable(File file, String Mime){
-                super();
-                mTempfile = file;
-                mMime = Mime;
-                mFileSize = file.length();
-            }
 
-            @Override
-            public void run() {
-                // TODO Auto-generated method stub
-                do{
-                    //wait for download complete
-                    try{
-                        mFileSize = mTempfile.length();
-                        LogManager.local(TAG, "receiving file S:"+mFileSize);
-                        Thread.sleep(500);
-                        LogManager.local(TAG, "receiving file E:"+mTempfile.length());
-                    }catch(Exception e){
-                        e.printStackTrace();
-                    }
-                    
-                }while(mTempfile.length() != mFileSize);
+        private String getFileName(String desc) {
+            return mSimpleDateFmt.format(new Date()) + desc;
+        }
+
+        private String getHttpHeaderInfo(String fileName, String BOUNDARY) {
+            StringBuffer sb = new StringBuffer();
+            sb.append(PREFIX);
+            sb.append(BOUNDARY);
+            sb.append(LINE_END);
+
+            sb.append("Content-Disposition: form-data; name=\"img\"; filename=\""
+                    + fileName + "\"" + LINE_END);
+            sb.append("Content-Type: application/octet-stream; charset="
+                    + CHARSET + LINE_END);
+            sb.append(LINE_END);
+            return sb.toString();
+        }
+
+        private String getHttpTailInfo(String BOUNDARY) {
+            String endString = LINE_END + PREFIX + BOUNDARY + PREFIX + LINE_END;
+            return endString;
+        }
+        //example code from : http://blog.csdn.net/qq247890212/article/details/16358581
+        public String uploadObject(byte[] data, final String desc,
+                String requestUrl) {
+            String BOUNDARY = UUID.randomUUID().toString();
+            HttpURLConnection conn = createUrlConnection(requestUrl,
+                    BOUNDARY);
+            if (conn == null) return null;
+            OutputStream outputSteam = null;
+            try {
+                outputSteam = conn.getOutputStream();
+            } catch (Exception e) {
+                LogManager.local(TAG,
+                        "getOutputStream fails " + e.getMessage());
+                conn.disconnect();
+                return null;
+            }
+            DataOutputStream dos = new DataOutputStream(outputSteam);
+
+            String fileName = getFileName(desc);
+            String httpHeaderInfo = getHttpHeaderInfo(fileName, BOUNDARY);
+            int res = 0;
+            try {
+                dos.write(httpHeaderInfo.getBytes());
+                dos.write(data, 0, data.length);
+                dos.write(getHttpTailInfo(BOUNDARY).getBytes());
+                dos.flush();
+                dos.close();
+                dos = null;
+                res = conn.getResponseCode();
+            } catch (Exception e) {
+                // TODO: handle exception
+            }
+            if(dos != null){
+                try {
+                    dos.close();
+                } catch (Exception e) {
+                    // TODO: handle exception
+                }
                 
-                ProminentFeature f = new ProminentFeature(mContext);
-                if(isImage(mMime)){
-                    f.saveFileAsImage(mTempfile);
-                }                
             }
-        }
-
+            conn.disconnect();
+            if (res == 200) return fileName;
+            else return null;
+        } 
+      
+      }
     }
-}
+    /*
+     * private void addFileReceiver(Connection conn){ mFTManager = new
+     * FileTransferManager(conn); mFTManager.addFileTransferListener(new
+     * XmppFileTransferListener()); }
+     */
+
+    /*
+     * private class XmppFileTransferListener implements FileTransferListener {
+     * 
+     * @Override public void fileTransferRequest(FileTransferRequest request) {
+     * IncomingFileTransfer transfer = request.accept(); try {
+     * LogManager.local(TAG, "Begin receive file:"+request.getRequestor());
+     * String fileName = request.getFileName(); String Mime =
+     * request.getMimeType();
+     * 
+     * File temp = new File(mContext.getFilesDir().getAbsolutePath() +
+     * "/"+fileName); transfer.recieveFile(temp);
+     * 
+     * Thread saveThread = new Thread(new SaveRunnable(temp, Mime));
+     * 
+     * saveThread.start(); } catch (Exception e) { e.printStackTrace(); } }
+     * 
+     * private boolean isImage(String Mime){ return
+     * Mime.equals("image/jpeg")||Mime
+     * .equals("image/png")||Mime.equals("image/bmp"); }
+     * 
+     * private class SaveRunnable implements Runnable{ private File mTempfile =
+     * null; private long mFileSize = 0; private String mMime = null;
+     * 
+     * public SaveRunnable(File file, String Mime) { super(); mTempfile = file;
+     * mMime = Mime; mFileSize = file.length(); }
+     * 
+     * @Override public void run() { do { //wait for download complete try {
+     * mFileSize = mTempfile.length(); LogManager.local(TAG, "receiving file S:"
+     * + mFileSize); Thread.sleep(500); LogManager.local(TAG,
+     * "receiving file E:" + mTempfile.length()); } catch (Exception e) {
+     * e.printStackTrace(); } } while (mTempfile.length() != mFileSize);
+     * 
+     * if (isImage(mMime)) { // remove this //
+     * ProminentFeature.saveFileAsImage(mContext, mTempfile); } } } }
+     */
