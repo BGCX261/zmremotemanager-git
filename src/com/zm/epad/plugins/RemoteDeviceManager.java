@@ -88,10 +88,7 @@ public class RemoteDeviceManager {
         mContext.bindService(intent, conn, Context.BIND_AUTO_CREATE);
     }
     
-    public String getLatestScreenshot() {
-        /*
-         * Need improvements !!
-         */
+    public File getLatestScreenshot() {
         File ret = null;
         try {
             String[] proj = { MediaStore.Images.Media.TITLE,
@@ -158,7 +155,7 @@ public class RemoteDeviceManager {
 
         LogManager.local(TAG, ret == null ? "null"
                 : (ret.toString() + "|" + ret.length()));
-        return ret.getAbsolutePath();
+        return ret;
     }
 
     public void startCamera() {
@@ -184,7 +181,6 @@ public class RemoteDeviceManager {
     }
 
     // This 2 functions need to move out from this class to a FileUtil class.
-    // Why we need this?
     public void saveFileAsImage(File file) {
         ContentValues values = new ContentValues();
         ContentResolver resolver = mContext.getContentResolver();
