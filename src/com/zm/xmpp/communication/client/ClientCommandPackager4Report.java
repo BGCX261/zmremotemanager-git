@@ -4,7 +4,7 @@ import com.zm.xmpp.communication.command.Command4Report;
 import com.zm.xmpp.communication.command.ICommand;
 
 public class ClientCommandPackager4Report implements IClientCommandPackager {
-    public final static String name = "Report";
+    public final static String name = "report";
 
     public void parseCommand(String paraName, String value, ICommand c) {
 
