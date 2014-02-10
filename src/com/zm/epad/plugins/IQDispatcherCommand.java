@@ -42,7 +42,8 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     private HandlerThread mThread;
     private Handler mHandler;
     
-    private final long DEFAULT_INTERVAL = 15*60*1000; /* 15 minutes*/
+    //private final long DEFAULT_INTERVAL = 15*60*1000; /* 15 minutes*/
+    private final long DEFAULT_INTERVAL = 5*1000; /* change interval to 5s to test*/
     private IQScheduleResult mAppSchedule;
 
     @Override
