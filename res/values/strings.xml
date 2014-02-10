@@ -118,9 +118,12 @@
     <string name="debug_install">Install</string>
     <string name="debug_remove">Remove</string>
     <string name="debug_querytext">Send Query Command</string>
+    <string name="debug_queryReport">Send Report Command</string>
     <string name="debug_appinfo">App</string>
     <string name="debug_deviceinfo">Device</string>
     <string name="debug_userinfo">User</string>
+    <string name="debug_apptrace">App Trace</string>
+    <string name="debug_appuntrace">App Untrace</string>
     <string name="debug_deviceadmin">Remote Device Admin</string>
         
     <!-- Strings used by zmtech_authenticator -->

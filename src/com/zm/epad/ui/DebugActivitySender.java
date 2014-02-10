@@ -6,6 +6,7 @@ import com.zm.xmpp.communication.Constants;
 import com.zm.xmpp.communication.client.ZMIQCommand;
 import com.zm.xmpp.communication.command.Command4App;
 import com.zm.xmpp.communication.command.Command4Query;
+import com.zm.xmpp.communication.command.Command4Report;
 
 import org.jivesoftware.smack.XMPPConnection;
 
@@ -32,6 +33,9 @@ public class DebugActivitySender extends Activity {
     private Button mAppInfoBtn = null;
     private Button mDeviceInfoBtn = null;
     private Button mUserInfoBtn = null;
+    
+    private Button mAppTraceBtn = null;  
+    private Button mAppUntraceBtn = null;
     
     private Button mDeviceAdmin = null;
 
@@ -64,6 +68,8 @@ public class DebugActivitySender extends Activity {
         mDeviceInfoBtn = (Button) findViewById(R.id.button6);
         mUserInfoBtn = (Button) findViewById(R.id.button7);
         
+        mAppTraceBtn = (Button) findViewById(R.id.button8);
+        mAppUntraceBtn = (Button) findViewById(R.id.button9);       
 
         mNameText = (EditText) findViewById(R.id.editText1);
         mUserIdText = (EditText) findViewById(R.id.editText2);
@@ -192,6 +198,36 @@ public class DebugActivitySender extends Activity {
 			}
         	
         });
+        
+        mAppTraceBtn.setOnClickListener(new OnClickListener(){
+
+            @Override
+            public void onClick(View arg0) {
+                // TODO Auto-generated method stub
+                try {
+                    sendTestCommand4Report(Constants.XMPP_REPORT_APP, 
+                            Constants.XMPP_REPORT_ACT_TRACE);
+                } catch (Exception e) {
+                    LogManager.local(TAG, e.getMessage());
+                }
+            }
+            
+        });
+        
+        mAppUntraceBtn.setOnClickListener(new OnClickListener(){
+
+            @Override
+            public void onClick(View arg0) {
+                // TODO Auto-generated method stub
+                try {
+                    sendTestCommand4Report(Constants.XMPP_REPORT_APP, 
+                            Constants.XMPP_REPORT_ACT_UNTRACE);
+                } catch (Exception e) {
+                    LogManager.local(TAG, e.getMessage());
+                }
+            }
+            
+        });
     }
 
     void testConnectionOn() {
@@ -277,6 +313,19 @@ public class DebugActivitySender extends Activity {
         cmdIQ.setPacketID("xyzzd");
         testConnection.sendPacket(cmdIQ);
         LogManager.local(TAG, "##IQ##\n" + cmdIQ.toXML());    	
+    }
+    
+    void sendTestCommand4Report(String report, String action){
+        Command4Report Command = new Command4Report(Constants.XMPP_NAMESPACE_CENTER, "9529",
+                report, action, "2014");
+        
+        ZMIQCommand cmdIQ = new ZMIQCommand();
+        cmdIQ.setCommand(Command);
+        cmdIQ.setTo("dengfanping@com.zm.openfire/"+Build.SERIAL);
+        cmdIQ.setFrom("test@com.zm.openfire/zhimotech");
+        cmdIQ.setPacketID("xyzzd");
+        testConnection.sendPacket(cmdIQ);
+        LogManager.local(TAG, "##IQ##\n" + cmdIQ.toXML());  
     }
 
     @Override

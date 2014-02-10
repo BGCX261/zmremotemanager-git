@@ -114,4 +114,30 @@
         android:layout_alignParentBottom="true"
         android:text="@string/debug_deviceadmin" />
 
+	<Button
+	    android:id="@+id/button8"
+	    android:layout_width="150dp"
+	    android:layout_height="wrap_content"
+	    android:layout_alignBaseline="@+id/button9"
+	    android:layout_alignBottom="@+id/button9"
+	    android:layout_alignLeft="@+id/textView3"
+	    android:text="@string/debug_apptrace" />
+
+	<TextView
+	    android:id="@+id/textView3"
+	    android:layout_width="wrap_content"
+	    android:layout_height="wrap_content"
+	    android:layout_above="@+id/button8"
+	    android:layout_alignLeft="@+id/textView2"
+	    android:layout_marginBottom="26dp"
+	    android:text="@string/debug_queryReport" />
+
+	<Button
+	    android:id="@+id/button9"
+	    android:layout_width="150dp"
+	    android:layout_height="wrap_content"
+	    android:layout_centerHorizontal="true"
+	    android:layout_centerVertical="true"
+	    android:text="@string/debug_appuntrace" />
+	
 </RelativeLayout>
