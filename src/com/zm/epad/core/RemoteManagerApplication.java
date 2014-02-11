@@ -14,6 +14,7 @@ public class RemoteManagerApplication extends Application {
         @Override
         public void uncaughtException(Thread t, Throwable e) {
             try {
+                e.printStackTrace();
                 if (mCrashing)
                     return;
                 mCrashing = true;
@@ -23,6 +24,7 @@ public class RemoteManagerApplication extends Application {
             } catch (Throwable t2) {
                 try {
                     LogManager.local(TAG, "Error reporting crash" + t2);
+                    t2.printStackTrace();
                 } catch (Throwable t3) {
                     // Even Slog.e() fails! Oh well.
                 }
