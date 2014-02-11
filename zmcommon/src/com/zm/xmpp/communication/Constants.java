@@ -17,6 +17,8 @@ public class Constants {
     static public final String XMPP_COMMAND_APP = "app";
     static public final String XMPP_COMMAND_DEVICE = "device";
     static public final String XMPP_COMMAND_QUERY = "query";
+    static public final String XMPP_COMMAND_REPORT = "report";
+    static public final String XMPP_COMMAND_FILE_TRANSFER = "filetransfer";
 
     static public final String XMPP_APP_INSTALL = "install";
     static public final String XMPP_APP_REMOVE = "remove";
@@ -26,6 +28,14 @@ public class Constants {
     static public final String XMPP_QUERY_APP = "app";
     static public final String XMPP_QUERY_DEVICE = "device";
     static public final String XMPP_QUERY_ENV = "env";
+    static public final String XMPP_QUERY_CAPTURE = "capture";  
+    
+    static public final String XMPP_REPORT_APP = "app";
+    static public final String XMPP_REPORT_POS = "pos";
+    static public final String XMPP_REPORT_ACT_TRACE = "trace";
+    static public final String XMPP_REPORT_ACT_UNTRACE = "untrace"; 
+    
+    static public final String XMPP_FILE_TRANSFER_WALLPAPER = "wallpaper";
 
     static public final String XMPP_DOMAIN = "com.zm.openfire";
 
