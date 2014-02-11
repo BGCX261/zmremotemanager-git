@@ -11,6 +11,7 @@ import com.zm.xmpp.communication.client.ZMIQResult;
 import com.zm.xmpp.communication.command.ICommand;
 import com.zm.xmpp.communication.command.ICommand4App;
 import com.zm.xmpp.communication.command.ICommand4Query;
+import com.zm.xmpp.communication.command.Command4Report;
 import com.zm.xmpp.communication.command.Command4FileTransfer;
 import com.zm.xmpp.communication.result.IResult;
 
@@ -40,6 +41,9 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     private ResultFactory mResultFactory;
     private HandlerThread mThread;
     private Handler mHandler;
+    
+    private final long DEFAULT_INTERVAL = 15*60*1000; /* 15 minutes*/
+    private IQScheduleResult mAppSchedule;
 
     @Override
     public void destroy() {
@@ -148,7 +152,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
         if (cmdType == null)
             return false;
 
-        if (cmdType.equals("app")) {
+        if (cmdType.equals(Constants.XMPP_COMMAND_APP)) {
             IResult result = null;
             result = handleCommand4App((ICommand4App) cmd);
 
@@ -166,7 +170,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
             // in getChildElementXML when result is null.
             resultIQ.setResult(result);
             mXmppClient.sendPacketAsync((Packet) resultIQ, 0);
-        } else if (cmdType.equals("query")) {
+        } else if (cmdType.equals(Constants.XMPP_COMMAND_QUERY)) {
             List<IResult> resultList = null;
             try {
                 resultList = handleCommand4Query((ICommand4Query) cmd,
@@ -199,8 +203,18 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 
                 mXmppClient.sendPacketAsync((Packet) resultIQ, 0);
             }
-        } else if(cmdType.equals("filetransfer")) {
-            handleCommand4FileTransfer((Command4FileTransfer) cmd); 
+        } else if (cmdType.equals(Constants.XMPP_COMMAND_REPORT)) {
+            ret = handleCommand4Report(iq);
+
+            // set OK/NG result
+            ZMIQResult resultIQ = new ZMIQResult(iq);
+            IResult r = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
+                    cmd.getId(), ret == true ? "OK" : "NG");
+            resultIQ.setResult(r);
+            mXmppClient.sendPacketAsync((Packet) resultIQ, 0);
+
+        } else if (cmdType.equals(Constants.XMPP_COMMAND_FILE_TRANSFER)) {
+            ret = handleCommand4FileTransfer((Command4FileTransfer) cmd);
         }else {
             LogManager.local(TAG, "bad command: " + cmdType);
             ret = false;
@@ -266,7 +280,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
             if (results == null) {
                 throw new Exception("failed to get env info");
             }
-        } else if (action.equals("capture")) {
+        } else if (action.equals(Constants.XMPP_QUERY_CAPTURE)) {
             /*
              * @dujiang: Note this: Now, takeScreenshot will return whether
              * screen capture succeed or failed so, capture cmd should return
@@ -301,8 +315,56 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
         return results;
     }
     
-    private void handleCommand4FileTransfer(Command4FileTransfer cmd) {
-        
+    private boolean handleCommand4Report(ZMIQCommand iq) {
+
+        if (iq == null
+                || !iq.getCommand().getType()
+                        .equals(Constants.XMPP_COMMAND_REPORT)) {
+            return false;
+        }
+
+        boolean ret = false;
+
+        Command4Report cmd = (Command4Report) iq.getCommand();
+
+        if (cmd.getReport().equals(Constants.XMPP_REPORT_APP)) {
+            if (cmd.getAction().equals(Constants.XMPP_REPORT_ACT_TRACE)) {
+                ret = startSendAppRunningInfoSchedule(iq, DEFAULT_INTERVAL);
+            } else if (cmd.getAction()
+                    .equals(Constants.XMPP_REPORT_ACT_UNTRACE)) {
+                ret = stopSendAppRunningInfoSchedule();
+            }
+        } else if (cmd.getReport().equals(Constants.XMPP_REPORT_POS)) {
+            // to be added
+        }
+
+        return ret;
+    }
+
+    private boolean startSendAppRunningInfoSchedule(ZMIQCommand iq,
+            long interval) {
+        if (mAppSchedule == null) {
+            mAppSchedule = new IQScheduleResult("AppResultSchedule", iq);
+            mAppSchedule.setResultMaker(mResultFactory,
+                    ResultFactory.RESULT_RUNNINGAPP);
+            return mAppSchedule.start(interval, mXmppClient);
+        }
+
+        return false;
+    }
+
+    private boolean stopSendAppRunningInfoSchedule() {
+        if (mAppSchedule != null) {
+            mAppSchedule.stop();
+            mAppSchedule.destroy();
+            mAppSchedule = null;
+        }
+
+        return true;
+    }
+    
+    private boolean handleCommand4FileTransfer(Command4FileTransfer cmd) {
+        return false;
     }
 
     private class CommandResultCallback implements ResultFactory.ResultCallback {
