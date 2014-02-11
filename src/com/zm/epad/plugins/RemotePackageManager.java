@@ -1,5 +1,7 @@
 package com.zm.epad.plugins;
 
+import android.app.ActivityManager;
+import android.app.ActivityManager.RunningAppProcessInfo;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -338,6 +340,36 @@ public class RemotePackageManager {
 
     public String getApplicationName(PackageInfo pi) {
         return pi.applicationInfo.loadLabel(mPackageManager).toString();
+    }
+    
+    public String getApplicationName(String pkgName, int flags, int userId) {
+        try{
+            PackageInfo pi = mPm.getPackageInfo(pkgName, flags, userId);
+            return getApplicationName(pi);
+            
+        }catch (Exception e) {
+            return null;
+        }
+    }
+    
+    public String getApplicationVersion(String pkgName, int flags, int userId) {
+        try{
+            PackageInfo pi = mPm.getPackageInfo(pkgName, flags, userId);
+            return pi.versionName;
+        }catch (Exception e) {
+            return null;
+        }        
+    }
+    
+    public List<RunningAppProcessInfo> getRunningAppProcesses() {
+        ActivityManager am = (ActivityManager) mContext
+                .getSystemService(Context.ACTIVITY_SERVICE);
+        
+        return am.getRunningAppProcesses();
+    }
+
+    public int getCurrentUserId() {
+        return ActivityManager.getCurrentUser();
     }
 
     public List<UserInfo> getAllUsers() {

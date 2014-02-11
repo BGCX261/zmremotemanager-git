@@ -21,6 +21,9 @@ import com.zm.xmpp.communication.result.ResultApp;
 import com.zm.xmpp.communication.result.ResultDevice;
 import com.zm.xmpp.communication.result.ResultEnv;
 import com.zm.xmpp.communication.result.ResultNormal;
+import com.zm.xmpp.communication.result.ResultRunningApp;
+
+import android.app.ActivityManager.RunningAppProcessInfo;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +37,7 @@ public class ResultFactory {
     public static final int RESULT_APP = 2;
     public static final int RESULT_DEVICE = 3;
     public static final int RESULT_ENV = 4;
+    public static final int RESULT_RUNNINGAPP = 5;
     
     private static final int RESULT_APPINFO_LENGTH_MAX = 120;
     private static final int RESULT_APPINFO_LENGTH_TAG = 80;
@@ -67,6 +71,9 @@ public class ResultFactory {
                 LogManager.local(TAG, "getResult:"+e.toString());
                 ret = null;
             }
+            break;
+        case RESULT_RUNNINGAPP:
+            ret = getRunningAppResult();
             break;
         default:
             LogManager.local(TAG, "bad type: " + type);
@@ -114,6 +121,7 @@ public class ResultFactory {
         switch(type){
         case RESULT_NORMAL:
         case RESULT_DEVICE:
+        case RESULT_RUNNINGAPP:
             IResult ret = getResult(type, id, "done:0", callback);
             if(ret != null){
                 resultList = new ArrayList<IResult>();
@@ -338,4 +346,49 @@ public class ResultFactory {
         return cfg;
     }
     
+    private IResult getRunningAppResult() {
+
+        ResultRunningApp result = new ResultRunningApp(
+                mPkgsManager.getCurrentUserId(), getCurrentTime());
+
+        List<RunningAppProcessInfo> runningList = mPkgsManager
+                .getRunningAppProcesses();
+        for (RunningAppProcessInfo pi : runningList) {
+            String name = pi.processName;
+            String importance = getAppProcessImportance(pi.importance);
+            String pkgName = pi.importanceReasonComponent.getPackageName();
+            String display = mPkgsManager.getApplicationName(pkgName, 0,
+                    mPkgsManager.getCurrentUserId());
+            String version = mPkgsManager.getApplicationVersion(pkgName, 0,
+                    mPkgsManager.getCurrentUserId());
+            result.addProcess(name, importance, display, version);
+        }
+        return result;
+    }
+
+    private String getAppProcessImportance(int importance) {
+        String ret = ResultRunningApp.PROCESS_UNKNOWN;
+
+        switch (importance) {
+        case RunningAppProcessInfo.IMPORTANCE_FOREGROUND:
+            ret = ResultRunningApp.PROCESS_FOREGROUND;
+            break;
+        case RunningAppProcessInfo.IMPORTANCE_VISIBLE:
+            ret = ResultRunningApp.PROCESS_VISIBLE;
+            break;
+        case RunningAppProcessInfo.IMPORTANCE_SERVICE:
+            ret = ResultRunningApp.PROCESS_SERVICE;
+            break;
+        case RunningAppProcessInfo.IMPORTANCE_BACKGROUND:
+            ret = ResultRunningApp.PROCESS_BACKGROUND;
+            break;
+        case RunningAppProcessInfo.IMPORTANCE_EMPTY:
+            ret = ResultRunningApp.PROCESS_EMPTY;
+            break;
+        default:
+            break;
+        }
+
+        return ret;
+    }
 }
