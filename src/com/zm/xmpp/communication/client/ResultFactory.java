@@ -356,12 +356,19 @@ public class ResultFactory {
         for (RunningAppProcessInfo pi : runningList) {
             String name = pi.processName;
             String importance = getAppProcessImportance(pi.importance);
-            String pkgName = pi.importanceReasonComponent.getPackageName();
+            String pkgName = null;
+            if(pi.importanceReasonComponent != null){
+                pkgName = pi.importanceReasonComponent.getPackageName();
+            }else{
+                //if no importance reason, show the first loaded pkg
+                pkgName = pi.pkgList[0];
+            }
+            
             String display = mPkgsManager.getApplicationName(pkgName, 0,
                     mPkgsManager.getCurrentUserId());
             String version = mPkgsManager.getApplicationVersion(pkgName, 0,
                     mPkgsManager.getCurrentUserId());
-            result.addProcess(name, importance, display, version);
+            result.addProcess(name, display, importance, version);
         }
         return result;
     }
