@@ -1,7 +1,7 @@
 package com.zm.xmpp.communication.command;
 
 public class Command4FileTransfer extends AbstractCommand implements ICommand{
-    private final static String type = "filetransfer";
+    private final static String type = "push";
     private String mUrl = "";
     private String mExpire = null;
     private String mParameter = null;

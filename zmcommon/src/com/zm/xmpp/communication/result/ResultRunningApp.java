@@ -10,7 +10,7 @@ public class ResultRunningApp extends AbstractResult implements IResult {
     public final static String PROCESS_EMPTY = "empty";
     public final static String PROCESS_UNKNOWN = "unknown";
 
-    private final static String type = "runningapp";
+    private final static String type = "appreport";
 
     private int mCurrentEnv = 0;
     private Vector<ProcessInfo> mProcessList = new Vector<ProcessInfo>();
