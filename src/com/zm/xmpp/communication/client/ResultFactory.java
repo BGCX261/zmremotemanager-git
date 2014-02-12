@@ -31,7 +31,7 @@ import java.util.List;
 public class ResultFactory {
     public static final String TAG = "ClientResultFactory";
     
-    public static final int RESULT_LENGTH_MAX = 3500;
+    public static final int RESULT_LENGTH_MAX = 2*1024*1024;
     
     public static final int RESULT_NORMAL = 1;
     public static final int RESULT_APP = 2;
