@@ -49,6 +49,10 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     @Override
     public void destroy() {
         try {
+            if(mAppSchedule != null) {
+                mAppSchedule.stop();
+                mAppSchedule.destroy();
+            }
             mThread.quit();
             mThread.join();
         } catch (Exception e) {
@@ -207,12 +211,14 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
         } else if (cmdType.equals(Constants.XMPP_COMMAND_REPORT)) {
             ret = handleCommand4Report(iq);
 
-            // set OK/NG result
-            ZMIQResult resultIQ = new ZMIQResult(iq);
-            IResult r = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
-                    cmd.getId(), ret == true ? "OK" : "NG");
-            resultIQ.setResult(r);
-            mXmppClient.sendPacketAsync((Packet) resultIQ, 0);
+            if(ret == false) {
+                // set NG result
+                ZMIQResult resultIQ = new ZMIQResult(iq);
+                IResult r = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
+                        cmd.getId(), "NG");
+                resultIQ.setResult(r);
+                mXmppClient.sendPacketAsync((Packet) resultIQ, 0);                
+            }
 
         } else if (cmdType.equals(Constants.XMPP_COMMAND_FILE_TRANSFER)) {
             ret = handleCommand4FileTransfer((Command4FileTransfer) cmd);
