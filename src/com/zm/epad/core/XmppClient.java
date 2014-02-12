@@ -26,6 +26,9 @@ import org.jivesoftware.smack.provider.ProviderManager;
  import org.jivesoftware.smackx.filetransfer.OutgoingFileTransfer;*/
 
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.text.SimpleDateFormat;
@@ -236,7 +239,6 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             config.setCompressionEnabled(true);
             config.setDebuggerEnabled(true);
             config.setReconnectionAllowed(true);
-
 
             mXmppConnection = new XMPPConnection(config);
             mXmppConnection.connect();
@@ -607,8 +609,14 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             String requestUrl) {
         if (mTransferService == null)
             return null;
-        return mTransferService.uploadObject(png, description,
-                requestUrl);
+        return mTransferService.uploadObject(png, description, requestUrl);
+    }
+
+    public File receiveObject(final String requestUrl) {
+        if (mTransferService == null) {
+            return null;
+        }
+        return mTransferService.receiveObject(requestUrl);
     }
 
     public boolean sendObjectAsync(Object targetObject,
@@ -652,11 +660,14 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 conn.setDoInput(true);
                 conn.setDoOutput(true);
                 conn.setUseCaches(false);
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Charset", CHARSET);
-                conn.setRequestProperty("connection", "keep-alive");
-                conn.setRequestProperty("Content-Type", CONTENT_TYPE
-                        + ";boundary=" + BOUNDARY);
+                if (BOUNDARY != null) {
+                    conn.setRequestMethod("POST");
+                    conn.setRequestProperty("Charset", CHARSET);
+                    conn.setRequestProperty("connection", "keep-alive");
+                    conn.setRequestProperty("Content-Type", CONTENT_TYPE
+                            + ";boundary=" + BOUNDARY);
+                }
+
                 return conn;
             } catch (Exception e) {
                 LogManager.local(TAG,
@@ -687,20 +698,82 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             String endString = LINE_END + PREFIX + BOUNDARY + PREFIX + LINE_END;
             return endString;
         }
-        //example code from : http://blog.csdn.net/qq247890212/article/details/16358581
-        //about multi-part/data, see http://blog.csdn.net/five3/article/details/7181521
+
+        public File receiveObject(String requestUrl) {
+            if (requestUrl == null)
+                return null;
+            HttpURLConnection conn = createUrlConnection(requestUrl, null);
+            if (conn == null) {
+                return null;
+            }
+            int lastIndexofSlash = requestUrl.lastIndexOf("/");
+            String fileName = requestUrl.substring(lastIndexofSlash);
+            InputStream inputStream = null;
+            FileOutputStream outputStream = null;
+            File recvedFile = new File(mContext.getFilesDir().getAbsolutePath()
+                    + fileName);
+            try {
+                inputStream = conn.getInputStream();
+                // don't handle the case that the file already exists
+                recvedFile.createNewFile();
+                outputStream = new FileOutputStream(recvedFile);
+                byte[] buff = new byte[1024];
+                int readCount = 0;
+                while ((readCount = inputStream.read(buff)) > 0) {
+                    outputStream.write(buff, 0, readCount);
+                }
+                buff = null;
+                inputStream.close();
+                inputStream = null;
+                outputStream.flush();
+                outputStream.close();
+                outputStream = null;
+
+                conn.disconnect();
+                conn = null;
+            } catch (Exception e) {
+                LogManager.local(TAG, "recvObject fails " + e.getMessage());
+            }
+            try {
+                if (inputStream != null) {
+                    inputStream.close();
+                    inputStream = null;
+                }
+            } catch (Exception e) {
+                // TODO: handle exception
+            }
+            try {
+                if (outputStream != null) {
+                    outputStream.close();
+                    outputStream = null;
+                }
+            } catch (Exception e) {
+                // TODO: handle exception
+            }
+            if (conn != null) {
+                conn.disconnect();
+                conn = null;
+            }
+            return recvedFile;
+
+        }
+
+        // example code from :
+        // http://blog.csdn.net/qq247890212/article/details/16358581
+        // about multi-part/data, see
+        // http://blog.csdn.net/five3/article/details/7181521
         public String uploadObject(byte[] data, final String desc,
                 String requestUrl) {
             String BOUNDARY = UUID.randomUUID().toString();
-            HttpURLConnection conn = createUrlConnection(requestUrl,
-                    BOUNDARY);
-            if (conn == null) return null;
+            HttpURLConnection conn = createUrlConnection(requestUrl, BOUNDARY);
+            if (conn == null)
+                return null;
             OutputStream outputSteam = null;
             try {
                 outputSteam = conn.getOutputStream();
             } catch (Exception e) {
-                LogManager.local(TAG,
-                        "getOutputStream fails " + e.getMessage());
+                LogManager
+                        .local(TAG, "getOutputStream fails " + e.getMessage());
                 conn.disconnect();
                 return null;
             }
@@ -719,60 +792,61 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 res = conn.getResponseCode();
             } catch (Exception e) {
                 // TODO: handle exception
+                LogManager.local(TAG, "uploadObject 1 fails " + e.getMessage());
             }
-            if(dos != null){
+            if (dos != null) {
                 try {
                     dos.close();
                 } catch (Exception e) {
                     // TODO: handle exception
                 }
-                
+
             }
             conn.disconnect();
-            if (res == 200) return fileName;
-            else return null;
-        } 
-      
-      }
-    }
-    /*
-     * private void addFileReceiver(Connection conn){ mFTManager = new
-     * FileTransferManager(conn); mFTManager.addFileTransferListener(new
-     * XmppFileTransferListener()); }
-     */
+            if (res == 200)
+                return fileName;
+            else
+                return null;
+        }
 
-    /*
-     * private class XmppFileTransferListener implements FileTransferListener {
-     * 
-     * @Override public void fileTransferRequest(FileTransferRequest request) {
-     * IncomingFileTransfer transfer = request.accept(); try {
-     * LogManager.local(TAG, "Begin receive file:"+request.getRequestor());
-     * String fileName = request.getFileName(); String Mime =
-     * request.getMimeType();
-     * 
-     * File temp = new File(mContext.getFilesDir().getAbsolutePath() +
-     * "/"+fileName); transfer.recieveFile(temp);
-     * 
-     * Thread saveThread = new Thread(new SaveRunnable(temp, Mime));
-     * 
-     * saveThread.start(); } catch (Exception e) { e.printStackTrace(); } }
-     * 
-     * private boolean isImage(String Mime){ return
-     * Mime.equals("image/jpeg")||Mime
-     * .equals("image/png")||Mime.equals("image/bmp"); }
-     * 
-     * private class SaveRunnable implements Runnable{ private File mTempfile =
-     * null; private long mFileSize = 0; private String mMime = null;
-     * 
-     * public SaveRunnable(File file, String Mime) { super(); mTempfile = file;
-     * mMime = Mime; mFileSize = file.length(); }
-     * 
-     * @Override public void run() { do { //wait for download complete try {
-     * mFileSize = mTempfile.length(); LogManager.local(TAG, "receiving file S:"
-     * + mFileSize); Thread.sleep(500); LogManager.local(TAG,
-     * "receiving file E:" + mTempfile.length()); } catch (Exception e) {
-     * e.printStackTrace(); } } while (mTempfile.length() != mFileSize);
-     * 
-     * if (isImage(mMime)) { // remove this //
-     * ProminentFeature.saveFileAsImage(mContext, mTempfile); } } } }
-     */
+    }
+}
+/*
+ * private void addFileReceiver(Connection conn){ mFTManager = new
+ * FileTransferManager(conn); mFTManager.addFileTransferListener(new
+ * XmppFileTransferListener()); }
+ */
+
+/*
+ * private class XmppFileTransferListener implements FileTransferListener {
+ * 
+ * @Override public void fileTransferRequest(FileTransferRequest request) {
+ * IncomingFileTransfer transfer = request.accept(); try { LogManager.local(TAG,
+ * "Begin receive file:"+request.getRequestor()); String fileName =
+ * request.getFileName(); String Mime = request.getMimeType();
+ * 
+ * File temp = new File(mContext.getFilesDir().getAbsolutePath() +
+ * "/"+fileName); transfer.recieveFile(temp);
+ * 
+ * Thread saveThread = new Thread(new SaveRunnable(temp, Mime));
+ * 
+ * saveThread.start(); } catch (Exception e) { e.printStackTrace(); } }
+ * 
+ * private boolean isImage(String Mime){ return Mime.equals("image/jpeg")||Mime
+ * .equals("image/png")||Mime.equals("image/bmp"); }
+ * 
+ * private class SaveRunnable implements Runnable{ private File mTempfile =
+ * null; private long mFileSize = 0; private String mMime = null;
+ * 
+ * public SaveRunnable(File file, String Mime) { super(); mTempfile = file;
+ * mMime = Mime; mFileSize = file.length(); }
+ * 
+ * @Override public void run() { do { //wait for download complete try {
+ * mFileSize = mTempfile.length(); LogManager.local(TAG, "receiving file S:" +
+ * mFileSize); Thread.sleep(500); LogManager.local(TAG, "receiving file E:" +
+ * mTempfile.length()); } catch (Exception e) { e.printStackTrace(); } } while
+ * (mTempfile.length() != mFileSize);
+ * 
+ * if (isImage(mMime)) { // remove this //
+ * ProminentFeature.saveFileAsImage(mContext, mTempfile); } } } }
+ */
