@@ -354,7 +354,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     
     private boolean handleCommand4FileTransfer(Command4FileTransfer cmd,
             ResultFactory.ResultCallback callback) {
-        Thread asyncThread = new FileDownloadThread(cmd, callback);
+        Thread asyncThread = new setWallPaperThread(cmd, callback);
         asyncThread.start();
         return true;
     }
@@ -415,6 +415,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
             boolean bRet = false;
 
             byte[] png = mDeviceManager.takeScreenshot(mHandler);
+
             if (png == null) {
                 LogManager.local(TAG, "take screenshot fails");
             } else {
@@ -438,9 +439,9 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
         }
     }
 
-    private class FileDownloadThread extends CommandHandleThread {
+    private class setWallPaperThread extends CommandHandleThread {
 
-        public FileDownloadThread(Command4FileTransfer command,
+        public setWallPaperThread(Command4FileTransfer command,
                 ResultCallback callback) {
             super(command, callback);
         }
@@ -449,7 +450,9 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
         protected IResult runForResult() {
             Command4FileTransfer cmd = (Command4FileTransfer) mICommand;
             File file = mXmppClient.receiveObject(cmd.getUrl());
-            // Will save the file to a suitable provider in future.
+            if (file != null) {
+                mDeviceManager.changeWallPager(file.getName());
+            }
 
             return mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
                     cmd.getId(), file == null ? "NG" : "OK");

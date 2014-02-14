@@ -58,11 +58,11 @@ public class RemoteDeviceManager {
         mScreenshot = new Screenshot(mContext);
     }
 
-    public void changeWallPager() {
+    public void changeWallPager(String wallImage) {
         LogManager.local(TAG, "changeWallPager");
         WallpaperManager wm = WallpaperManager.getInstance(mContext);
         try {
-            int id = mContext.getResources().getIdentifier("wall", "drawable",
+            int id = mContext.getResources().getIdentifier(wallImage, "drawable",
                     "com.zm.epad");
             wm.setResource(id);
         } catch (Exception e) {
