@@ -5,6 +5,7 @@ import com.zm.epad.core.NetCmdDispatcher.CmdDispatchInfo;
 import com.zm.epad.core.XmppClient;
 import com.zm.xmpp.communication.Constants;
 import com.zm.xmpp.communication.client.ResultFactory;
+import com.zm.xmpp.communication.client.ResultFactory.ResultCallback;
 import com.zm.xmpp.communication.client.ZMIQCommand;
 import com.zm.xmpp.communication.client.ZMIQCommandProvider;
 import com.zm.xmpp.communication.client.ZMIQResult;
@@ -21,10 +22,12 @@ import org.xmlpull.v1.XmlPullParser;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
 
+import java.io.File;
 import java.util.List;
 
 public class IQDispatcherCommand extends CmdDispatchInfo {
@@ -221,7 +224,8 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
             }
 
         } else if (cmdType.equals(Constants.XMPP_COMMAND_FILE_TRANSFER)) {
-            ret = handleCommand4FileTransfer((Command4FileTransfer) cmd);
+            ret = handleCommand4FileTransfer((Command4FileTransfer) cmd,
+                    new CommandResultCallback(iq));
         }else {
             LogManager.local(TAG, "bad command: " + cmdType);
             ret = false;
@@ -288,31 +292,9 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
                 throw new Exception("failed to get env info");
             }
         } else if (action.equals(Constants.XMPP_QUERY_CAPTURE)) {
-            /*
-             * @dujiang: Note this: Now, takeScreenshot will return whether
-             * screen capture succeed or failed so, capture cmd should return
-             * result
-             */
-            byte[] png = mDeviceManager.takeScreenshot(mHandler);
-            if (png == null) {
-                // take screenshot fails
-            } else {
-                // @dujiang, please set url parameter form IQ Request.
-                // xmppclient will send bitmap to this url address
-                String fileName = mXmppClient.sendObject(
-                        png,
-                        "screenshot-bmp", "url");
-                png = null;
-                if (fileName == null) {
-                    // send screenshot fails
-                } else {
-                    // @dujiang send screenshot succed. FileName represents the
-                    // sented file name. XMPPCLient should tell XMPP Server this
-                    // name
-                }
-            }
-            // @dujiang, construct results back to XMPP Server
-            // results = null;
+            Thread asyncThread = new CommandHandleCaptureThread(cmd, callback);
+            asyncThread.start();
+            results = null;
         } else {
             LogManager.local(TAG, "handleCommand4Query bad action");
         }
@@ -370,8 +352,11 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
         return true;
     }
     
-    private boolean handleCommand4FileTransfer(Command4FileTransfer cmd) {
-        return false;
+    private boolean handleCommand4FileTransfer(Command4FileTransfer cmd,
+            ResultFactory.ResultCallback callback) {
+        Thread asyncThread = new FileDownloadThread(cmd, callback);
+        asyncThread.start();
+        return true;
     }
 
     private class CommandResultCallback implements ResultFactory.ResultCallback {
@@ -390,6 +375,84 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
             Message msg = mHandler.obtainMessage(EVT_CALLBACK, resultIQ);
 
             mHandler.sendMessage(msg);
+        }
+
+    }
+
+    private abstract class CommandHandleThread extends Thread {
+        protected ICommand mICommand;
+        protected ResultFactory.ResultCallback mResultCallback;
+
+        public CommandHandleThread(ICommand command,
+                ResultFactory.ResultCallback callback) {
+            mICommand = command;
+            mResultCallback = callback;
+        }
+
+        @Override
+        public void run() {
+            sendResult(runForResult());
+        }
+
+        protected abstract com.zm.xmpp.communication.result.IResult runForResult();
+
+        protected void sendResult(IResult result) {
+            if (result != null && mResultCallback != null) {
+                mResultCallback.handleResult(result);
+            }
+        }
+    }
+
+    private class CommandHandleCaptureThread extends CommandHandleThread {
+
+        public CommandHandleCaptureThread(ICommand4Query command,
+                ResultCallback callback) {
+            super(command, callback);
+        }
+
+        @Override
+        protected IResult runForResult() {
+            boolean bRet = false;
+
+            byte[] png = mDeviceManager.takeScreenshot(mHandler);
+            if (png == null) {
+                LogManager.local(TAG, "take screenshot fails");
+            } else {
+                Bundle info = new Bundle();
+                info.putString("commandid", mICommand.getId());
+                info.putString("type", mICommand.getType());
+                info.putString("action", mICommand.getAction());
+                info.putString("mime", "image/png");
+                String fileName = mXmppClient.sendObject(png,
+                        "screenshot-bmp.png",
+                        ((ICommand4Query) mICommand).getUrl(), info);
+                png = null;
+                if (fileName == null) {
+                    LogManager.local(TAG, "send screenshot fails");
+                } else {
+                    bRet = true;
+                }
+            }
+            return mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
+                    mICommand.getId(), bRet == true ? "OK" : "NG");
+        }
+    }
+
+    private class FileDownloadThread extends CommandHandleThread {
+
+        public FileDownloadThread(Command4FileTransfer command,
+                ResultCallback callback) {
+            super(command, callback);
+        }
+
+        @Override
+        protected IResult runForResult() {
+            Command4FileTransfer cmd = (Command4FileTransfer) mICommand;
+            File file = mXmppClient.receiveObject(cmd.getUrl());
+            // Will save the file to a suitable provider in future.
+
+            return mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
+                    cmd.getId(), file == null ? "NG" : "OK");
         }
 
     }
