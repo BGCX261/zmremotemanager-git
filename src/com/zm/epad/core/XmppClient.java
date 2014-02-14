@@ -606,10 +606,10 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
      */
 
     public String sendObject(byte[] png, final String description,
-            String requestUrl) {
+            String requestUrl, Bundle info) {
         if (mTransferService == null)
             return null;
-        return mTransferService.uploadObject(png, description, requestUrl);
+        return mTransferService.uploadObject(png, description, requestUrl, info);
     }
 
     public File receiveObject(final String requestUrl) {
@@ -666,6 +666,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                     conn.setRequestProperty("connection", "keep-alive");
                     conn.setRequestProperty("Content-Type", CONTENT_TYPE
                             + ";boundary=" + BOUNDARY);
+                    conn.setChunkedStreamingMode(10240);
                 }
 
                 return conn;
@@ -678,20 +679,6 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
 
         private String getFileName(String desc) {
             return mSimpleDateFmt.format(new Date()) + desc;
-        }
-
-        private String getHttpHeaderInfo(String fileName, String BOUNDARY) {
-            StringBuffer sb = new StringBuffer();
-            sb.append(PREFIX);
-            sb.append(BOUNDARY);
-            sb.append(LINE_END);
-
-            sb.append("Content-Disposition: form-data; name=\"img\"; filename=\""
-                    + fileName + "\"" + LINE_END);
-            sb.append("Content-Type: application/octet-stream; charset="
-                    + CHARSET + LINE_END);
-            sb.append(LINE_END);
-            return sb.toString();
         }
 
         private String getHttpTailInfo(String BOUNDARY) {
@@ -763,27 +750,29 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         // about multi-part/data, see
         // http://blog.csdn.net/five3/article/details/7181521
         public String uploadObject(byte[] data, final String desc,
-                String requestUrl) {
-            String BOUNDARY = UUID.randomUUID().toString();
+                String requestUrl, Bundle Info) {
+            String BOUNDARY = PREFIX + UUID.randomUUID().toString();
             HttpURLConnection conn = createUrlConnection(requestUrl, BOUNDARY);
             if (conn == null)
                 return null;
-            OutputStream outputSteam = null;
+
+            OutputStream outputStream = null;
             try {
-                outputSteam = conn.getOutputStream();
+                outputStream = conn.getOutputStream();
             } catch (Exception e) {
                 LogManager
                         .local(TAG, "getOutputStream fails " + e.getMessage());
                 conn.disconnect();
                 return null;
             }
-            DataOutputStream dos = new DataOutputStream(outputSteam);
+            DataOutputStream dos = new DataOutputStream(outputStream);
 
-            String fileName = getFileName(desc);
-            String httpHeaderInfo = getHttpHeaderInfo(fileName, BOUNDARY);
+            String fileName = desc;
+
             int res = 0;
             try {
-                dos.write(httpHeaderInfo.getBytes());
+                // the http form data must be written one by one
+                writeHttpFormInfo(dos, fileName, BOUNDARY, Info);
                 dos.write(data, 0, data.length);
                 dos.write(getHttpTailInfo(BOUNDARY).getBytes());
                 dos.flush();
@@ -809,6 +798,82 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 return null;
         }
 
+        public void writeHttpFormInfo(DataOutputStream dos, String filename,
+                String Boundary, Bundle info) {
+
+            if (dos == null || filename == null || Boundary == null
+                    || info == null)
+                return;
+
+            try {
+                StringBuilder sb = new StringBuilder();
+                // write user name
+                sb.append("--" + Boundary + LINE_END);
+                sb.append("Content-Disposition: form-data; name=\"username\"");
+                sb.append(LINE_END + LINE_END);
+                sb.append(mConnectionInfo.getString("username"));
+                dos.write(sb.toString().getBytes(CHARSET));
+                dos.write(LINE_END.getBytes(CHARSET));
+
+                // write password
+                sb.setLength(0);
+                sb.append("--" + Boundary + LINE_END);
+                sb.append("Content-Disposition: form-data; name=\"password\"");
+                sb.append(LINE_END + LINE_END);
+                sb.append(mConnectionInfo.getString("password"));
+                dos.write(sb.toString().getBytes(CHARSET));
+                dos.write(LINE_END.getBytes(CHARSET));
+
+                // write resource
+                sb.setLength(0);
+                sb.append("--" + Boundary + LINE_END);
+                sb.append("Content-Disposition: form-data; name=\"resource\"");
+                sb.append(LINE_END + LINE_END);
+                sb.append(mConnectionInfo.getString("resource"));
+                dos.write(sb.toString().getBytes(CHARSET));
+                dos.write(LINE_END.getBytes(CHARSET));
+
+                // write command id
+                sb.setLength(0);
+                sb.append("--" + Boundary + LINE_END);
+                sb.append("Content-Disposition: form-data; name=\"commandid\"");
+                sb.append(LINE_END + LINE_END);
+                sb.append(info.getString("commandid"));
+                dos.write(sb.toString().getBytes(CHARSET));
+                dos.write(LINE_END.getBytes(CHARSET));
+
+                // write type
+                sb.setLength(0);
+                sb.append("--" + Boundary + LINE_END);
+                sb.append("Content-Disposition: form-data; name=\"type\"");
+                sb.append(LINE_END + LINE_END);
+                sb.append(info.getString("type"));
+                dos.write(sb.toString().getBytes(CHARSET));
+                dos.write(LINE_END.getBytes(CHARSET));
+
+                // write action
+                sb.setLength(0);
+                sb.append("--" + Boundary + LINE_END);
+                sb.append("Content-Disposition: form-data; name=\"action\"");
+                sb.append(LINE_END + LINE_END);
+                sb.append(info.getString("action"));
+                dos.write(sb.toString().getBytes(CHARSET));
+                dos.write(LINE_END.getBytes(CHARSET));
+
+                // write upload file info
+                sb.setLength(0);
+                sb.append("--" + Boundary + LINE_END);
+                sb.append("Content-Disposition: form-data; name=\"upload\"; filename=\""
+                        + filename + "\"" + LINE_END);
+                sb.append("Content-Type: " + info.getString("mime"));
+                sb.append(LINE_END + LINE_END);
+                dos.write(sb.toString().getBytes(CHARSET));
+            } catch (Exception e) {
+                LogManager.local(TAG,
+                        "writeHttpFormInfo fails " + e.getMessage());
+            }
+
+        }
     }
 }
 /*
