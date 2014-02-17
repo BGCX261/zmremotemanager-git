@@ -448,14 +448,16 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 
         @Override
         protected IResult runForResult() {
+            boolean ret = false;
+
             Command4FileTransfer cmd = (Command4FileTransfer) mICommand;
             File file = mXmppClient.receiveObject(cmd.getUrl());
             if (file != null) {
-                mDeviceManager.changeWallPager(file.getName());
+                ret = mDeviceManager.changeWallPager(file.toString());
             }
 
             return mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
-                    cmd.getId(), file == null ? "NG" : "OK");
+                    cmd.getId(), ret == false ? "NG" : "OK");
         }
 
     }

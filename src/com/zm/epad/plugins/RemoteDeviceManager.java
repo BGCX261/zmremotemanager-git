@@ -12,6 +12,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.hardware.Camera;
@@ -58,16 +59,35 @@ public class RemoteDeviceManager {
         mScreenshot = new Screenshot(mContext);
     }
 
-    public void changeWallPager(String wallImage) {
-        LogManager.local(TAG, "changeWallPager");
+    public boolean changeWallPager(String wallImage) {
+        LogManager.local(TAG, "changeWallPager:" + wallImage);
+
+        boolean ret = false;
         WallpaperManager wm = WallpaperManager.getInstance(mContext);
         try {
-            int id = mContext.getResources().getIdentifier(wallImage, "drawable",
-                    "com.zm.epad");
-            wm.setResource(id);
+            BitmapFactory factory = new BitmapFactory();
+            wm.setBitmap(BitmapFactory.decodeFile(wallImage));
+            ret = true;
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        return ret;
+    }
+
+    public boolean changeWallPager(int id) {
+        LogManager.local(TAG, "changeWallPager:" + id);
+
+        boolean ret = false;
+        WallpaperManager wm = WallpaperManager.getInstance(mContext);
+        try {
+            wm.setResource(id);
+            ret = true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return ret;
     }
 
     private class Screenshot {

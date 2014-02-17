@@ -697,8 +697,9 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             String fileName = requestUrl.substring(lastIndexofSlash);
             InputStream inputStream = null;
             FileOutputStream outputStream = null;
-            File recvedFile = new File(mContext.getFilesDir().getAbsolutePath()
-                    + fileName);
+            File recvedFile = new File(
+                    mContext.getFilesDir().getAbsolutePath(), fileName);
+
             try {
                 inputStream = conn.getInputStream();
                 // don't handle the case that the file already exists

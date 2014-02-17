@@ -5,7 +5,7 @@ import com.zm.xmpp.communication.command.ICommand;
 
 public class ClientCommandPackager4FileTransfer implements
         IClientCommandPackager {
-    public final static String name="filetransfer";
+    public final static String name="push";
     
     public void parseCommand(String paraName,String value,ICommand c){
                 
