@@ -3,6 +3,9 @@ package com.zm.epad.plugins;
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.NetCmdDispatcher.CmdDispatchInfo;
 import com.zm.epad.core.XmppClient;
+import com.zm.epad.plugins.RemoteFileManager.FileDownloadTask;
+import com.zm.epad.plugins.RemoteFileManager.FileTransferTask;
+import com.zm.epad.plugins.RemoteFileManager.ScreenshotTask;
 import com.zm.xmpp.communication.Constants;
 import com.zm.xmpp.communication.client.ResultFactory;
 import com.zm.xmpp.communication.client.ResultFactory.ResultCallback;
@@ -41,6 +44,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     private ZMIQCommandProvider mProvider;
     private RemotePackageManager mPkgManager;
     private RemoteDeviceManager mDeviceManager;
+    private RemoteFileManager mFileManager;
     private ResultFactory mResultFactory;
     private HandlerThread mThread;
     private Handler mHandler;
@@ -52,6 +56,9 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     @Override
     public void destroy() {
         try {
+            if(mFileManager != null){
+                mFileManager.cancelAllPendingTask();
+            }
             if(mAppSchedule != null) {
                 mAppSchedule.stop();
                 mAppSchedule.destroy();
@@ -76,6 +83,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 
         mPkgManager = new RemotePackageManager(mContext);
         mDeviceManager = new RemoteDeviceManager(mContext);
+        mFileManager = new RemoteFileManager(mContext, mXmppClient);
         mProvider = new ZMIQCommandProvider();
         mResultFactory = new ResultFactory(mPkgManager, mDeviceManager);
 
@@ -133,11 +141,6 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
                     ret = mXmppClient.sendPacketAsync((Packet) msg.obj, 0);
                 }
                 break;
-            /*
-             * case 1:
-             * mXmppClient.sendFile(mDeviceManager.getLatestScreenshot(),
-             * "Screen Shot"); break;
-             */
             default:
                 break;
             }
@@ -164,18 +167,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
             IResult result = null;
             result = handleCommand4App((ICommand4App) cmd);
 
-            // no need to call setTo/From explictly. in ZMIQResult constructor,
-            // we
-            // figure this out.
             ZMIQResult resultIQ = new ZMIQResult(iq);
-            // resultIQ.setTo(iq.getFrom());
-            // resultIQ.setFrom(iq.getTo());
-
-            // we don't care if result is null or not. ZMIQResult will handle
-            // null pointer issue
-            // when its getChildElementXML is called. And we could add some
-            // extra info
-            // in getChildElementXML when result is null.
             resultIQ.setResult(result);
             mXmppClient.sendPacketAsync((Packet) resultIQ, 0);
         } else if (cmdType.equals(Constants.XMPP_COMMAND_QUERY)) {
@@ -234,6 +226,24 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
         return ret;
     }
 
+    private class CommandResultCallback implements ResultFactory.ResultCallback {
+        ZMIQResult resultIQ = null;
+
+        public CommandResultCallback(IQ requestIq) {
+            resultIQ = new ZMIQResult(requestIq);
+        }
+
+        @Override
+        public void handleResult(IResult result) {
+            LogManager.local(TAG, "handleResult:" + result.getType());
+
+            resultIQ.setResult(result);
+
+            Message msg = mHandler.obtainMessage(EVT_CALLBACK, resultIQ);
+
+            mHandler.sendMessage(msg);
+        }
+    }
     // handleCommand4App is ok. All core feature are actually implemented by
     // RemotePackageManager
     private IResult handleCommand4App(ICommand4App cmd) {
@@ -271,7 +281,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     }
 
     private List<IResult> handleCommand4Query(ICommand4Query cmd,
-            CommandResultCallback callback) throws Exception {
+            final CommandResultCallback callback) throws Exception {
         List<IResult> results = null;
         String action = cmd.getAction();
         LogManager.local(TAG, "handleCommand4Query:" + action);
@@ -292,8 +302,37 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
                 throw new Exception("failed to get env info");
             }
         } else if (action.equals(Constants.XMPP_QUERY_CAPTURE)) {
-            Thread asyncThread = new CommandHandleCaptureThread(cmd, callback);
-            asyncThread.start();
+            Bundle info = new Bundle();
+            info.putString("commandid", cmd.getId());
+            info.putString("type", cmd.getType());
+            info.putString("action", cmd.getAction());
+            info.putString("mime", "image/png");
+            final String cmdId = cmd.getId();
+            ScreenshotTask task = mFileManager.getScreenshotTask(cmd.getUrl(),
+                    info, new RemoteFileManager.FileTransferCallback() {
+                        ResultFactory.ResultCallback cb = callback;
+                        String id = cmdId;
+
+                        @Override
+                        public void onDone(FileTransferTask task) {
+                            String fileName = (String) task.getResult();
+                            IResult result = mResultFactory.getResult(
+                                    ResultFactory.RESULT_NORMAL, id,
+                                    fileName != null ? "OK" : "NG");
+
+                            cb.handleResult(result);
+                        }
+
+                        @Override
+                        public void onCancel(FileTransferTask task) {
+                            //when cancel, send NG
+                            IResult result = mResultFactory.getResult(
+                                    ResultFactory.RESULT_NORMAL, id, "NG");
+
+                            cb.handleResult(result);
+                        }
+                    });
+            task.start();
             results = null;
         } else {
             LogManager.local(TAG, "handleCommand4Query bad action");
@@ -353,113 +392,50 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     }
     
     private boolean handleCommand4FileTransfer(Command4FileTransfer cmd,
-            ResultFactory.ResultCallback callback) {
-        Thread asyncThread = new setWallPaperThread(cmd, callback);
-        asyncThread.start();
-        return true;
-    }
+            final ResultFactory.ResultCallback callback) {
 
-    private class CommandResultCallback implements ResultFactory.ResultCallback {
-        ZMIQResult resultIQ = null;
+        boolean ret = false;
 
-        public CommandResultCallback(IQ requestIq) {
-            resultIQ = new ZMIQResult(requestIq);
+        if (cmd.getAction() == Constants.XMPP_FILE_TRANSFER_WALLPAPER) {
+            final String cmdid = cmd.getId();
+            FileDownloadTask task = mFileManager.getFileDownloadTask(
+                    cmd.getUrl(), new RemoteFileManager.FileTransferCallback() {
+                        String id = cmdid;
+                        ResultFactory.ResultCallback cb = callback;
+
+                        @Override
+                        public void onDone(FileTransferTask task) {
+
+                            boolean ret = false;
+
+                            File file = ((FileDownloadTask) task).getResult();
+
+                            if (file != null) {
+                                ret = mDeviceManager.changeWallpaper(file
+                                        .toString());
+                            }
+                            // delete temp file after change wallpaper
+                            file.delete();
+
+                            IResult result = mResultFactory.getResult(
+                                    ResultFactory.RESULT_NORMAL, id,
+                                    ret == false ? "NG" : "OK");
+                            cb.handleResult(result);
+                        }
+
+                        @Override
+                        public void onCancel(FileTransferTask task) {
+                            // when cancel, send NG
+                            IResult result = mResultFactory.getResult(
+                                    ResultFactory.RESULT_NORMAL, id, "NG");
+
+                            cb.handleResult(result);
+                        }
+                    });
+            task.start();
+            ret = true;
         }
-
-        @Override
-        public void handleResult(IResult result) {
-            LogManager.local(TAG, "handleResult:" + result.getType());
-
-            resultIQ.setResult(result);
-
-            Message msg = mHandler.obtainMessage(EVT_CALLBACK, resultIQ);
-
-            mHandler.sendMessage(msg);
-        }
-
-    }
-
-    private abstract class CommandHandleThread extends Thread {
-        protected ICommand mICommand;
-        protected ResultFactory.ResultCallback mResultCallback;
-
-        public CommandHandleThread(ICommand command,
-                ResultFactory.ResultCallback callback) {
-            mICommand = command;
-            mResultCallback = callback;
-        }
-
-        @Override
-        public void run() {
-            sendResult(runForResult());
-        }
-
-        protected abstract com.zm.xmpp.communication.result.IResult runForResult();
-
-        protected void sendResult(IResult result) {
-            if (result != null && mResultCallback != null) {
-                mResultCallback.handleResult(result);
-            }
-        }
-    }
-
-    private class CommandHandleCaptureThread extends CommandHandleThread {
-
-        public CommandHandleCaptureThread(ICommand4Query command,
-                ResultCallback callback) {
-            super(command, callback);
-        }
-
-        @Override
-        protected IResult runForResult() {
-            boolean bRet = false;
-
-            byte[] png = mDeviceManager.takeScreenshot(mHandler);
-
-            if (png == null) {
-                LogManager.local(TAG, "take screenshot fails");
-            } else {
-                Bundle info = new Bundle();
-                info.putString("commandid", mICommand.getId());
-                info.putString("type", mICommand.getType());
-                info.putString("action", mICommand.getAction());
-                info.putString("mime", "image/png");
-                String fileName = mXmppClient.sendObject(png,
-                        "screenshot-bmp.png",
-                        ((ICommand4Query) mICommand).getUrl(), info);
-                png = null;
-                if (fileName == null) {
-                    LogManager.local(TAG, "send screenshot fails");
-                } else {
-                    bRet = true;
-                }
-            }
-            return mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
-                    mICommand.getId(), bRet == true ? "OK" : "NG");
-        }
-    }
-
-    private class setWallPaperThread extends CommandHandleThread {
-
-        public setWallPaperThread(Command4FileTransfer command,
-                ResultCallback callback) {
-            super(command, callback);
-        }
-
-        @Override
-        protected IResult runForResult() {
-            boolean ret = false;
-
-            Command4FileTransfer cmd = (Command4FileTransfer) mICommand;
-            File file = mXmppClient.receiveObject(cmd.getUrl());
-            if (file != null) {
-                ret = mDeviceManager.changeWallPager(file.toString());
-            }
-
-            return mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
-                    cmd.getId(), ret == false ? "NG" : "OK");
-        }
-
+        return ret;
     }
 
 }

@@ -59,7 +59,7 @@ public class RemoteDeviceManager {
         mScreenshot = new Screenshot(mContext);
     }
 
-    public boolean changeWallPager(String wallImage) {
+    public boolean changeWallpaper(String wallImage) {
         LogManager.local(TAG, "changeWallPager:" + wallImage);
 
         boolean ret = false;
