@@ -12,13 +12,33 @@ import android.app.IActivityController;
 public class UsageStatisticsManager {
     private static String TAG = "UsageStatisticsManager";
 
+    private static UsageStatisticsManager sInstance = null;
     Context mContext;
     ActivityStatisticsCollector mActivityStatisticsCollector = null;
 
     private IActivityManager mAm;
     private ReentrantLock mLock = new ReentrantLock();
 
-    public UsageStatisticsManager(Context context) {
+    public static UsageStatisticsManager getInstance(Context context) {
+        if (sInstance == null) {
+            sInstance = new UsageStatisticsManager(context);
+        }
+
+        return sInstance;
+    }
+
+    public static UsageStatisticsManager getInstance() {
+        LogManager.local(TAG, "getInstance:" + sInstance == null ? "null"
+                : "OK");
+        return sInstance;
+    }
+
+    public static void release() {
+        LogManager.local(TAG, "release");
+        sInstance = null;
+    }
+
+    private UsageStatisticsManager(Context context) {
         mContext = context;
         mAm = ActivityManagerNative.getDefault();
     }

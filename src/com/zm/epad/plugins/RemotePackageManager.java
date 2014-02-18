@@ -29,14 +29,34 @@ import java.util.List;
 public class RemotePackageManager {
     public static final String TAG = "RemotePkgsManager";
 
-    IPackageManager mPm;
-    IUserManager mUm;
-    PackageManager mPackageManager;
-    Context mContext;
+    private static RemotePackageManager sInstance = null;
+    private IPackageManager mPm;
+    private IUserManager mUm;
+    private PackageManager mPackageManager;
+    private Context mContext;
     private static final ArrayList<PackageVerificationItem> mWhitelist = new ArrayList<PackageVerificationItem>();
     private static final ArrayList<PackageVerificationItem> mBlacklist = new ArrayList<PackageVerificationItem>();
     // lock used to protect white and black list. if debug, can re-name it.
     private static Object mLock = new Object();
+
+    public static RemotePackageManager getInstance(Context context) {
+        if (sInstance == null) {
+            sInstance = new RemotePackageManager(context);
+        }
+
+        return sInstance;
+    }
+
+    public static RemotePackageManager getInstance() {
+        LogManager.local(TAG, "getInstance:" + sInstance == null ? "null"
+                : "OK");
+        return sInstance;
+    }
+
+    public static void release() {
+        LogManager.local(TAG, "release");
+        sInstance = null;
+    }
 
     // TODO: I cannot define the item info exactly right now.
     private static class PackageVerificationItem {
@@ -127,7 +147,7 @@ public class RemotePackageManager {
         }
     }
 
-    public RemotePackageManager(Context context){
+    private RemotePackageManager(Context context){
         try {
             mContext = context;
             mUm = IUserManager.Stub.asInterface(ServiceManager

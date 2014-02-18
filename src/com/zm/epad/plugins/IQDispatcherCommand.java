@@ -56,9 +56,6 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
     @Override
     public void destroy() {
         try {
-            if(mFileManager != null){
-                mFileManager.cancelAllPendingTask();
-            }
             if(mAppSchedule != null) {
                 mAppSchedule.stop();
                 mAppSchedule.destroy();
@@ -81,9 +78,9 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
         mStrNameSpace = namespace;
         mXmppClient = XmppCliet;
 
-        mPkgManager = new RemotePackageManager(mContext);
-        mDeviceManager = new RemoteDeviceManager(mContext);
-        mFileManager = new RemoteFileManager(mContext, mXmppClient);
+        mPkgManager = RemotePackageManager.getInstance(mContext);
+        mDeviceManager = RemoteDeviceManager.getInstance(mContext);
+        mFileManager = RemoteFileManager.getInstance(mContext, mXmppClient);
         mProvider = new ZMIQCommandProvider();
         mResultFactory = new ResultFactory(mPkgManager, mDeviceManager);
 

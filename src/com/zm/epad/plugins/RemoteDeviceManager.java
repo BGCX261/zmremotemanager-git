@@ -38,6 +38,7 @@ import android.view.SurfaceView;
 import android.view.WindowManager;
 import android.hardware.Camera;
 import com.zm.epad.core.LogManager;
+import com.zm.epad.core.XmppClient;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -50,11 +51,31 @@ import java.io.OutputStream;
 public class RemoteDeviceManager {
     public static final String TAG = "RemoteDeviceManager";
 
+    private static RemoteDeviceManager sInstance = null;
     private Context mContext = null;
 
     private Screenshot mScreenshot = null;
 
-    public RemoteDeviceManager(Context context) {
+    public static RemoteDeviceManager getInstance(Context context) {
+        if (sInstance == null) {
+            sInstance = new RemoteDeviceManager(context);
+        }
+
+        return sInstance;
+    }
+
+    public static RemoteDeviceManager getInstance() {
+        LogManager.local(TAG, "getInstance:" + sInstance == null ? "null"
+                : "OK");
+        return sInstance;
+    }
+
+    public static void release() {
+        LogManager.local(TAG, "release");
+        sInstance = null;
+    }
+
+    private RemoteDeviceManager(Context context) {
         mContext = context;
         mScreenshot = new Screenshot(mContext);
     }

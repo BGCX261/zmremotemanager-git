@@ -15,6 +15,8 @@ import android.os.Handler;
 public class RemoteFileManager {
     private static final String TAG = "RemoteFileManager";
 
+    private static RemoteFileManager sInstance = null;
+
     Context mContext;
     XmppClient mXmppClient;
 
@@ -22,7 +24,29 @@ public class RemoteFileManager {
     private List<FileTransferTask> mRunningTask = new ArrayList<FileTransferTask>();
     private List<FileTransferTask> mPendingTask = new ArrayList<FileTransferTask>();
 
-    public RemoteFileManager(Context context, XmppClient Xmpp) {
+    public static RemoteFileManager getInstance(Context context, XmppClient Xmpp) {
+        if (sInstance == null) {
+            sInstance = new RemoteFileManager(context, Xmpp);
+        }
+
+        return sInstance;
+    }
+
+    public static RemoteFileManager getInstance() {
+        LogManager.local(TAG, "getInstance:" + sInstance == null ? "null"
+                : "OK");
+        return sInstance;
+    }
+
+    public static void release() {
+        LogManager.local(TAG, "release");
+        if(sInstance != null){
+            sInstance.cancelAllPendingTask();
+        }
+        sInstance = null;
+    }
+
+    private RemoteFileManager(Context context, XmppClient Xmpp) {
         mContext = context;
         mXmppClient = Xmpp;
     }
@@ -292,7 +316,7 @@ public class RemoteFileManager {
         @Override
         protected byte[] getDate() {
             // TODO Auto-generated method stub
-            RemoteDeviceManager dm = new RemoteDeviceManager(mContext);
+            RemoteDeviceManager dm = RemoteDeviceManager.getInstance(mContext);
             Handler handler = new Handler();
             return dm.takeScreenshot(handler);
         }

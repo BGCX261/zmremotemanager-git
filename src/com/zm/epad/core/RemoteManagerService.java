@@ -7,6 +7,9 @@ import android.os.Bundle;
 import android.os.IBinder;
 
 import com.zm.epad.plugins.IQDispatcherCommand;
+import com.zm.epad.plugins.RemoteDeviceManager;
+import com.zm.epad.plugins.RemoteFileManager;
+import com.zm.epad.plugins.RemotePackageManager;
 import com.zm.xmpp.communication.Constants;
 
 /**
@@ -20,6 +23,10 @@ public class RemoteManagerService extends Service {
     private LogManager mLogManager = null;
     private NetworkStatusMonitor mNetworkStatusMonitor = null;
     private NetCmdDispatcher mNetCmdDispatcher = null;
+
+    private RemotePackageManager mPackageManager;
+    private RemoteDeviceManager mDeviceManager;
+    private RemoteFileManager mFileManager;
 
     @Override
     public void onCreate() {
@@ -35,6 +42,9 @@ public class RemoteManagerService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        RemotePackageManager.release();
+        RemoteDeviceManager.release();
+        RemoteFileManager.release();
         mNetworkStatusMonitor.stop();
         mLogManager.stop();
         mXmppClient.stop();
@@ -82,6 +92,10 @@ public class RemoteManagerService extends Service {
 
         mXmppClient.login(mLoginBundle.getString("username"),
                 mLoginBundle.getString("password"), Build.SERIAL);
+
+        mPackageManager = RemotePackageManager.getInstance(this);
+        mDeviceManager = RemoteDeviceManager.getInstance(this);
+        mFileManager = RemoteFileManager.getInstance(this, mXmppClient);
 
         LogManager.local(TAG, "RemoteManagerService started");
     }
