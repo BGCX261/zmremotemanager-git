@@ -393,7 +393,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 
         boolean ret = false;
 
-        if (cmd.getAction() == Constants.XMPP_FILE_TRANSFER_WALLPAPER) {
+        if (cmd.getAction().equals(Constants.XMPP_FILE_TRANSFER_WALLPAPER)) {
             final String cmdid = cmd.getId();
             FileDownloadTask task = mFileManager.getFileDownloadTask(
                     cmd.getUrl(), new RemoteFileManager.FileTransferCallback() {

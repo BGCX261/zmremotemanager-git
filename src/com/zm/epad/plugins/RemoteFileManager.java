@@ -317,8 +317,7 @@ public class RemoteFileManager {
         protected byte[] getDate() {
             // TODO Auto-generated method stub
             RemoteDeviceManager dm = RemoteDeviceManager.getInstance(mContext);
-            Handler handler = new Handler();
-            return dm.takeScreenshot(handler);
+            return dm.takeScreenshot(null);
         }
     }
 
