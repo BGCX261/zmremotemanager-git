@@ -464,4 +464,11 @@ public class RemotePackageManager {
         return ret;
     }
 
+    public void setGuestEnabled(boolean enable){
+        try {
+            mUm.setGuestEnabled(enable);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
 }
