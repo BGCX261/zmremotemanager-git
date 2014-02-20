@@ -1,0 +1,39 @@
+From 7085e977e528a7c484339b37ca6de95dca0cca99 Mon Sep 17 00:00:00 2001
+From: Du Jiang <jiang.du1982@gmail.com>
+Date: Thu, 20 Feb 2014 13:09:44 +0800
+Subject: [PATCH] Support guest user disable/enable
+
+Customize existed API setGuestEnabled() to implement the feature
+that disable/enable guest user. Disable/enable guest just by
+setting the attribution of partial.
+Now it maybe not a complete solution. Will be improved if needed.
+---
+ .../com/android/server/pm/UserManagerService.java  |   11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/services/java/com/android/server/pm/UserManagerService.java b/services/java/com/android/server/pm/UserManagerService.java
+index c33134a..59c9b19 100644
+--- a/services/java/com/android/server/pm/UserManagerService.java
++++ b/services/java/com/android/server/pm/UserManagerService.java
+@@ -361,9 +361,16 @@ public class UserManagerService extends IUserManager.Stub {
+                     UserInfo user = mUsers.valueAt(i);
+                     if (!user.partial && user.isGuest()) {
+                         if (!enable) {
+-                            removeUser(user.id);
++                            user.partial = true;
++                            //removeUser(user.id);
++                            return;
++                        }
++                    }
++                    if (user.partial && user.isGuest()) {
++                        if (enable) {
++                            user.partial = false;
++                            return;
+                         }
+-                        return;
+                     }
+                 }
+                 // No guest was found
+-- 
+1.7.9.5
+
