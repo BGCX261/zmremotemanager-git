@@ -17,8 +17,6 @@
         android:layout_marginBottom="20dp"
         android:text="@string/debug_advancedbtn" />
 
-
-
     <TextView
         android:id="@+id/textView2"
         android:layout_width="fill_parent"
@@ -101,6 +99,15 @@
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="18dp"
         android:text="@string/debug_debug" />
+
+    <Button
+        android:id="@+id/button_remote_desktop"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/button4"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="18dp"
+        android:text="@string/debug_remote_desktop" />
 
     <TextView
         android:id="@+id/textView4"
