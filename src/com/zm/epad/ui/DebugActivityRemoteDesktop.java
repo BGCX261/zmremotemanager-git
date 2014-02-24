@@ -8,6 +8,7 @@ import java.util.Enumeration;
 import org.apache.http.conn.util.InetAddressUtils;
 
 import android.app.Activity;
+import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -42,6 +43,11 @@ public class DebugActivityRemoteDesktop extends Activity {
         mTextDisplay[0] = (TextView) findViewById(R.id.text_rd_display1);
         mTextDisplay[1] = (TextView) findViewById(R.id.text_rd_display2);
         mTextDisplay[2] = (TextView) findViewById(R.id.text_rd_display3);
+
+        ConnectivityManager cm = (ConnectivityManager)getSystemService(CONNECTIVITY_SERVICE);
+        if (cm != null) {
+            cm.setUsbTethering(true);
+        }
 
         mRdManager = new RemoteDesktopManager(this);
 
