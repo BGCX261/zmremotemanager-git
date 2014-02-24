@@ -471,4 +471,14 @@ public class RemotePackageManager {
             e.printStackTrace();
         }
     }
+
+    public boolean isGusetEnabled() {
+        boolean ret = true;
+        try {
+            ret = mUm.isGuestEnabled();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ret;
+    }
 }
