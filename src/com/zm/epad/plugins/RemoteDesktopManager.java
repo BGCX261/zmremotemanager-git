@@ -10,7 +10,7 @@ import org.apache.http.conn.util.InetAddressUtils;
 import android.content.Context;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
-import android.media.RemoteDisplay;
+import android.media.RemoteDesktop;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
@@ -28,7 +28,7 @@ public class RemoteDesktopManager {
     private final Handler mHandler;
     private final DisplayManager mDisplayManager;
 
-    RemoteDisplay mRemoteDisplay;
+    RemoteDesktop mRemoteDesktop;
     private VirtualDisplay mDisplay;
     private final static String mDisplayName = "zm_display";
     private final DisplayParam mDisplayParam[] = new DisplayParam[3];
@@ -120,9 +120,9 @@ public class RemoteDesktopManager {
     }
 
     public void stopRemoteDesktop() {
-        if (mRemoteDisplay != null) {
+        if (mRemoteDesktop != null) {
             Log.i(TAG, "Release Rtsp Server");
-            mRemoteDisplay = null;
+            mRemoteDesktop = null;
         }
     }
 
@@ -162,9 +162,9 @@ public class RemoteDesktopManager {
 
     private void startRtspServer(String iface) {
         Log.i(TAG, "Rtsp Server listen at: " + iface);
-        mRemoteDisplay = RemoteDisplay.listen(iface, new RemoteDisplay.Listener() {
+        mRemoteDesktop = RemoteDesktop.listen(iface, new RemoteDesktop.Listener() {
             @Override
-            public void onDisplayConnected(final Surface surface,
+            public void onDesktopConnected(final Surface surface,
                     int width, int height, int flags, int session) {
                 Log.i(TAG, "Rtsp Server: recieved a client");
                 mHandler.post(new Runnable() {
@@ -182,12 +182,12 @@ public class RemoteDesktopManager {
             }
 
             @Override
-            public void onDisplayDisconnected() {
+            public void onDesktopDisconnected() {
                 Log.i(TAG, "Rtsp Server: client disconnected");
             }
 
             @Override
-            public void onDisplayError(int error) {
+            public void onDesktopError(int error) {
                 Log.i(TAG, "Rtsp Server: client error");
             }
         }, mHandler);
