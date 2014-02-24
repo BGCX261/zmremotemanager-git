@@ -36,6 +36,7 @@ import android.view.Surface;
 import android.view.SurfaceControl;
 import android.view.SurfaceView;
 import android.view.WindowManager;
+import android.view.WindowManagerGlobal;
 import android.hardware.Camera;
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.XmppClient;
@@ -253,6 +254,14 @@ public class RemoteDeviceManager {
         LogManager.local(TAG, "takeScreenshot");
         return mScreenshot.takeScreenshot();
 
+    }
+
+    public void lockScreen() {
+        try {
+            WindowManagerGlobal.getWindowManagerService().lockNow(null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /*
