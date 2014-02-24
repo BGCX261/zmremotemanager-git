@@ -10,6 +10,7 @@ import com.zm.epad.plugins.IQDispatcherCommand;
 import com.zm.epad.plugins.RemoteDeviceManager;
 import com.zm.epad.plugins.RemoteFileManager;
 import com.zm.epad.plugins.RemotePackageManager;
+import com.zm.epad.plugins.policy.RemotePolicyManager;
 import com.zm.xmpp.communication.Constants;
 
 /**
@@ -27,6 +28,7 @@ public class RemoteManagerService extends Service {
     private RemotePackageManager mPackageManager;
     private RemoteDeviceManager mDeviceManager;
     private RemoteFileManager mFileManager;
+    private RemotePolicyManager mPolicyManager;
 
     @Override
     public void onCreate() {
@@ -45,6 +47,7 @@ public class RemoteManagerService extends Service {
         RemotePackageManager.release();
         RemoteDeviceManager.release();
         RemoteFileManager.release();
+        RemotePolicyManager.release();
         mNetworkStatusMonitor.stop();
         mLogManager.stop();
         mXmppClient.stop();
@@ -69,13 +72,13 @@ public class RemoteManagerService extends Service {
         mLoginBundle.putString("resource", data.getString("resource"));
 
         mbInitialized = true;
-  
+
         mXmppClient = new XmppClient(this);
-        
-        mNetCmdDispatcher = new NetCmdDispatcher();        
-        mNetCmdDispatcher.registerDispacher(new IQDispatcherCommand(this, 
-        		Constants.XMPP_NAMESPACE_CENTER, mXmppClient));
-        
+
+        mNetCmdDispatcher = new NetCmdDispatcher();
+        mNetCmdDispatcher.registerDispacher(new IQDispatcherCommand(this,
+                Constants.XMPP_NAMESPACE_CENTER, mXmppClient));
+
         mXmppClient.addXmppClientCallback(mNetCmdDispatcher);
 
         mLogManager = new LogManager(this, mXmppClient);
@@ -96,6 +99,8 @@ public class RemoteManagerService extends Service {
         mPackageManager = RemotePackageManager.getInstance(this);
         mDeviceManager = RemoteDeviceManager.getInstance(this);
         mFileManager = RemoteFileManager.getInstance(this, mXmppClient);
+        mPolicyManager = RemotePolicyManager.getInstance(this);
+        mPolicyManager.loadPolicy();
 
         LogManager.local(TAG, "RemoteManagerService started");
     }
