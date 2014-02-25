@@ -5,6 +5,7 @@ public abstract class AbstractCommand {
 	protected String action;
 	protected String issueTime;
 	protected String direction;
+	protected String to;
 	
 	public String getDirection() {
 		return direction;
