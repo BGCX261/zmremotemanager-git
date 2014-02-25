@@ -79,27 +79,25 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     private Connection mXmppConnection = null;
     private Bundle mConnectionInfo = null;
     private XMPPConnectionListener mXmppConnectionListener = null;
-    private TransferService mTransferService = null;
-
-    // private FileTransferManager mFTManager = null;
 
     public interface XmppClientCallback {
         public Object reportXMPPClientEvent(int xmppClientEvent, Object... args);
     }
-
+    
     public XmppClient(Context context) {
+        initializeXMPPEnvironment(context);
         mContext = context;
         mXmppClientCallbacks = new ArrayList<XmppClient.XmppClientCallback>();
         mConnectionInfo = new Bundle();
     }
 
-    static public void initializeXMPPEnvironment(Context context) {
+    void initializeXMPPEnvironment(Context context) {
         if (mSmackAndroid == null) {
             mSmackAndroid = SmackAndroid.init(context);
         }
     }
 
-    static public void destroyXMPPEnvironment() {
+    void destroyXMPPEnvironment() {
         if (mSmackAndroid != null) {
             mSmackAndroid.onDestroy();
             mSmackAndroid = null;
@@ -278,7 +276,6 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             /* addFileReceiver(mXmppConnection); */
 
             transitionToStatusLocked(XMPPCLIENT_STATUS_LOGINED);
-            mTransferService = new TransferService();
             dispatchXmppClientEvent(XMPPCLIENT_EVENT_LOGIN, true);
         } catch (Exception e) {
             LogManager.local(TAG, "handleLoginCmd ERR: " + e.toString());
@@ -295,7 +292,6 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 transitionToStatusLocked(XMPPCLIENT_STATUS_IDLE);
             else
                 transitionToStatusLocked(XMPPCLIENT_STATUS_ERROR);
-            mTransferService = null;
             dispatchXmppClientEvent(XMPPCLIENT_EVENT_LOGOUT, true);
         } finally {
             mStatusLock.unlock();
@@ -498,7 +494,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             }
         } finally {
         }
-
+        destroyXMPPEnvironment();
         LogManager.local(TAG, "xmppclient stopped");
     }
 
@@ -593,31 +589,6 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         return mXmppClientHandler.sendMessageDelayed(msg, delayMillis);
     }
 
-    /*
-     * public void sendFile(File file, final String description) { try { String
-     * usrName = mConnectionInfo.getString("username"); String usrResource =
-     * mConnectionInfo.getString("resource");
-     * 
-     * OutgoingFileTransfer fileTransfer = mFTManager
-     * .createOutgoingFileTransfer("capture@com.zm.openfire/default");
-     * fileTransfer.sendFile(file, description);
-     * 
-     * } catch (Exception e) { LogManager.local(TAG, e.toString()); } }
-     */
-
-    public String sendObject(byte[] png, final String description,
-            String requestUrl, Bundle info) {
-        if (mTransferService == null)
-            return null;
-        return mTransferService.uploadObject(png, description, requestUrl, info);
-    }
-
-    public File receiveObject(final String requestUrl) {
-        if (mTransferService == null) {
-            return null;
-        }
-        return mTransferService.receiveObject(requestUrl);
-    }
 
     public boolean sendObjectAsync(Object targetObject,
             final String description, String requestUrl) {
@@ -634,285 +605,8 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         return true;
     }
 
-    private class TransferService {
-        private static final int TIME_OUT = 10 * 10000000;
-        private static final String CHARSET = "utf-8";
-        public static final String SUCCESS = "1";
-        public static final String FAILURE = "0";
-        public static final String PREFIX = "--";
-        public static final String LINE_END = "\r\n";
-        public static final String CONTENT_TYPE = "multipart/form-data";
-
-        private SimpleDateFormat mSimpleDateFmt = new SimpleDateFormat(
-                "yyyy-MM-dd HH:mmZ", Locale.US);
-
-        public TransferService() {
-        }
-
-        private HttpURLConnection createUrlConnection(String requestUrl,
-                String BOUNDARY) {
-            HttpURLConnection conn = null;
-            try {
-                URL url = new URL(requestUrl);
-                conn = (HttpURLConnection) url.openConnection();
-                conn.setReadTimeout(TIME_OUT);
-                conn.setConnectTimeout(TIME_OUT);
-                conn.setDoInput(true);
-                conn.setDoOutput(true);
-                conn.setUseCaches(false);
-                if (BOUNDARY != null) {
-                    conn.setRequestMethod("POST");
-                    conn.setRequestProperty("Charset", CHARSET);
-                    conn.setRequestProperty("connection", "keep-alive");
-                    conn.setRequestProperty("Content-Type", CONTENT_TYPE
-                            + ";boundary=" + BOUNDARY);
-                    conn.setChunkedStreamingMode(10240);
-                }
-
-                return conn;
-            } catch (Exception e) {
-                LogManager.local(TAG,
-                        "createUrlConnection fails " + e.getMessage());
-                return null;
-            }
-        }
-
-        private String getFileName(String desc) {
-            return mSimpleDateFmt.format(new Date()) + desc;
-        }
-
-        private String getHttpTailInfo(String BOUNDARY) {
-            String endString = LINE_END + PREFIX + BOUNDARY + PREFIX + LINE_END;
-            return endString;
-        }
-
-        public File receiveObject(String requestUrl) {
-            if (requestUrl == null)
-                return null;
-            HttpURLConnection conn = createUrlConnection(requestUrl, null);
-            if (conn == null) {
-                return null;
-            }
-            int lastIndexofSlash = requestUrl.lastIndexOf("/");
-            String fileName = requestUrl.substring(lastIndexofSlash);
-            InputStream inputStream = null;
-            FileOutputStream outputStream = null;
-            File recvedFile = new File(
-                    mContext.getFilesDir().getAbsolutePath(), fileName);
-
-            try {
-                inputStream = conn.getInputStream();
-                // don't handle the case that the file already exists
-                recvedFile.createNewFile();
-                outputStream = new FileOutputStream(recvedFile);
-                byte[] buff = new byte[1024];
-                int readCount = 0;
-                while ((readCount = inputStream.read(buff)) > 0) {
-                    outputStream.write(buff, 0, readCount);
-                }
-                buff = null;
-                inputStream.close();
-                inputStream = null;
-                outputStream.flush();
-                outputStream.close();
-                outputStream = null;
-
-                conn.disconnect();
-                conn = null;
-            } catch (Exception e) {
-                LogManager.local(TAG, "recvObject fails " + e.getMessage());
-            }
-            try {
-                if (inputStream != null) {
-                    inputStream.close();
-                    inputStream = null;
-                }
-            } catch (Exception e) {
-                // TODO: handle exception
-            }
-            try {
-                if (outputStream != null) {
-                    outputStream.close();
-                    outputStream = null;
-                }
-            } catch (Exception e) {
-                // TODO: handle exception
-            }
-            if (conn != null) {
-                conn.disconnect();
-                conn = null;
-            }
-            return recvedFile;
-
-        }
-
-        // example code from :
-        // http://blog.csdn.net/qq247890212/article/details/16358581
-        // about multi-part/data, see
-        // http://blog.csdn.net/five3/article/details/7181521
-        public String uploadObject(byte[] data, final String desc,
-                String requestUrl, Bundle Info) {
-            String BOUNDARY = PREFIX + UUID.randomUUID().toString();
-            HttpURLConnection conn = createUrlConnection(requestUrl, BOUNDARY);
-            if (conn == null)
-                return null;
-
-            OutputStream outputStream = null;
-            try {
-                outputStream = conn.getOutputStream();
-            } catch (Exception e) {
-                LogManager
-                        .local(TAG, "getOutputStream fails " + e.getMessage());
-                conn.disconnect();
-                return null;
-            }
-            DataOutputStream dos = new DataOutputStream(outputStream);
-
-            String fileName = desc;
-
-            int res = 0;
-            try {
-                // the http form data must be written one by one
-                writeHttpFormInfo(dos, fileName, BOUNDARY, Info);
-                dos.write(data, 0, data.length);
-                dos.write(getHttpTailInfo(BOUNDARY).getBytes());
-                dos.flush();
-                dos.close();
-                dos = null;
-                res = conn.getResponseCode();
-            } catch (Exception e) {
-                // TODO: handle exception
-                LogManager.local(TAG, "uploadObject 1 fails " + e.getMessage());
-            }
-            if (dos != null) {
-                try {
-                    dos.close();
-                } catch (Exception e) {
-                    // TODO: handle exception
-                }
-
-            }
-            conn.disconnect();
-            if (res == 200)
-                return fileName;
-            else
-                return null;
-        }
-
-        public void writeHttpFormInfo(DataOutputStream dos, String filename,
-                String Boundary, Bundle info) {
-
-            if (dos == null || filename == null || Boundary == null
-                    || info == null)
-                return;
-
-            try {
-                StringBuilder sb = new StringBuilder();
-                // write user name
-                sb.append("--" + Boundary + LINE_END);
-                sb.append("Content-Disposition: form-data; name=\"username\"");
-                sb.append(LINE_END + LINE_END);
-                sb.append(mConnectionInfo.getString("username"));
-                dos.write(sb.toString().getBytes(CHARSET));
-                dos.write(LINE_END.getBytes(CHARSET));
-
-                // write password
-                sb.setLength(0);
-                sb.append("--" + Boundary + LINE_END);
-                sb.append("Content-Disposition: form-data; name=\"password\"");
-                sb.append(LINE_END + LINE_END);
-                sb.append(mConnectionInfo.getString("password"));
-                dos.write(sb.toString().getBytes(CHARSET));
-                dos.write(LINE_END.getBytes(CHARSET));
-
-                // write resource
-                sb.setLength(0);
-                sb.append("--" + Boundary + LINE_END);
-                sb.append("Content-Disposition: form-data; name=\"resource\"");
-                sb.append(LINE_END + LINE_END);
-                sb.append(mConnectionInfo.getString("resource"));
-                dos.write(sb.toString().getBytes(CHARSET));
-                dos.write(LINE_END.getBytes(CHARSET));
-
-                // write command id
-                sb.setLength(0);
-                sb.append("--" + Boundary + LINE_END);
-                sb.append("Content-Disposition: form-data; name=\"commandid\"");
-                sb.append(LINE_END + LINE_END);
-                sb.append(info.getString("commandid"));
-                dos.write(sb.toString().getBytes(CHARSET));
-                dos.write(LINE_END.getBytes(CHARSET));
-
-                // write type
-                sb.setLength(0);
-                sb.append("--" + Boundary + LINE_END);
-                sb.append("Content-Disposition: form-data; name=\"type\"");
-                sb.append(LINE_END + LINE_END);
-                sb.append(info.getString("type"));
-                dos.write(sb.toString().getBytes(CHARSET));
-                dos.write(LINE_END.getBytes(CHARSET));
-
-                // write action
-                sb.setLength(0);
-                sb.append("--" + Boundary + LINE_END);
-                sb.append("Content-Disposition: form-data; name=\"action\"");
-                sb.append(LINE_END + LINE_END);
-                sb.append(info.getString("action"));
-                dos.write(sb.toString().getBytes(CHARSET));
-                dos.write(LINE_END.getBytes(CHARSET));
-
-                // write upload file info
-                sb.setLength(0);
-                sb.append("--" + Boundary + LINE_END);
-                sb.append("Content-Disposition: form-data; name=\"upload\"; filename=\""
-                        + filename + "\"" + LINE_END);
-                sb.append("Content-Type: " + info.getString("mime"));
-                sb.append(LINE_END + LINE_END);
-                dos.write(sb.toString().getBytes(CHARSET));
-            } catch (Exception e) {
-                LogManager.local(TAG,
-                        "writeHttpFormInfo fails " + e.getMessage());
-            }
-
-        }
-    }
+   
 }
-/*
- * private void addFileReceiver(Connection conn){ mFTManager = new
- * FileTransferManager(conn); mFTManager.addFileTransferListener(new
- * XmppFileTransferListener()); }
- */
 
-/*
- * private class XmppFileTransferListener implements FileTransferListener {
- * 
- * @Override public void fileTransferRequest(FileTransferRequest request) {
- * IncomingFileTransfer transfer = request.accept(); try { LogManager.local(TAG,
- * "Begin receive file:"+request.getRequestor()); String fileName =
- * request.getFileName(); String Mime = request.getMimeType();
- * 
- * File temp = new File(mContext.getFilesDir().getAbsolutePath() +
- * "/"+fileName); transfer.recieveFile(temp);
- * 
- * Thread saveThread = new Thread(new SaveRunnable(temp, Mime));
- * 
- * saveThread.start(); } catch (Exception e) { e.printStackTrace(); } }
- * 
- * private boolean isImage(String Mime){ return Mime.equals("image/jpeg")||Mime
- * .equals("image/png")||Mime.equals("image/bmp"); }
- * 
- * private class SaveRunnable implements Runnable{ private File mTempfile =
- * null; private long mFileSize = 0; private String mMime = null;
- * 
- * public SaveRunnable(File file, String Mime) { super(); mTempfile = file;
- * mMime = Mime; mFileSize = file.length(); }
- * 
- * @Override public void run() { do { //wait for download complete try {
- * mFileSize = mTempfile.length(); LogManager.local(TAG, "receiving file S:" +
- * mFileSize); Thread.sleep(500); LogManager.local(TAG, "receiving file E:" +
- * mTempfile.length()); } catch (Exception e) { e.printStackTrace(); } } while
- * (mTempfile.length() != mFileSize);
- * 
- * if (isImage(mMime)) { // remove this //
- * ProminentFeature.saveFileAsImage(mContext, mTempfile); } } } }
- */
+
+

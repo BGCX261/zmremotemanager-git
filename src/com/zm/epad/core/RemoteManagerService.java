@@ -13,6 +13,7 @@ import com.zm.epad.plugins.RemotePackageManager;
 import com.zm.epad.plugins.policy.RemotePolicyManager;
 import com.zm.xmpp.communication.Constants;
 
+
 /**
  * Core Service.
  */
@@ -20,20 +21,24 @@ public class RemoteManagerService extends Service {
     private final static String TAG = "RemoteManagerService";
     private boolean mbInitialized = false;
     private Bundle mLoginBundle = new Bundle();
+    
+    
+    //following are core system components
     private XmppClient mXmppClient = null;
     private LogManager mLogManager = null;
     private NetworkStatusMonitor mNetworkStatusMonitor = null;
     private NetCmdDispatcher mNetCmdDispatcher = null;
-
+    
+    //following are sub-systems
     private RemotePackageManager mPackageManager;
     private RemoteDeviceManager mDeviceManager;
     private RemoteFileManager mFileManager;
     private RemotePolicyManager mPolicyManager;
 
+   
     @Override
     public void onCreate() {
         super.onCreate();
-        XmppClient.initializeXMPPEnvironment(this);
     }
 
     @Override
@@ -44,15 +49,9 @@ public class RemoteManagerService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        RemotePackageManager.release();
-        RemoteDeviceManager.release();
-        RemoteFileManager.release();
-        RemotePolicyManager.release();
-        mNetworkStatusMonitor.stop();
-        mLogManager.stop();
-        mXmppClient.stop();
-        mNetCmdDispatcher.stop();
-        XmppClient.destroyXMPPEnvironment();
+        subsystemsStop();
+        coreSystemStop();
+        mbInitialized = false;
     }
 
     @Override
@@ -62,17 +61,26 @@ public class RemoteManagerService extends Service {
         }
         return super.onStartCommand(intent, flags, startId);
     }
-
-    private void init(Intent intent) {
+    
+    void prepareLoginData(Intent intent){
         Bundle data = intent.getExtras();
-
-        mLoginBundle.putString("server", data.getString("server"));
-        mLoginBundle.putString("username", data.getString("username"));
-        mLoginBundle.putString("password", data.getString("password"));
-        mLoginBundle.putString("resource", data.getString("resource"));
-
+        mLoginBundle.putString(CoreConstants.CONSTANT_SERVER, data.getString(CoreConstants.CONSTANT_SERVER));
+        mLoginBundle.putString(CoreConstants.CONSTANT_USRNAME, data.getString(CoreConstants.CONSTANT_USRNAME));
+        mLoginBundle.putString(CoreConstants.CONSTANT_PASSWORD, data.getString(CoreConstants.CONSTANT_PASSWORD));
+        mLoginBundle.putString(CoreConstants.CONSTANT_RESOURCE, data.getString(CoreConstants.CONSTANT_RESOURCE));
+    }
+    private void init(Intent intent) {
+       
+        prepareLoginData(intent);
+        coreSystemStart();
+        subsystemsStart();
+        
         mbInitialized = true;
-
+        
+        LogManager.local(TAG, "RemoteManagerService started");
+    }
+    
+    void coreSystemStart(){
         mXmppClient = new XmppClient(this);
 
         mNetCmdDispatcher = new NetCmdDispatcher();
@@ -91,17 +99,30 @@ public class RemoteManagerService extends Service {
                                        // quickly. so there is a time race....
         mNetCmdDispatcher.start();
 
-        mXmppClient.start(mLoginBundle.getString("server"));
+        mXmppClient.start(mLoginBundle.getString(CoreConstants.CONSTANT_SERVER));
 
-        mXmppClient.login(mLoginBundle.getString("username"),
-                mLoginBundle.getString("password"), Build.SERIAL);
-
+        mXmppClient.login(mLoginBundle.getString(CoreConstants.CONSTANT_USRNAME),
+                mLoginBundle.getString(CoreConstants.CONSTANT_PASSWORD), CoreConstants.CONSTANT_DEVICEID);
+    }
+    void coreSystemStop(){
+        mNetworkStatusMonitor.stop();
+        mLogManager.stop();
+        mXmppClient.stop();
+        mNetCmdDispatcher.stop();
+    }
+    void subsystemsStart(){
         mPackageManager = RemotePackageManager.getInstance(this);
         mDeviceManager = RemoteDeviceManager.getInstance(this);
-        mFileManager = RemoteFileManager.getInstance(this, mXmppClient);
+        mFileManager = RemoteFileManager.getInstance(this);
+        mFileManager.setXmppLoginResource(mLoginBundle);
         mPolicyManager = RemotePolicyManager.getInstance(this);
         mPolicyManager.loadPolicy();
-
-        LogManager.local(TAG, "RemoteManagerService started");
     }
+    void subsystemsStop(){
+        RemotePackageManager.release();
+        RemoteDeviceManager.release();
+        RemoteFileManager.release();
+        RemotePolicyManager.release();
+    }
+    
 }

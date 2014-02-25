@@ -88,7 +88,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 
         mPkgManager = RemotePackageManager.getInstance(mContext);
         mDeviceManager = RemoteDeviceManager.getInstance(mContext);
-        mFileManager = RemoteFileManager.getInstance(mContext, mXmppClient);
+        mFileManager = RemoteFileManager.getInstance(mContext);
         mProvider = new ZMIQCommandProvider();
         mOutputProvider = new OutputIQCommandProvider();
         mResultFactory = new ResultFactory(mPkgManager, mDeviceManager);
