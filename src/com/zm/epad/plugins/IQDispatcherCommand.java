@@ -6,7 +6,10 @@ import com.zm.epad.core.XmppClient;
 import com.zm.epad.plugins.RemoteFileManager.FileDownloadTask;
 import com.zm.epad.plugins.RemoteFileManager.FileTransferTask;
 import com.zm.epad.plugins.RemoteFileManager.ScreenshotTask;
+import com.zm.epad.plugins.policy.RemotePolicyManager;
 import com.zm.xmpp.communication.Constants;
+import com.zm.xmpp.communication.client.OutputIQCommand;
+import com.zm.xmpp.communication.client.OutputIQCommandProvider;
 import com.zm.xmpp.communication.client.ResultFactory;
 import com.zm.xmpp.communication.client.ResultFactory.ResultCallback;
 import com.zm.xmpp.communication.client.ZMIQCommand;
@@ -38,25 +41,30 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 
     private static final int EVT_COMMAND = 101;
     private static final int EVT_CALLBACK = 102;
+    private static final int EVT_OUTPUT = 103;
 
     private Context mContext;
     private XmppClient mXmppClient;
     private ZMIQCommandProvider mProvider;
+    private OutputIQCommandProvider mOutputProvider;
     private RemotePackageManager mPkgManager;
     private RemoteDeviceManager mDeviceManager;
     private RemoteFileManager mFileManager;
     private ResultFactory mResultFactory;
     private HandlerThread mThread;
     private Handler mHandler;
-    
-    //private final long DEFAULT_INTERVAL = 15*60*1000; /* 15 minutes*/
-    private final long DEFAULT_INTERVAL = 5*1000; /* change interval to 5s to test*/
+
+    // private final long DEFAULT_INTERVAL = 15*60*1000; /* 15 minutes*/
+    private final long DEFAULT_INTERVAL = 5 * 1000; /*
+                                                     * change interval to 5s to
+                                                     * test
+                                                     */
     private IQScheduleResult mAppSchedule;
 
     @Override
     public void destroy() {
         try {
-            if(mAppSchedule != null) {
+            if (mAppSchedule != null) {
                 mAppSchedule.stop();
                 mAppSchedule.destroy();
             }
@@ -82,6 +90,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
         mDeviceManager = RemoteDeviceManager.getInstance(mContext);
         mFileManager = RemoteFileManager.getInstance(mContext, mXmppClient);
         mProvider = new ZMIQCommandProvider();
+        mOutputProvider = new OutputIQCommandProvider();
         mResultFactory = new ResultFactory(mPkgManager, mDeviceManager);
 
         mThread = new HandlerThread(TAG);
@@ -96,7 +105,11 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 
         LogManager.local(TAG, "parseXMLStream");
         try {
-            ret = mProvider.parseIQ(parser);
+            if (isOutputTyep(parser.getAttributeValue(null, "type"))) {
+                ret = mOutputProvider.parseIQ(parser);
+            } else {
+                ret = mProvider.parseIQ(parser);
+            }
         } catch (Exception e) {
             LogManager.local(TAG, "parseXMLStream:" + e.toString());
         }
@@ -104,20 +117,34 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
         return ret;
     }
 
+    private boolean isOutputTyep(String type) {
+        if (type.equals("policy")) {
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public boolean handlePacket(Packet packet) {
-
-        if (!(packet instanceof ZMIQCommand)) {
-            LogManager.local(TAG, "not ZMIQCommand");
+        if (packet instanceof ZMIQCommand) {
+            return postIQCommand((ZMIQCommand) packet);
+        } else if (packet instanceof OutputIQCommand) {
+            return postOutputIQCommand((OutputIQCommand) packet);
+        } else {
             return false;
         }
-
-        return postIQCommand((ZMIQCommand) packet);
     }
 
     private boolean postIQCommand(ZMIQCommand iq) {
-        LogManager.local(TAG, "handlePacket:" + iq.getCommand().getType());
+        LogManager.local(TAG, "postIQCommand:" + iq.getCommand().getType());
         Message msg = mHandler.obtainMessage(EVT_COMMAND, iq);
+
+        return mHandler.sendMessage(msg);
+    }
+
+    private boolean postOutputIQCommand(OutputIQCommand iq) {
+        LogManager.local(TAG, "postOutputIQCommand:" + iq.getCommandType());
+        Message msg = mHandler.obtainMessage(EVT_OUTPUT, iq);
 
         return mHandler.sendMessage(msg);
     }
@@ -137,6 +164,9 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
                 if (msg.obj instanceof Packet) {
                     ret = mXmppClient.sendPacketAsync((Packet) msg.obj, 0);
                 }
+                break;
+            case EVT_OUTPUT:
+                ret = handleOutputIQCommand((OutputIQCommand) msg.obj);
                 break;
             default:
                 break;
@@ -203,19 +233,19 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
         } else if (cmdType.equals(Constants.XMPP_COMMAND_REPORT)) {
             ret = handleCommand4Report(iq);
 
-            if(ret == false) {
+            if (ret == false) {
                 // set NG result
                 ZMIQResult resultIQ = new ZMIQResult(iq);
-                IResult r = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
-                        cmd.getId(), "NG");
+                IResult r = mResultFactory.getResult(
+                        ResultFactory.RESULT_NORMAL, cmd.getId(), "NG");
                 resultIQ.setResult(r);
-                mXmppClient.sendPacketAsync((Packet) resultIQ, 0);                
+                mXmppClient.sendPacketAsync((Packet) resultIQ, 0);
             }
 
         } else if (cmdType.equals(Constants.XMPP_COMMAND_FILE_TRANSFER)) {
             ret = handleCommand4FileTransfer((Command4FileTransfer) cmd,
                     new CommandResultCallback(iq));
-        }else {
+        } else {
             LogManager.local(TAG, "bad command: " + cmdType);
             ret = false;
         }
@@ -241,6 +271,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
             mHandler.sendMessage(msg);
         }
     }
+
     // handleCommand4App is ok. All core feature are actually implemented by
     // RemotePackageManager
     private IResult handleCommand4App(ICommand4App cmd) {
@@ -322,7 +353,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 
                         @Override
                         public void onCancel(FileTransferTask task) {
-                            //when cancel, send NG
+                            // when cancel, send NG
                             IResult result = mResultFactory.getResult(
                                     ResultFactory.RESULT_NORMAL, id, "NG");
 
@@ -339,7 +370,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
                 + (results == null ? 0 : results.size()));
         return results;
     }
-    
+
     private boolean handleCommand4Report(ZMIQCommand iq) {
 
         if (iq == null
@@ -387,7 +418,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 
         return true;
     }
-    
+
     private boolean handleCommand4FileTransfer(Command4FileTransfer cmd,
             final ResultFactory.ResultCallback callback) {
 
@@ -435,4 +466,21 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
         return ret;
     }
 
+    private boolean handleOutputIQCommand(OutputIQCommand iq) {
+        boolean ret = false;
+        if (iq.getCommandType().equals("policy")) {
+            RemotePolicyManager pm = RemotePolicyManager.getInstance();
+            pm.updatePolicy(iq.getOutput());
+            ret = true;
+        }
+
+        // send result
+        ZMIQResult resultIQ = new ZMIQResult(iq);
+        IResult result = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
+                iq.getId(), ret == true ? "OK" : "NG");
+        resultIQ.setResult(result);
+        mXmppClient.sendPacketAsync((Packet) resultIQ, 0);
+
+        return ret;
+    }
 }
