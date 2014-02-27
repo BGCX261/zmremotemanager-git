@@ -145,6 +145,8 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
 
                 if (connSuc == 1) {
                     mXmppConnection = (Connection) args[1];
+                    
+                    //add packet Listener
                     mXmppConnection.addPacketListener(mCmdHandler, mCmdHandler);
 
                     ProviderManager prdManager = (ProviderManager) args[2];

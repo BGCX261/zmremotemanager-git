@@ -229,7 +229,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
 
     private void handleStartCmdLocked() {
         try {
-            String serverName = mConnectionInfo.getString("server");
+            String serverName = mConnectionInfo.getString(CoreConstants.CONSTANT_SERVER);
             LogManager.local(TAG, "connect to server:" + serverName);
 
             ConnectionConfiguration config = new ConnectionConfiguration(
@@ -267,13 +267,11 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
 
     private void handleLoginCmdLocked() {
         try {
-            String usrName = mConnectionInfo.getString("username");
-            String usrPwd = mConnectionInfo.getString("password");
-            String usrResource = mConnectionInfo.getString("resource");
+            String usrName = mConnectionInfo.getString(CoreConstants.CONSTANT_USRNAME);
+            String usrPwd = mConnectionInfo.getString(CoreConstants.CONSTANT_PASSWORD);
+            String usrResource = mConnectionInfo.getString(CoreConstants.CONSTANT_RESOURCE);
 
             mXmppConnection.login(usrName, usrPwd, usrResource);
-
-            /* addFileReceiver(mXmppConnection); */
 
             transitionToStatusLocked(XMPPCLIENT_STATUS_LOGINED);
             dispatchXmppClientEvent(XMPPCLIENT_EVENT_LOGIN, true);
@@ -457,7 +455,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
 
             LogManager.local(TAG, "xmppclient start with servername :"
                     + serverName);
-            mConnectionInfo.putString("server", serverName);
+            mConnectionInfo.putString(CoreConstants.CONSTANT_SERVER, serverName);
             mXmppHandlerThread = new HandlerThread(TAG);
             mXmppHandlerThread.start();
             mXmppClientHandler = new XmppClientThreadHandler(
@@ -505,13 +503,13 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                             "xmppclient login failed,either username or password is null");
             return false;
         }
-        if (resource == null && Build.SERIAL == null) {
-            if (Build.SERIAL == null) {
+        if (resource == null && CoreConstants.CONSTANT_DEVICEID == null) {
+            if (CoreConstants.CONSTANT_DEVICEID == null) {
                 LogManager.local(TAG,
                         "xmppclient login failed due to resource is null");
                 return false;
             }
-            resource = Build.SERIAL;
+            resource = CoreConstants.CONSTANT_DEVICEID;
 
         }
         try {
@@ -529,9 +527,9 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             transitionToStatusLocked(XMPPCLIENT_STATUS_LOGINING);
             LogManager.local(TAG, "xmppclient login username " + usrName
                     + " password " + password + " resource " + resource);
-            mConnectionInfo.putString("username", usrName);
-            mConnectionInfo.putString("password", password);
-            mConnectionInfo.putString("resource", resource);
+            mConnectionInfo.putString(CoreConstants.CONSTANT_USRNAME, usrName);
+            mConnectionInfo.putString(CoreConstants.CONSTANT_PASSWORD, password);
+            mConnectionInfo.putString(CoreConstants.CONSTANT_RESOURCE, resource);
             Message msg = mXmppClientHandler.obtainMessage(CMD_LOGIN);
             msg.setData(mConnectionInfo);
             mXmppClientHandler.sendMessage(msg);

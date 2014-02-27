@@ -2,6 +2,7 @@ package com.zm.epad.plugins;
 
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.NetCmdDispatcher.CmdDispatchInfo;
+import com.zm.epad.core.SubSystemFacade;
 import com.zm.epad.core.XmppClient;
 import com.zm.epad.plugins.RemoteFileManager.FileDownloadTask;
 import com.zm.epad.plugins.RemoteFileManager.FileTransferTask;
@@ -36,7 +37,7 @@ import android.os.Message;
 import java.io.File;
 import java.util.List;
 
-public class IQDispatcherCommand extends CmdDispatchInfo {
+public class RemoteCmdProcessor extends CmdDispatchInfo {
     private static final String TAG = "IQDispatcherCommand";
 
     private static final int EVT_COMMAND = 101;
@@ -45,11 +46,14 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 
     private Context mContext;
     private XmppClient mXmppClient;
-    private ZMIQCommandProvider mProvider;
+    private ZMIQCommandProvider mZMIQProvider;
     private OutputIQCommandProvider mOutputProvider;
-    private RemotePackageManager mPkgManager;
+    private SubSystemFacade mSubSystemFacade;
+    
+/*    private RemotePackageManager mPkgManager;
     private RemoteDeviceManager mDeviceManager;
-    private RemoteFileManager mFileManager;
+    private RemoteFileManager mFileManager;*/
+    
     private ResultFactory mResultFactory;
     private HandlerThread mThread;
     private Handler mHandler;
@@ -76,8 +80,16 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 
         super.destroy();
     }
-
-    public IQDispatcherCommand(Context context, String namespace,
+    
+    //don't show namespace out side of this file.
+    public RemoteCmdProcessor(Context context,XmppClient xmppClient){
+        IQDispatcherCommand(context, Constants.XMPP_NAMESPACE_CENTER,
+                xmppClient);
+    }
+    public void setSubsystem(SubSystemFacade subSystemFacade){
+        mSubSystemFacade = subSystemFacade;
+    }
+    private RemoteCmdProcessor(Context context, String namespace,
             XmppClient XmppCliet) {
         LogManager.local(TAG, "create: " + namespace);
         mContext = context;
@@ -86,29 +98,61 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
         mStrNameSpace = namespace;
         mXmppClient = XmppCliet;
 
+        mZMIQProvider = new ZMIQCommandProvider();
+        mOutputProvider = new OutputIQCommandProvider();
+        
+        
+        
+        /*
+         * 
+         * Need a better way to handle these components
         mPkgManager = RemotePackageManager.getInstance(mContext);
         mDeviceManager = RemoteDeviceManager.getInstance(mContext);
         mFileManager = RemoteFileManager.getInstance(mContext);
-        mProvider = new ZMIQCommandProvider();
-        mOutputProvider = new OutputIQCommandProvider();
-        mResultFactory = new ResultFactory(mPkgManager, mDeviceManager);
+        
+        mResultFactory = new ResultFactory(mPkgManager, mDeviceManager);*/
 
         mThread = new HandlerThread(TAG);
         mThread.start();
-        mHandler = new Handler(mThread.getLooper(), new IQCommandCallback());
+        mHandler = new RemoteHandler(mThread.getLooper());
 
     }
+    private class RemoteHandler extends Handler{
 
+        @Override
+        public void handleMessage(Message msg) {
+            boolean ret = false;
+
+            switch (msg.what) {
+            case EVT_COMMAND:
+                ret = handleIQCommand((ZMIQCommand) msg.obj);
+                break;
+            case EVT_CALLBACK:
+                if (msg.obj instanceof Packet) {
+                    ret = mXmppClient.sendPacketAsync((Packet) msg.obj, 0);
+                }
+                break;
+            case EVT_OUTPUT:
+                ret = handleOutputIQCommand((OutputIQCommand) msg.obj);
+                break;
+            default:
+                break;
+            }
+
+            return ret;
+        }
+        
+    }
     @Override
     public IQ parseXMLStream(XmlPullParser parser) {
         IQ ret = null;
 
         LogManager.local(TAG, "parseXMLStream");
         try {
-            if (isOutputTyep(parser.getAttributeValue(null, "type"))) {
+            if (isOutputType(parser.getAttributeValue(null, "type"))) {
                 ret = mOutputProvider.parseIQ(parser);
             } else {
-                ret = mProvider.parseIQ(parser);
+                ret = mZMIQProvider.parseIQ(parser);
             }
         } catch (Exception e) {
             LogManager.local(TAG, "parseXMLStream:" + e.toString());
@@ -117,7 +161,7 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
         return ret;
     }
 
-    private boolean isOutputTyep(String type) {
+    private boolean isOutputType(String type) {
         if (type.equals("policy")) {
             return true;
         }
@@ -147,34 +191,6 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
         Message msg = mHandler.obtainMessage(EVT_OUTPUT, iq);
 
         return mHandler.sendMessage(msg);
-    }
-
-    private class IQCommandCallback implements Handler.Callback {
-
-        @Override
-        public boolean handleMessage(Message msg) {
-
-            boolean ret = false;
-
-            switch (msg.what) {
-            case EVT_COMMAND:
-                ret = handleIQCommand((ZMIQCommand) msg.obj);
-                break;
-            case EVT_CALLBACK:
-                if (msg.obj instanceof Packet) {
-                    ret = mXmppClient.sendPacketAsync((Packet) msg.obj, 0);
-                }
-                break;
-            case EVT_OUTPUT:
-                ret = handleOutputIQCommand((OutputIQCommand) msg.obj);
-                break;
-            default:
-                break;
-            }
-
-            return ret;
-        }
-
     }
 
     private boolean handleIQCommand(ZMIQCommand iq) {

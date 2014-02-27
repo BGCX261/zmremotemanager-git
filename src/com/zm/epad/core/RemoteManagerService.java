@@ -6,7 +6,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 
-import com.zm.epad.plugins.IQDispatcherCommand;
+import com.zm.epad.plugins.RemoteCmdProcessor;
 import com.zm.epad.plugins.RemoteDeviceManager;
 import com.zm.epad.plugins.RemoteFileManager;
 import com.zm.epad.plugins.RemotePackageManager;
@@ -28,13 +28,13 @@ public class RemoteManagerService extends Service {
     private LogManager mLogManager = null;
     private NetworkStatusMonitor mNetworkStatusMonitor = null;
     private NetCmdDispatcher mNetCmdDispatcher = null;
-    
+    private RemoteCmdProcessor  mRemoteCmdProcessor = null;
     //following are sub-systems
-    private RemotePackageManager mPackageManager;
+/*    private RemotePackageManager mPackageManager;
     private RemoteDeviceManager mDeviceManager;
     private RemoteFileManager mFileManager;
-    private RemotePolicyManager mPolicyManager;
-
+    private RemotePolicyManager mPolicyManager;*/
+    private  SubSystemFacade mSubSystem = null;
    
     @Override
     public void onCreate() {
@@ -84,8 +84,10 @@ public class RemoteManagerService extends Service {
         mXmppClient = new XmppClient(this);
 
         mNetCmdDispatcher = new NetCmdDispatcher();
-        mNetCmdDispatcher.registerDispacher(new IQDispatcherCommand(this,
-                Constants.XMPP_NAMESPACE_CENTER, mXmppClient));
+        
+        mRemoteCmdProcessor = new RemoteCmdProcessor(this,mXmppClient);
+        
+        mNetCmdDispatcher.registerDispacher(mRemoteCmdProcessor);
 
         mXmppClient.addXmppClientCallback(mNetCmdDispatcher);
 
@@ -98,7 +100,9 @@ public class RemoteManagerService extends Service {
         mNetworkStatusMonitor.start(); // we could get network status very
                                        // quickly. so there is a time race....
         mNetCmdDispatcher.start();
-
+        
+        /*@todo:How to handle the case if we don't know the login info?
+         * */
         mXmppClient.start(mLoginBundle.getString(CoreConstants.CONSTANT_SERVER));
 
         mXmppClient.login(mLoginBundle.getString(CoreConstants.CONSTANT_USRNAME),
@@ -111,18 +115,24 @@ public class RemoteManagerService extends Service {
         mNetCmdDispatcher.stop();
     }
     void subsystemsStart(){
-        mPackageManager = RemotePackageManager.getInstance(this);
+        mSubSystem = new SubSystemFacade(this);
+        mSubSystem.start(mLoginBundle);
+        
+        mRemoteCmdProcessor.setSubSystem(mSubSystem);
+/*        mPackageManager = RemotePackageManager.getInstance(this);
         mDeviceManager = RemoteDeviceManager.getInstance(this);
         mFileManager = RemoteFileManager.getInstance(this);
         mFileManager.setXmppLoginResource(mLoginBundle);
         mPolicyManager = RemotePolicyManager.getInstance(this);
-        mPolicyManager.loadPolicy();
+        mPolicyManager.loadPolicy();*/
     }
     void subsystemsStop(){
-        RemotePackageManager.release();
+        mSubSystem.stop();
+        mSubSystem = null;
+        /*RemotePackageManager.release();
         RemoteDeviceManager.release();
         RemoteFileManager.release();
-        RemotePolicyManager.release();
+        RemotePolicyManager.release();*/
     }
     
 }
