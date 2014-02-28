@@ -58,6 +58,8 @@
         android:name="android.permission.PACKAGE_VERIFICATION_AGENT" />
     <uses-permission
         android:name="android.permission.SET_ACTIVITY_WATCHER" />
+    <uses-permission
+        android:name="android.permission.CAPTURE_VIDEO_OUTPUT" />
 
     <application
         android:label="@string/app_name"

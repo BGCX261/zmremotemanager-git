@@ -29,6 +29,7 @@ public class DebugActivityRemoteDesktop extends Activity {
 
     private RemoteDesktopManager mRdManager;
     private String mIface;
+    private String mIPtext;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,8 +67,9 @@ public class DebugActivityRemoteDesktop extends Activity {
                                 mTextIP[i].setText("IP " + (i+1) + ": " +
                                     ip.getHostAddress() + " " + nif.getName() +
                                     " " + nif.getIndex());
-                                    if (mIface == null) mIface = ip.getHostAddress();
-                                    i++;
+                                mIPtext = (String) mTextIP[0].getText();
+                                if (mIface == null) mIface = ip.getHostAddress();
+                                i++;
                             }
                         }
                     }
@@ -75,25 +77,59 @@ public class DebugActivityRemoteDesktop extends Activity {
                     Log.e(TAG, "Get host IP address failed");
                     e.printStackTrace();
                 }
-                if (mTextIP[0].getText() != null && !mTextIP[0].getText().equals("")) {
-                    mTextIP[0].setText(mTextIP[0].getText() + " " + mRdManager.getActiveNetworkType());
-                }
+//                if (mTextIP[0].getText() != null && !mTextIP[0].getText().equals("")) {
+//                    mTextIP[0].setText(mTextIP[0].getText() + " " + mRdManager.getActiveNetworkType());
+//                }
                 i = 0;
-                for (RemoteDesktopManager.DisplayParam dp : mRdManager.getDisplayParams()) {
-                    mTextDisplay[i].setText("Display param " + (i+1) + ": w=" +
-                        dp.mWidth + " h=" + dp.mHeight + " dpi=" + dp.mDpi);
-                    i++;
-                    if (i == 3) break;
-                }
+//                for (RemoteDesktopManager.DisplayParam dp : mRdManager.getDisplayParams()) {
+//                    mTextDisplay[i].setText("Display param " + (i+1) + ": w=" +
+//                        dp.mWidth + " h=" + dp.mHeight + " dpi=" + dp.mDpi);
+//                    i++;
+//                    if (i == 3) break;
+//                }
                 // Start Remote Desktop
                 if (mIface != null) {
-                    mRdManager.startRemoteDesktop();
-                    String url = mRdManager.getUrl();
-                    if (url != null) {
-                        if (mTextIP[1].getText() == null || mTextIP[1].getText().length() == 0) {
-                            mTextIP[1].setText("Rtsp server running now: " + url);
+                    mRdManager.startRemoteDesktop(new RemoteDesktopManager.Listener() {
+
+                        @Override
+                        public void onServerCreated(String iface) {
+                            if (iface != null) {
+                                mTextIP[0].setText("Rtsp server running now: " + iface);
+                            }
                         }
-                    }
+
+                        @Override
+                        public void onServerError(int err) {
+                            switch(err) {
+                            case RemoteDesktopManager.RD_IN_USE:
+                                mTextIP[1].setText("RemoteDesktopManager still in used");
+                                break;
+                            case RemoteDesktopManager.RD_NO_NETWORK:
+                                mTextIP[1].setText("No Network available");
+                                break;
+                            case RemoteDesktopManager.RD_SERVER_CREATE_FAILED:
+                                mTextIP[1].setText("Cannot linsten to rtsp client");
+                                break;
+                            case RemoteDesktopManager.RD_DISPLAY_CREATE_FAILED:
+                                mTextIP[1].setText("Cannot create zm display");
+                                break;
+                            default:
+                                mTextIP[1].setText("Unknown error");
+                                break;
+                            }
+                        }
+
+                        @Override
+                        public void onServerStarted() {
+                            mTextIP[2].setText("Start mirror the desktop to remote");
+                        }
+
+                        @Override
+                        public void onServerStopped() {
+                            mTextIP[2].setText("remote desktop stopped! ");
+                            mTextIP[0].setText(mIPtext);
+                        }
+                    });
                 } else {
                     if (mTextIP[1].getText() == null || mTextIP[1].getText().length() == 0) {
                         mTextIP[1].setText("Error: No Network available!");
@@ -107,6 +143,7 @@ public class DebugActivityRemoteDesktop extends Activity {
 
         mBtnCloseRtsp.setOnClickListener(new OnClickListener() {
             @Override public void onClick(View v) {
+                mRdManager.stopRemoteDesktop();
                 for (TextView tv : mTextIP) {
                     tv.setText("");
                 }
