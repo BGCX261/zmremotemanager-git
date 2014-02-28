@@ -192,7 +192,38 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
 
         if (cmdType.equals(Constants.XMPP_COMMAND_APP)) {
             IResult result = null;
-            result = handleCommand4App((ICommand4App) cmd);
+            if (cmd.getAction().equals(Constants.XMPP_APP_INSTALL)) {
+                ICommand4App cmdApp = (ICommand4App) cmd;
+                final ZMIQResult resultIQ = new ZMIQResult(iq);
+                final String cmdId = cmdApp.getId();
+
+                int install = mPkgManager.installPkgForUser(cmdApp.getAppUrl(),
+                        cmdApp.getUserId(),
+                        new RemotePackageManager.installCallback() {
+                            ZMIQResult mResultIQ = resultIQ;
+                            String mCmdId = cmdId;
+
+                            @Override
+                            public void callback(boolean result) {
+                                IResult r = mResultFactory.getResult(
+                                        ResultFactory.RESULT_NORMAL, mCmdId,
+                                        result == true ? "OK" : "NG");
+                                mResultIQ.setResult(r);
+                                Message msg = mHandler.obtainMessage(
+                                        EVT_CALLBACK, mResultIQ);
+                                mHandler.sendMessage(msg);
+                            }
+                        });
+                if (install < 0) {
+                    return true;
+                } else {
+                    result = mResultFactory.getResult(
+                            ResultFactory.RESULT_NORMAL, cmdApp.getId(),
+                            install == 0 ? "OK" : "NG");
+                }
+            } else {
+                result = handleCommand4App((ICommand4App) cmd);
+            }
 
             ZMIQResult resultIQ = new ZMIQResult(iq);
             resultIQ.setResult(result);
@@ -288,10 +319,6 @@ public class IQDispatcherCommand extends CmdDispatchInfo {
             String name = cmd.getAppName();
             int userId = cmd.getUserId();
             ret = mPkgManager.disablePkgForUser(name, userId);
-        } else if (cmd.getAction().equals(Constants.XMPP_APP_INSTALL)) {
-            String url = cmd.getAppUrl();
-            int userId = cmd.getUserId();
-            ret = mPkgManager.installPkgForUser(url, userId);
         } else if (cmd.getAction().equals(Constants.XMPP_APP_REMOVE)) {
             String name = cmd.getAppName();
             int userId = cmd.getUserId();

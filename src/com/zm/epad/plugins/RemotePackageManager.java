@@ -21,6 +21,7 @@ import android.os.ServiceManager;
 import android.os.UserHandle;
 
 import com.zm.epad.core.LogManager;
+import com.zm.epad.plugins.RemoteFileManager.*;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -279,6 +280,51 @@ public class RemotePackageManager {
         return ret;
     }
 
+    public interface installCallback {
+        void callback(boolean result);
+    }
+
+    private boolean needDownload(String where) {
+        if (where.startsWith("http://") || where.startsWith("https://")) {
+            return true;
+        }
+        return false;
+    }
+
+    public int installPkgForUser(String apkLocation, final int userId,
+            final installCallback cb) {
+        LogManager.local(TAG, "installPkgForUser: " + userId);
+        if (needDownload(apkLocation)) {
+            FileDownloadTask t = RemoteFileManager.getInstance()
+                    .getFileDownloadTask(apkLocation,
+                            new FileTransferCallback() {
+                                int mUserId = userId;
+                                installCallback mCallback = cb;
+
+                                @Override
+                                public void onDone(FileTransferTask task) {
+                                    // TODO Auto-generated method stub
+                                    File result = (File) task.getResult();
+                                    boolean ret = installPkgForUser(
+                                            result.getAbsolutePath(), mUserId);
+                                    mCallback.callback(ret);
+                                    result.delete();
+                                }
+
+                                @Override
+                                public void onCancel(FileTransferTask task) {
+                                    // TODO Auto-generated method stub
+                                    mCallback.callback(false);
+                                }
+
+                            });
+            t.start();
+            return -1;
+        } else {
+            return installPkgForUser(apkLocation, userId) ? 0 : 1;
+        }
+    }
+
     // zhimo://apkname-->/sdcard/xxx/apkname
     private String getRealPath(String apkLocation) {
         if (apkLocation == null)
@@ -295,11 +341,12 @@ public class RemotePackageManager {
             return apkLocation;
     }
 
-    public boolean installPkgForUser(String apkLocation, int userId) {
+    private boolean installPkgForUser(String apkLocation, int userId) {
         LogManager.local(TAG, "installPkgForUser: " + userId);
         apkLocation = getRealPath(apkLocation);
         if (apkLocation == null)
             return false;
+
         PackageInstallObserver obs = new PackageInstallObserver();
         try {
             Uri apkURI = Uri.parse(apkLocation);
