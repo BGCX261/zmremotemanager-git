@@ -305,7 +305,7 @@ public class RemoteFileManager {
 
     public void addFileDownloadTask(String url, FileTransferCallback callback) {
         FileTransferTask downloadTask = new FileDownloadTask(url, callback);
-        downloadTask.start();
+        downloadTask.prepare();
         mThreadPool.execute(downloadTask);
     }
 
@@ -313,7 +313,7 @@ public class RemoteFileManager {
             Bundle info, FileTransferCallback callback) {
         FileTransferTask fileUploadTask = new FileUploadTask(url, callback,
                 filePath, fileName, info);
-        fileUploadTask.start();
+        fileUploadTask.prepare();
         mThreadPool.execute(fileUploadTask);
     }
 
@@ -321,7 +321,7 @@ public class RemoteFileManager {
             FileTransferCallback callback) {
         FileTransferTask screenshotTask = new ScreenshotTask(url, callback,
                 info);
-        screenshotTask.start();
+        screenshotTask.prepare();
         mThreadPool.execute(screenshotTask);
     }
 
@@ -413,7 +413,7 @@ public class RemoteFileManager {
             mCallback = cb;
         }
 
-          public synchronized void start() {
+          public synchronized void prepare() {
             if (addTask(this) == false) {
                 mStatus = PENDING;
             }

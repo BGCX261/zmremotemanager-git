@@ -25,6 +25,7 @@ import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.Packet;
 import org.xmlpull.v1.XmlPullParser;
 
+import android.app.ActivityManager.RunningAppProcessInfo;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
@@ -57,22 +58,12 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
                                                      * change interval to 5s to
                                                      * test
                                                      */
-    private IQScheduleResult mAppSchedule;
+   
 
     @Override
     public void destroy() {
-        try {
-            if (mAppSchedule != null) {
-                mAppSchedule.stop();
-                mAppSchedule.destroy();
-            }
-            mThread.quit();
-            mThread.join();
-        } catch (Exception e) {
-            LogManager.local(TAG, "destroy:" + e.toString());
-        }
-
-        super.destroy();
+       stopMonitorAppRunningInfo();
+       super.destroy();
     }
 
     // don't show namespace out side of this file.
@@ -181,7 +172,7 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
 
     private void sendResultToServer(IQ iq, IResult result) {
         ZMIQResult resultIQ = new ZMIQResult(iq);
-        if (iq == null) {
+        if (iq != null) {
             resultIQ.setTo(iq.getFrom());
             resultIQ.setFrom(iq.getTo());
         }
@@ -406,10 +397,10 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
 
         if (cmd.getReport().equals(Constants.XMPP_REPORT_APP)) {
             if (cmd.getAction().equals(Constants.XMPP_REPORT_ACT_TRACE)) {
-                ret = startSendAppRunningInfoSchedule(iq, DEFAULT_INTERVAL);
+                ret = startMonitorAppRunningInfo(iq, DEFAULT_INTERVAL);
             } else if (cmd.getAction()
                     .equals(Constants.XMPP_REPORT_ACT_UNTRACE)) {
-                ret = stopSendAppRunningInfoSchedule();
+                ret = stopMonitorAppRunningInfo();
             }
         } else if (cmd.getReport().equals(Constants.XMPP_REPORT_POS)) {
             // to be added
@@ -418,25 +409,23 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
         return ret;
     }
 
-    private boolean startSendAppRunningInfoSchedule(ZMIQCommand iq,
-            long interval) {
-        if (mAppSchedule == null) {
-            mAppSchedule = new IQScheduleResult("AppResultSchedule", iq);
-            mAppSchedule.setResultMaker(mResultFactory,
-                    ResultFactory.RESULT_RUNNINGAPP);
-            return mAppSchedule.start(interval, mXmppClient);
-        }
+    private boolean startMonitorAppRunningInfo(final ZMIQCommand iq,long interval) {
+        
+        mSubSystemFacade.startMonitorRunningAppInfo(interval,new RemotePackageManager.ReportRunningAppInfo(){
 
-        return false;
+            @Override
+            public void reportRunningAppProcessInfos(
+                    List<RunningAppProcessInfo> infos) {
+                IResult iResult = mResultFactory.getRunningAppResult(infos);
+                sendResultToServer(iq, iResult);
+            }
+            
+        });
+        return true;
     }
 
-    private boolean stopSendAppRunningInfoSchedule() {
-        if (mAppSchedule != null) {
-            mAppSchedule.stop();
-            mAppSchedule.destroy();
-            mAppSchedule = null;
-        }
-
+    private boolean stopMonitorAppRunningInfo() {
+        mSubSystemFacade.stopMonitorRunningAppInfo();
         return true;
     }
 

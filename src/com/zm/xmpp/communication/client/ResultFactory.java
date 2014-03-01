@@ -281,7 +281,20 @@ public class ResultFactory {
             }
         }
     }
+    public IResult getRunningAppResult(List<RunningAppProcessInfo> runningList){
+        ResultRunningApp result = new ResultRunningApp(
+                mSubSystemFacade.getCurrentUserId(), getCurrentTime());
 
+        String[] outArry = new String[mSubSystemFacade.INDEX_MAX];
+        for (RunningAppProcessInfo pi : runningList) {
+
+            mSubSystemFacade.getRunningAppProcessInfo(outArry,pi);
+            result.addProcess(outArry[mSubSystemFacade.INDEX_NAME], 
+                    outArry[mSubSystemFacade.INDEX_DISPLAY], outArry[mSubSystemFacade.INDEX_IMPORTANCE], 
+                    outArry[mSubSystemFacade.INDEX_VERSION]);
+        }
+        return result;
+    }
     private IResult getRunningAppResult() {
 
         ResultRunningApp result = new ResultRunningApp(

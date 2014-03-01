@@ -15,6 +15,7 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.UserInfo;
 import android.os.Bundle;
+import android.os.Looper;
 import android.os.UserManager;
 
 import java.util.List;
@@ -267,7 +268,40 @@ public class SubSystemFacade {
     public boolean isGuestEnabled(){
         return mPackageManager.isGuestEnabled();
     }
-
+    public void startMonitorRunningAppInfo(long interval, RemotePackageManager.ReportRunningAppInfo callback){
+        mPackageManager.startMonitorRunningApp(interval,callback);
+    }
+    public void stopMonitorRunningAppInfo(){
+        mPackageManager.stopMonitorRunningApp();
+    }
+    private class ThreadRunnable implements Runnable{
+        private Looper retLooper = null;
+        public void run() {
+            Looper.prepare();
+            retLooper = Looper.myLooper();
+            synchronized (this) {
+                notifyAll();
+            }
+            retLooper.loop();
+        }
+        
+        public synchronized Looper  getLooper(){
+            if(retLooper == null){
+                try {
+                    wait();
+                } catch (Exception e) {
+                    // TODO: handle exception
+                }
+               
+            }
+            return retLooper;
+        }
+    }
+    public Looper getAThreadLooper(){
+        ThreadRunnable looperHelper = new ThreadRunnable();
+        mThreadPool.execute(looperHelper);
+        return looperHelper.getLooper();
+    }
     /**
      * Wrapper around RemoteDeviceManager
      */

@@ -1,5 +1,6 @@
 package com.zm.xmpp.communication.client;
 
+import com.zm.xmpp.communication.Constants;
 import com.zm.xmpp.communication.result.IResult;
 
 import org.jivesoftware.smack.packet.IQ;
@@ -34,5 +35,6 @@ public class ZMIQResult extends IQ {
 
     public ZMIQResult() {
         super();
+        setTo(Constants.XMPP_NAMESPACE_CENTER);
     }
 }

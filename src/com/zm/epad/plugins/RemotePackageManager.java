@@ -2,7 +2,16 @@ package com.zm.epad.plugins;
 
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.SubSystemFacade;
+import com.zm.epad.core.XmppClient;
 import com.zm.epad.plugins.RemoteFileManager.*;
+import com.zm.xmpp.communication.Constants;
+import com.zm.xmpp.communication.client.ResultFactory;
+import com.zm.xmpp.communication.client.ZMIQCommand;
+import com.zm.xmpp.communication.client.ZMIQResult;
+import com.zm.xmpp.communication.result.IResult;
+
+import org.jivesoftware.smack.packet.Packet;
+
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.content.BroadcastReceiver;
@@ -19,6 +28,9 @@ import android.os.IUserManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.os.RemoteException;
 import android.os.UserHandle;
 
@@ -39,7 +51,7 @@ public class RemotePackageManager {
     private static final ArrayList<PackageVerificationItem> mBlacklist = new ArrayList<PackageVerificationItem>();
     // lock used to protect white and black list. if debug, can re-name it.
     private static Object mLock = new Object();
-
+    private RunningAppMonitorHandler mRunningAppMonitorHandler;
  
     public void stop() {
         LogManager.local(TAG, "stop");
@@ -515,5 +527,116 @@ public class RemotePackageManager {
             e.printStackTrace();
         }
         return ret;
+    }
+    public interface ReportRunningAppInfo{
+        void reportRunningAppProcessInfos(List<RunningAppProcessInfo> infos);
+    }
+    public void startMonitorRunningApp(long interval,ReportRunningAppInfo callback){
+       if(mRunningAppMonitorHandler == null){
+           Looper aTheadLooper = SubSystemFacade.getInstance().getAThreadLooper();
+           mRunningAppMonitorHandler = new RunningAppMonitorHandler(aTheadLooper);
+       }
+       mRunningAppMonitorHandler.start(interval, callback);
+    }
+    public void stopMonitorRunningApp(){
+        if(mRunningAppMonitorHandler == null){
+            return;
+        }
+        mRunningAppMonitorHandler.stop();
+        mRunningAppMonitorHandler = null;
+    }
+    private class RunningAppMonitorHandler extends Handler{
+        public static final String DEFAULT_SERVER = Constants.XMPP_NAMESPACE_CENTER;
+        public static final int EVT_SCHEDULE_START = 100;
+        public static final int EVT_SCHEDULE = 101;
+        public static final int EVT_SCHEDULE_STOP = 102;
+        
+        protected boolean mRunning;
+ 
+   
+        protected boolean mImmediateResult = true;
+        protected long mInterval = 60 * 60 * 1000; /* default is 1 hour */
+
+        
+        protected ReportRunningAppInfo mCallbackAppInfo;
+        public RunningAppMonitorHandler(Looper looper){
+            super(looper);
+        }
+        public void stop() {
+            removeMessages(EVT_SCHEDULE_START);
+            removeMessages(EVT_SCHEDULE);
+            Message msg = obtainMessage(EVT_SCHEDULE_STOP);
+            sendMessage(msg);
+            mRunning = false;
+        }
+
+       
+
+        public void setInterval(long interval) {
+            mInterval = interval;
+        }
+
+        public boolean isRunning() {
+            return mRunning;
+        }
+
+        public void sendFirstResultImmediately(boolean immediate) {
+            mImmediateResult = immediate;
+        }
+
+        private void scheduleMessage() {
+            Message schedule = obtainMessage(EVT_SCHEDULE);
+            sendMessageDelayed(schedule, mInterval);
+        }
+        public boolean start(long interval, ReportRunningAppInfo callback) {
+            boolean bRet = false;
+            LogManager.local(TAG, "start interval:" + mInterval + " running:"
+                    + mRunning);
+            if (mRunning == false) {
+                mInterval = interval;
+                mCallbackAppInfo = callback;
+
+                Message msg = obtainMessage(EVT_SCHEDULE_START);
+                sendMessage(msg);
+
+                bRet = true;
+            }
+            return bRet;
+        }
+
+        public boolean restart() {
+            if (mCallbackAppInfo == null) {
+                return false;
+            }
+            return start(mInterval, mCallbackAppInfo);
+        }
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+            case EVT_SCHEDULE_START:
+                mRunning = true;
+                if (mImmediateResult) {
+                    List<RunningAppProcessInfo> runningList = getRunningAppProcesses();
+                    if(mCallbackAppInfo != null)
+                        mCallbackAppInfo.reportRunningAppProcessInfos(runningList);
+                }
+                scheduleMessage();
+                break;
+            case EVT_SCHEDULE:
+                if (mRunning == true) {
+                    List<RunningAppProcessInfo> runningList = getRunningAppProcesses();
+                    if(mCallbackAppInfo != null)
+                        mCallbackAppInfo.reportRunningAppProcessInfos(runningList);
+                    scheduleMessage();
+                }
+                break;
+            case EVT_SCHEDULE_STOP:
+                getLooper().quit();
+                break;
+            default:
+                break;
+            }
+        }
+        
     }
 }
