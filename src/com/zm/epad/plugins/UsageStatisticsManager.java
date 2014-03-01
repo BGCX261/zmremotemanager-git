@@ -4,11 +4,11 @@ import com.zm.epad.core.LogManager;
 
 import android.content.Context;
 import android.content.Intent;
-import android.app.IActivityManager;
-import android.app.ActivityManagerNative;
+
 import java.util.concurrent.locks.ReentrantLock;
 import android.app.IActivityController;
-
+import android.app.IActivityManager;
+import android.app.ActivityManagerNative;
 public class UsageStatisticsManager {
     private static String TAG = "UsageStatisticsManager";
 

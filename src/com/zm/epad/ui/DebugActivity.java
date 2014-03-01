@@ -5,7 +5,6 @@ import com.zm.epad.core.LogManager;
 import org.jivesoftware.smack.XMPPConnection;
 
 import android.app.ListActivity;
-import android.app.WallpaperManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -18,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.zm.epad.R;
 
 public class DebugActivity extends ListActivity {
 
@@ -116,22 +116,18 @@ public class DebugActivity extends ListActivity {
         intent.putExtras(args);
 
         try {
-            if (startService(intent) != null){
-            	LogManager.local(TAG, "start service succeed");
+            if (startService(intent) != null) {
+                LogManager.local(TAG, "start service succeed");
 
-            	/* don't start the feature now
-            	WallpaperManager wm = WallpaperManager.getInstance(mContext);
-            	try {  
-            		int id = getResources().
-            				getIdentifier("wall", "drawable", "com.zm.epad");
-            		wm.setResource(id);  
-                } catch (Exception e) {
-                    e.printStackTrace();  
-                }
-                */
+                /*
+                 * don't start the feature now WallpaperManager wm =
+                 * WallpaperManager.getInstance(mContext); try { int id =
+                 * getResources(). getIdentifier("wall", "drawable",
+                 * "com.zm.epad"); wm.setResource(id); } catch (Exception e) {
+                 * e.printStackTrace(); }
+                 */
 
-            }
-            else
+            } else
                 LogManager.local(TAG, "start service failed");
         } catch (Exception e) {
             LogManager.local(TAG, "start service failed " + e.getMessage());
@@ -199,7 +195,7 @@ public class DebugActivity extends ListActivity {
 
         Intent intent = new Intent();
         intent.setComponent(new ComponentName("com.zm.epad",
-        		"com.zm.epad.core.RemoteManagerService"));
+                "com.zm.epad.core.RemoteManagerService"));
         try {
             stopService(intent);
 

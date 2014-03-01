@@ -6,15 +6,26 @@ public class Device {
 
 	private String userid;
 	private String deviceid;
-	private String wifi;//	Á¬½ÓµÄÈÈµãÃû³Æ£¬Èç¹ûÎ´Á¬½Ó½«Îª¿Õ
-	private String bt;//	BluetoothµÄ×´Ì¬
-	private String nfc;//	NFCµÄ×´Ì¬
-	private String ip;//	IPµØÖ·£¬ÈçºÎÎ´Á¬Íø½«Îª¿Õ
-	private String gps;//>	gpsÇé±¨
-	private String amode;//	ÊÇ·ñÎªº½¿ÕÄ£Ê½
-	private String mnet;//	Á¬½ÓµÄÒÆ¶¯ÍøÂçÃû³Æ(3g»ò4g)£¬Ã»ÓÐ½«Îª¿Õ
+	private String wifi;//wifi
+	private String bt;//	Bluetooth
+	private String nfc;//	NFC
+	private String ip;//	IP
+	private String gps;//	gps
+	private String amode;//	airflight mode
+	private String mnet;//3g,4g
 
-	
+	public String toString(){
+	    StringBuilder sb = new StringBuilder();
+	    sb.append("Device info: device-id" + deviceid +"\n");
+	    sb.append("\t Wifi:" + wifi);
+	    sb.append("\t BT:" + bt);
+	    sb.append("\t NFC:" + nfc);
+	    sb.append("\t IP:" + ip);
+	    sb.append("\t GPS:" + gps);
+	    sb.append("\t Airplane mode:" + amode);
+	    sb.append("\t Mobile Network:" + mnet);
+	    return sb.toString();
+	}
 	private Collection<Environment> env;
 
 	public String getDeviceid() {

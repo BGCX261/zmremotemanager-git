@@ -1,5 +1,12 @@
 package com.zm.epad.plugins.policy;
 
+import com.zm.epad.core.LogManager;
+
+import android.content.Context;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Message;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -10,18 +17,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
-import android.content.Context;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.os.Message;
-import android.os.SystemClock;
-
-import com.zm.epad.core.LogManager;
-
 public class RemotePolicyManager {
     private static final String TAG = "RemotePolicyManager";
 
-    private static RemotePolicyManager sInstance = null;
     private static final String PolicyFile = "policy.xml";
     private static final int EVT_POLICY_ALARM = 100;
     private static final String CHARSET = "utf-8";
@@ -32,28 +30,13 @@ public class RemotePolicyManager {
     private List<TimePolicy> mTimePolicies = new ArrayList<TimePolicy>();
     private int mNextPolicyId = 0;
 
-    public static RemotePolicyManager getInstance(Context context) {
-        if (sInstance == null) {
-            sInstance = new RemotePolicyManager(context);
-        }
-        return sInstance;
+  
+    public void stop() {
+        LogManager.local(TAG, "stop");
+        delete();
     }
 
-    public static RemotePolicyManager getInstance() {
-        LogManager.local(TAG, "getInstance:" + sInstance == null ? "null"
-                : "OK");
-        return sInstance;
-    }
-
-    public static void release() {
-        LogManager.local(TAG, "release");
-        if (sInstance != null) {
-            sInstance.delete();
-        }
-        sInstance = null;
-    }
-
-    private RemotePolicyManager(Context context) {
+    public RemotePolicyManager(Context context) {
         mContext = context;
         mThread = new HandlerThread(TAG);
         mThread.start();
@@ -70,7 +53,7 @@ public class RemotePolicyManager {
     }
 
     public void updatePolicy(String policyForm) {
-        if(policyForm == null){
+        if (policyForm == null) {
             return;
         }
 

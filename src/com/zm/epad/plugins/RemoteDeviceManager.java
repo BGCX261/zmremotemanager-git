@@ -1,82 +1,50 @@
 package com.zm.epad.plugins;
 
-import android.app.Notification;
+import com.zm.epad.core.LogManager;
+
 import android.app.NotificationManager;
 import android.app.WallpaperManager;
 import android.bluetooth.BluetoothAdapter;
-import android.content.ComponentName;
-import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.location.LocationManager;
-import android.net.Uri;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.nfc.NfcAdapter;
-import android.os.Environment;
 import android.os.Handler;
-import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
-import android.provider.MediaStore;
 import android.provider.Settings;
 import android.text.format.Time;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.Surface;
-import android.view.SurfaceControl;
 import android.view.SurfaceView;
 import android.view.WindowManager;
+import android.view.SurfaceControl;
 import android.view.WindowManagerGlobal;
-import android.hardware.Camera;
-import com.zm.epad.core.LogManager;
-import com.zm.epad.core.XmppClient;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 
 public class RemoteDeviceManager {
     public static final String TAG = "RemoteDeviceManager";
 
-    private static RemoteDeviceManager sInstance = null;
     private Context mContext = null;
 
     private Screenshot mScreenshot = null;
 
-    public static RemoteDeviceManager getInstance(Context context) {
-        if (sInstance == null) {
-            sInstance = new RemoteDeviceManager(context);
-        }
 
-        return sInstance;
+    public void stop() {
+        LogManager.local(TAG, "stop");
     }
 
-    public static RemoteDeviceManager getInstance() {
-        LogManager.local(TAG, "getInstance:" + sInstance == null ? "null"
-                : "OK");
-        return sInstance;
-    }
-
-    public static void release() {
-        LogManager.local(TAG, "release");
-        sInstance = null;
-    }
-
-    private RemoteDeviceManager(Context context) {
+    public RemoteDeviceManager(Context context) {
         mContext = context;
         mScreenshot = new Screenshot(mContext);
     }
@@ -177,7 +145,8 @@ public class RemoteDeviceManager {
             screenBitmap.prepareToDraw();
             byte[] res = null;
             try {
-                ByteArrayOutputStream out = new ByteArrayOutputStream(screenBitmap.getByteCount());
+                ByteArrayOutputStream out = new ByteArrayOutputStream(
+                        screenBitmap.getByteCount());
                 screenBitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
                 res = out.toByteArray();
                 out.close();

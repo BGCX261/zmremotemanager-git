@@ -71,7 +71,8 @@ public class NetworkStatusMonitor extends BroadcastReceiver {
                                                 // mReportees.
                 if (networkConnected != mbNetworkConnected) {
                     mbNetworkConnected = networkConnected;
-                    if(reports != null) shouldReport = true;
+                    if (reports != null)
+                        shouldReport = true;
                 }
             }
             if (shouldReport) {

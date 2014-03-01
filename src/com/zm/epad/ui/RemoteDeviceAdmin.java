@@ -1,7 +1,8 @@
 package com.zm.epad.ui;
 
-import com.zm.epad.R;
 import com.zm.epad.core.LogManager;
+
+import com.zm.epad.R;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.admin.DeviceAdminReceiver;
@@ -22,7 +23,6 @@ import android.preference.PreferenceCategory;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceScreen;
 import android.text.TextUtils;
-
 import android.widget.Toast;
 
 import java.util.List;

@@ -14,11 +14,11 @@ import android.os.IBinder;
 
 public class RemoteAccountService extends Service {
     RemoteAccountAuthenticator mRemoteAccAuth = null;
-    
+
     private static String RAA_TYPE = "zmtech";
     private static String RAA_NAME = "username";
     private static String RAA_PASSWORD = "password";
-    
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -36,8 +36,6 @@ public class RemoteAccountService extends Service {
     }
 
     class RemoteAccountAuthenticator extends AbstractAccountAuthenticator {
-
-       
 
         public RemoteAccountAuthenticator(Context context) {
             super(context);
@@ -76,8 +74,8 @@ public class RemoteAccountService extends Service {
             } else {
                 Bundle bundle = new Bundle();
                 Intent inputAccountInfo = new Intent();
-                inputAccountInfo.setComponent(new ComponentName(
-                        "com.zm.epad", "com.zm.epad.ui.DebugActivityHome"));
+                inputAccountInfo.setComponent(new ComponentName("com.zm.epad",
+                        "com.zm.epad.ui.DebugActivityHome"));
                 inputAccountInfo.putExtra(
                         AccountManager.KEY_ACCOUNT_MANAGER_RESPONSE, response);
                 bundle.putParcelable(AccountManager.KEY_INTENT,

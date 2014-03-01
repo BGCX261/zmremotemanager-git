@@ -1,27 +1,26 @@
 package com.zm.epad.plugins;
 
+import com.zm.epad.core.LogManager;
+
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
-import android.content.pm.IPackageDeleteObserver;
-import android.content.pm.IPackageInstallObserver;
-import android.content.pm.IPackageManager;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.IPackageManager;
+import android.content.pm.IPackageDeleteObserver;
+import android.content.pm.IPackageInstallObserver;
 import android.content.pm.UserInfo;
+import android.os.IUserManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.IUserManager;
 import android.os.RemoteException;
-import android.os.ServiceManager;
 import android.os.UserHandle;
-
-import com.zm.epad.core.LogManager;
-
+import android.os.ServiceManager;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +28,6 @@ import java.util.List;
 public class RemotePackageManager {
     public static final String TAG = "RemotePkgsManager";
 
-    private static RemotePackageManager sInstance = null;
     private IPackageManager mPm;
     private IUserManager mUm;
     private PackageManager mPackageManager;
@@ -39,24 +37,11 @@ public class RemotePackageManager {
     // lock used to protect white and black list. if debug, can re-name it.
     private static Object mLock = new Object();
 
-    public static RemotePackageManager getInstance(Context context) {
-        if (sInstance == null) {
-            sInstance = new RemotePackageManager(context);
-        }
-
-        return sInstance;
+ 
+    public void stop() {
+        LogManager.local(TAG, "stop");
     }
 
-    public static RemotePackageManager getInstance() {
-        LogManager.local(TAG, "getInstance:" + sInstance == null ? "null"
-                : "OK");
-        return sInstance;
-    }
-
-    public static void release() {
-        LogManager.local(TAG, "release");
-        sInstance = null;
-    }
 
     // TODO: I cannot define the item info exactly right now.
     private static class PackageVerificationItem {
@@ -102,21 +87,26 @@ public class RemotePackageManager {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            if(action.equals(Intent.ACTION_PACKAGE_NEEDS_VERIFICATION)) {
-                final int verificationId = intent.getIntExtra(PackageManager.EXTRA_VERIFICATION_ID, 0);
-                final String packageName = intent.getStringExtra(PackageManager.EXTRA_VERIFICATION_PACKAGE_NAME);
+            if (action.equals(Intent.ACTION_PACKAGE_NEEDS_VERIFICATION)) {
+                final int verificationId = intent.getIntExtra(
+                        PackageManager.EXTRA_VERIFICATION_ID, 0);
+                final String packageName = intent
+                        .getStringExtra(PackageManager.EXTRA_VERIFICATION_PACKAGE_NAME);
                 if (checkInWhitelist(packageName)) {
-                    verifyPendingInstall(verificationId, PackageManager.VERIFICATION_ALLOW);
+                    verifyPendingInstall(verificationId,
+                            PackageManager.VERIFICATION_ALLOW);
                 } else if (checkInBlacklist(packageName)) {
-                    verifyPendingInstall(verificationId, PackageManager.VERIFICATION_REJECT);
+                    verifyPendingInstall(verificationId,
+                            PackageManager.VERIFICATION_REJECT);
                 } else {
-                    verifyPendingInstall(verificationId, PackageManager.VERIFICATION_ALLOW);
+                    verifyPendingInstall(verificationId,
+                            PackageManager.VERIFICATION_ALLOW);
                 }
             }
         }
 
         private boolean checkInWhitelist(String packageName) {
-            synchronized(mLock) {
+            synchronized (mLock) {
                 for (PackageVerificationItem item : mWhitelist) {
                     if (item.packageName == packageName) {
                         return true;
@@ -127,7 +117,7 @@ public class RemotePackageManager {
         }
 
         private boolean checkInBlacklist(String packageName) {
-            synchronized(mLock) {
+            synchronized (mLock) {
                 for (PackageVerificationItem item : mBlacklist) {
                     if (item.packageName == packageName) {
                         return true;
@@ -137,8 +127,10 @@ public class RemotePackageManager {
             return false;
         }
 
-        private void verifyPendingInstall(int verificationId, int verificationCode) {
-            IPackageManager pm = IPackageManager.Stub.asInterface(ServiceManager.getService("package"));
+        private void verifyPendingInstall(int verificationId,
+                int verificationCode) {
+            IPackageManager pm = IPackageManager.Stub
+                    .asInterface(ServiceManager.getService("package"));
             try {
                 pm.verifyPendingInstall(verificationId, verificationCode);
             } catch (RemoteException e) {
@@ -147,7 +139,7 @@ public class RemotePackageManager {
         }
     }
 
-    private RemotePackageManager(Context context){
+    public RemotePackageManager(Context context) {
         try {
             mContext = context;
             mUm = IUserManager.Stub.asInterface(ServiceManager
@@ -192,13 +184,9 @@ public class RemotePackageManager {
 
     // recieve the white or black list from server.
     public void updateWhiteOrBlacklist() {
-        // TODO: empty implement right now, need @dujiang do the following.
-        // the following are only for testing.
-
-        // keep the lock to update.
-        synchronized(mLock) {
-            // api demos
-            mWhitelist.add(new PackageVerificationItem("com.example.android.apis"));
+        synchronized (mLock) {
+            mWhitelist.add(new PackageVerificationItem(
+                    "com.example.android.apis"));
         }
     }
 
@@ -234,7 +222,7 @@ public class RemotePackageManager {
             }
         } catch (Exception e) {
             LogManager.local(TAG, "uninstallPkgForUser:" + e.toString());
-           return false;
+            return false;
         }
 
         return ret;
@@ -361,30 +349,30 @@ public class RemotePackageManager {
     public String getApplicationName(PackageInfo pi) {
         return pi.applicationInfo.loadLabel(mPackageManager).toString();
     }
-    
+
     public String getApplicationName(String pkgName, int flags, int userId) {
-        try{
+        try {
             PackageInfo pi = mPm.getPackageInfo(pkgName, flags, userId);
             return getApplicationName(pi);
-            
-        }catch (Exception e) {
+
+        } catch (Exception e) {
             return null;
         }
     }
-    
+
     public String getApplicationVersion(String pkgName, int flags, int userId) {
-        try{
+        try {
             PackageInfo pi = mPm.getPackageInfo(pkgName, flags, userId);
             return pi.versionName;
-        }catch (Exception e) {
+        } catch (Exception e) {
             return null;
-        }        
+        }
     }
-    
+
     public List<RunningAppProcessInfo> getRunningAppProcesses() {
         ActivityManager am = (ActivityManager) mContext
                 .getSystemService(Context.ACTIVITY_SERVICE);
-        
+
         return am.getRunningAppProcesses();
     }
 
@@ -464,15 +452,15 @@ public class RemotePackageManager {
         return ret;
     }
 
-    public void setGuestEnabled(boolean enable){
+    public void setGuestEnabled(boolean enable) {
         try {
             mUm.setGuestEnabled(enable);
-        }catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public boolean isGusetEnabled() {
+    public boolean isGuestEnabled() {
         boolean ret = true;
         try {
             ret = mUm.isGuestEnabled();

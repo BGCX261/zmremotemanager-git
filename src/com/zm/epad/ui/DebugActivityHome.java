@@ -1,15 +1,15 @@
 package com.zm.epad.ui;
 
-import com.zm.epad.R;
+import com.zm.epad.core.LogManager;
 
 import org.jivesoftware.smack.Connection;
 
+import com.zm.epad.R;
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import com.zm.epad.core.LogManager;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -29,11 +29,10 @@ public class DebugActivityHome extends Activity {
     private TextView mPrompt = null;
     private Context mContext = null;
 
-    
     String ip = null;
     String username = null;
     String password = null;
-    
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -50,8 +49,8 @@ public class DebugActivityHome extends Activity {
         mIpText = (EditText) findViewById(R.id.editText1);
         mNameText = (EditText) findViewById(R.id.editText2);
         mPwdText = (EditText) findViewById(R.id.editText3);
-        
-        mPrompt = (TextView)findViewById(R.id.textView4);
+
+        mPrompt = (TextView) findViewById(R.id.textView4);
 
         mDebugBtn = (Button) findViewById(R.id.button4);
         mAdvancedBtn = (Button) findViewById(R.id.button2);
@@ -66,7 +65,7 @@ public class DebugActivityHome extends Activity {
                 password = mPwdText.getText().toString();
                 LogManager.local(TAG, "ip: " + ip);
                 Intent intent = new Intent();
-                
+
                 Bundle args = new Bundle();
                 args.putString("server", ip);
                 args.putString("username", username);
@@ -74,7 +73,7 @@ public class DebugActivityHome extends Activity {
                 args.putString("resource", "zhimotech");
 
                 intent.putExtras(args);
-                
+
                 OpenXMPP(intent);
                 /*
                  * intent.setClass(mContext, DebugActivity.class);
@@ -90,11 +89,11 @@ public class DebugActivityHome extends Activity {
 
             @Override
             public void onClick(View v) {
-                CloseXMPP();               
+                CloseXMPP();
             }
- 
+
         });
-        
+
         mDebugBtn.setOnClickListener(new OnClickListener() {
 
             @Override
@@ -104,9 +103,9 @@ public class DebugActivityHome extends Activity {
                 intent.putExtra("ServerIP", ip);
                 startActivity(intent);
             }
-            
+
         });
-        
+
         mAdvancedBtn.setOnClickListener(new OnClickListener() {
 
             @Override
@@ -119,8 +118,6 @@ public class DebugActivityHome extends Activity {
             }
 
         });
-        
-        
 
     }
 
@@ -137,18 +134,17 @@ public class DebugActivityHome extends Activity {
                 "com.zm.epad.core.RemoteManagerService"));
 
         try {
-            if (startService(intent) != null){
+            if (startService(intent) != null) {
                 mPrompt.setVisibility(View.VISIBLE);
                 LogManager.local(TAG, "start service succeed");
-            }
-            else
+            } else
                 LogManager.local(TAG, "start service failed");
         } catch (Exception e) {
             LogManager.local(TAG, "start service failed " + e.getMessage());
         }
 
     }
-    
+
     private void CloseXMPP() {
         Intent intent = new Intent();
         intent.setComponent(new ComponentName("com.zm.epad",

@@ -1,6 +1,5 @@
 package com.zm.epad.core;
 
-import android.R.string;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -10,7 +9,6 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
-
 
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -60,6 +58,7 @@ public class LogManager implements XmppClient.XmppClientCallback {
     static public LogManager getLogManager() {
         return mLogManager;
     }
+
     private class LogDatabase extends SQLiteOpenHelper {
         public LogDatabase(Context context, String name, int version) {
             super(context, name, null, 1);
@@ -104,7 +103,8 @@ public class LogManager implements XmppClient.XmppClientCallback {
                 mbLogined = false;
             }
         } else if (xmppClientEvent == XmppClient.XMPPCLIENT_EVENT_CONNECTION_UPDATE_STATUS) {
-            boolean bNetworkConnected = ((Integer)args[0]).equals(0)?false:true;
+            boolean bNetworkConnected = ((Integer) args[0]).equals(0) ? false
+                    : true;
             if (bNetworkConnected == false && mbLogined != bNetworkConnected) {
                 bUpdateLoginStatus = true;
                 mbLogined = false;
@@ -158,8 +158,8 @@ public class LogManager implements XmppClient.XmppClientCallback {
                         logCursor = mSqLiteDatabase.rawQuery(
                                 LOGDATABASE_QUERY_LOG, null);
                         if (logCursor != null) {
-                            //local(TAG, "we have " + logCursor.getCount()
-                            //        + " offline logs");
+                            // local(TAG, "we have " + logCursor.getCount()
+                            // + " offline logs");
                             logCursor.moveToFirst();
                             int sentId = -1;
                             while (logCursor.isAfterLast()) {
@@ -175,13 +175,15 @@ public class LogManager implements XmppClient.XmppClientCallback {
                             int count = mSqLiteDatabase.delete(
                                     LOGDATABASE_TABLE_NAME, "(id <= ?)",
                                     new String[] { "" + sentId });
-                            //local(TAG, "" + count + " logs are deleted");
+                            // local(TAG, "" + count + " logs are deleted");
                         } else {
                             local(TAG, "query with null cursor ");
                             mbLogined = false;
                         }
                     } catch (Exception e) {
-                        local(TAG, "query offline log fails with " + e.getMessage());
+                        local(TAG,
+                                "query offline log fails with "
+                                        + e.getMessage());
                         mbLogined = false;
                         if (logCursor != null) {
                             logCursor.close();
@@ -189,10 +191,10 @@ public class LogManager implements XmppClient.XmppClientCallback {
                     }
 
                 }
-            }else if(what == CMD_ADD_LOGS){
+            } else if (what == CMD_ADD_LOGS) {
                 mLock.lock();
-                String logmsg = (String)msg.obj;
-                if(mbLogined == true){
+                String logmsg = (String) msg.obj;
+                if (mbLogined == true) {
                     mXmppClient.sendLogPacket(logmsg);
                 } else {
                     if (mSqLiteDatabase != null) {
@@ -252,16 +254,15 @@ public class LogManager implements XmppClient.XmppClientCallback {
     }
 
     public void addServerLog(String tag, String txt) {
-    	
-    	//keep safe when LogManager stop unexpectedly
-    	if(mLogWorkingHandler != null)
-    	{
-            Message msg =  mLogWorkingHandler.obtainMessage();
+
+        // keep safe when LogManager stop unexpectedly
+        if (mLogWorkingHandler != null) {
+            Message msg = mLogWorkingHandler.obtainMessage();
             msg.what = CMD_ADD_LOGS;
             msg.obj = tag + ": " + txt;
 
-            mLogWorkingHandler.sendMessage(msg);    		
-    	}
+            mLogWorkingHandler.sendMessage(msg);
+        }
     }
 
     public static String local(String tag, String msg) {

@@ -1,21 +1,19 @@
 package com.zm.epad.plugins;
 
+import com.zm.epad.core.LogManager;
+import com.zm.epad.core.XmppClient;
+import com.zm.xmpp.communication.Constants;
+import com.zm.xmpp.communication.client.ResultFactory;
+import com.zm.xmpp.communication.client.ZMIQCommand;
+import com.zm.xmpp.communication.client.ZMIQResult;
+import com.zm.xmpp.communication.result.IResult;
+
+import org.jivesoftware.smack.packet.Packet;
+
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
-
-import org.jivesoftware.smack.packet.Packet;
-import org.jivesoftware.smack.packet.IQ;
-
-import com.zm.epad.core.LogManager;
-import com.zm.epad.core.XmppClient;
-import com.zm.xmpp.communication.client.ResultFactory;
-import com.zm.xmpp.communication.client.ZMIQCommand;
-import com.zm.xmpp.communication.client.ZMIQResult;
-import com.zm.xmpp.communication.command.ICommand;
-import com.zm.xmpp.communication.result.IResult;
-import com.zm.xmpp.communication.Constants;
 
 public class IQScheduleResult {
     protected static final String TAG = "IQScheduleResult";
@@ -52,7 +50,7 @@ public class IQScheduleResult {
         mThread = new HandlerThread(name);
         mThread.start();
         mHandler = new ScheduleHandler(mThread.getLooper());
-        
+
     }
 
     public boolean start(long interval, XmppClient client) {
@@ -137,7 +135,7 @@ public class IQScheduleResult {
 
     protected void sendResult(IResult result) {
         ZMIQResult resultIQ = null;
-        
+
         if (mIQCommand != null) {
             resultIQ = new ZMIQResult(mIQCommand);
         } else {

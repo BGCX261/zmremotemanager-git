@@ -1,10 +1,10 @@
 package com.zm.xmpp.communication.client;
 
+import com.zm.epad.core.LogManager;
+
 import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.provider.IQProvider;
 import org.xmlpull.v1.XmlPullParser;
-
-import com.zm.epad.core.LogManager;
 
 public class OutputIQCommandProvider implements IQProvider {
 

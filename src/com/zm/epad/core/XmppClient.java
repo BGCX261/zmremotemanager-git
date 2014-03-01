@@ -1,16 +1,5 @@
 package com.zm.epad.core;
 
-import android.content.Context;
-import android.graphics.Bitmap;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.os.Looper;
-import android.os.Message;
-
 import org.jivesoftware.smack.Connection;
 import org.jivesoftware.smack.ConnectionConfiguration;
 import org.jivesoftware.smack.ConnectionListener;
@@ -18,26 +7,18 @@ import org.jivesoftware.smack.SmackAndroid;
 import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.packet.Packet;
 import org.jivesoftware.smack.provider.ProviderManager;
-/*import org.jivesoftware.smack.util.Base64.OutputStream;
- import org.jivesoftware.smackx.filetransfer.FileTransferListener;
- import org.jivesoftware.smackx.filetransfer.FileTransferManager;
- import org.jivesoftware.smackx.filetransfer.FileTransferRequest;
- import org.jivesoftware.smackx.filetransfer.IncomingFileTransfer;
- import org.jivesoftware.smackx.filetransfer.OutgoingFileTransfer;*/
 
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.text.SimpleDateFormat;
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
+import android.os.Message;
+
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.Locale;
-import java.util.UUID;
-import java.net.URL;
 
 public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     private static final String TAG = "XmppClient";
@@ -83,7 +64,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     public interface XmppClientCallback {
         public Object reportXMPPClientEvent(int xmppClientEvent, Object... args);
     }
-    
+
     public XmppClient(Context context) {
         initializeXMPPEnvironment(context);
         mContext = context;
@@ -229,7 +210,8 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
 
     private void handleStartCmdLocked() {
         try {
-            String serverName = mConnectionInfo.getString(CoreConstants.CONSTANT_SERVER);
+            String serverName = mConnectionInfo
+                    .getString(CoreConstants.CONSTANT_SERVER);
             LogManager.local(TAG, "connect to server:" + serverName);
 
             ConnectionConfiguration config = new ConnectionConfiguration(
@@ -267,9 +249,12 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
 
     private void handleLoginCmdLocked() {
         try {
-            String usrName = mConnectionInfo.getString(CoreConstants.CONSTANT_USRNAME);
-            String usrPwd = mConnectionInfo.getString(CoreConstants.CONSTANT_PASSWORD);
-            String usrResource = mConnectionInfo.getString(CoreConstants.CONSTANT_RESOURCE);
+            String usrName = mConnectionInfo
+                    .getString(CoreConstants.CONSTANT_USRNAME);
+            String usrPwd = mConnectionInfo
+                    .getString(CoreConstants.CONSTANT_PASSWORD);
+            String usrResource = mConnectionInfo
+                    .getString(CoreConstants.CONSTANT_RESOURCE);
 
             mXmppConnection.login(usrName, usrPwd, usrResource);
 
@@ -455,7 +440,8 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
 
             LogManager.local(TAG, "xmppclient start with servername :"
                     + serverName);
-            mConnectionInfo.putString(CoreConstants.CONSTANT_SERVER, serverName);
+            mConnectionInfo
+                    .putString(CoreConstants.CONSTANT_SERVER, serverName);
             mXmppHandlerThread = new HandlerThread(TAG);
             mXmppHandlerThread.start();
             mXmppClientHandler = new XmppClientThreadHandler(
@@ -528,8 +514,10 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             LogManager.local(TAG, "xmppclient login username " + usrName
                     + " password " + password + " resource " + resource);
             mConnectionInfo.putString(CoreConstants.CONSTANT_USRNAME, usrName);
-            mConnectionInfo.putString(CoreConstants.CONSTANT_PASSWORD, password);
-            mConnectionInfo.putString(CoreConstants.CONSTANT_RESOURCE, resource);
+            mConnectionInfo
+                    .putString(CoreConstants.CONSTANT_PASSWORD, password);
+            mConnectionInfo
+                    .putString(CoreConstants.CONSTANT_RESOURCE, resource);
             Message msg = mXmppClientHandler.obtainMessage(CMD_LOGIN);
             msg.setData(mConnectionInfo);
             mXmppClientHandler.sendMessage(msg);
@@ -587,7 +575,6 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         return mXmppClientHandler.sendMessageDelayed(msg, delayMillis);
     }
 
-
     public boolean sendObjectAsync(Object targetObject,
             final String description, String requestUrl) {
         try {
@@ -603,8 +590,4 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         return true;
     }
 
-   
 }
-
-
-

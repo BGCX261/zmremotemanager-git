@@ -9,10 +9,6 @@ import org.jivesoftware.smack.provider.IQProvider;
 import org.jivesoftware.smack.provider.ProviderManager;
 import org.xmlpull.v1.XmlPullParser;
 
-import com.zm.epad.core.NetCmdDispatcher.CmdDispatchInfo;
-
-import com.zm.epad.core.LogManager;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -36,10 +32,9 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
             return mStrNameSpace /* + ":" + mStrElementName */; // can not use
                                                                 // element
         }
-        
-        public void destroy()
-        {
-        	return;
+
+        public void destroy() {
+            return;
         }
     }
 
@@ -86,7 +81,8 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
 
             String key = packet.getXmlns();
             LogManager.local(TAG, "processPacket: " + key);
-            LogManager.local(TAG, "processPacket pakcet info " + packet.toXML());
+            LogManager
+                    .local(TAG, "processPacket pakcet info " + packet.toXML());
             if (key == null) {
                 return;
             }
@@ -124,13 +120,16 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
     public void start() {
         // do nothing. just have a start function.
     }
+
     public void stop() {
         synchronized (mCmdDispacherHashMap) {
-        	Collection<CmdDispatchInfo> collection = mCmdDispacherHashMap.values();
-        	for (Iterator<CmdDispatchInfo> i = collection.iterator(); i.hasNext();){
-        		CmdDispatchInfo info = (CmdDispatchInfo)i.next();
-        		info.destroy();
-        	}
+            Collection<CmdDispatchInfo> collection = mCmdDispacherHashMap
+                    .values();
+            for (Iterator<CmdDispatchInfo> i = collection.iterator(); i
+                    .hasNext();) {
+                CmdDispatchInfo info = (CmdDispatchInfo) i.next();
+                info.destroy();
+            }
             mCmdDispacherHashMap.clear();
         }
     }
@@ -140,13 +139,13 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
         if (xmppClientEvent == XmppClient.XMPPCLIENT_EVENT_CONNECT) {
             if (args.length > 1) {
                 int connSuc = ((Integer) args[0]).intValue();
-                LogManager.local(TAG, "reportXMPPClientEvent connect to server : "
-                        + connSuc);
+                LogManager.local(TAG,
+                        "reportXMPPClientEvent connect to server : " + connSuc);
 
                 if (connSuc == 1) {
                     mXmppConnection = (Connection) args[1];
-                    
-                    //add packet Listener
+
+                    // add packet Listener
                     mXmppConnection.addPacketListener(mCmdHandler, mCmdHandler);
 
                     ProviderManager prdManager = (ProviderManager) args[2];
@@ -158,8 +157,9 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
                                 .next();
                         prdManager.addIQProvider(info.mStrElementName,
                                 info.mStrNameSpace, mCmdHandler);
-                        LogManager.local(TAG, "addIQProvider: " + info.mStrElementName
-                                + ", " + info.mStrNameSpace);
+                        LogManager.local(TAG, "addIQProvider: "
+                                + info.mStrElementName + ", "
+                                + info.mStrNameSpace);
                     }
 
                 } else if (connSuc == 0)

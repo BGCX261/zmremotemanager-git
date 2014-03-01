@@ -1,26 +1,24 @@
 package com.zm.epad.plugins;
 
+import com.zm.epad.core.CoreConstants;
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.NetCmdDispatcher.CmdDispatchInfo;
 import com.zm.epad.core.SubSystemFacade;
 import com.zm.epad.core.XmppClient;
 import com.zm.epad.plugins.RemoteFileManager.FileDownloadTask;
 import com.zm.epad.plugins.RemoteFileManager.FileTransferTask;
-import com.zm.epad.plugins.RemoteFileManager.ScreenshotTask;
-import com.zm.epad.plugins.policy.RemotePolicyManager;
 import com.zm.xmpp.communication.Constants;
 import com.zm.xmpp.communication.client.OutputIQCommand;
 import com.zm.xmpp.communication.client.OutputIQCommandProvider;
 import com.zm.xmpp.communication.client.ResultFactory;
-import com.zm.xmpp.communication.client.ResultFactory.ResultCallback;
 import com.zm.xmpp.communication.client.ZMIQCommand;
 import com.zm.xmpp.communication.client.ZMIQCommandProvider;
 import com.zm.xmpp.communication.client.ZMIQResult;
+import com.zm.xmpp.communication.command.Command4FileTransfer;
+import com.zm.xmpp.communication.command.Command4Report;
 import com.zm.xmpp.communication.command.ICommand;
 import com.zm.xmpp.communication.command.ICommand4App;
 import com.zm.xmpp.communication.command.ICommand4Query;
-import com.zm.xmpp.communication.command.Command4Report;
-import com.zm.xmpp.communication.command.Command4FileTransfer;
 import com.zm.xmpp.communication.result.IResult;
 
 import org.jivesoftware.smack.packet.IQ;
@@ -28,10 +26,10 @@ import org.jivesoftware.smack.packet.Packet;
 import org.xmlpull.v1.XmlPullParser;
 
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Looper;
 import android.os.Message;
 
 import java.io.File;
@@ -49,11 +47,7 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
     private ZMIQCommandProvider mZMIQProvider;
     private OutputIQCommandProvider mOutputProvider;
     private SubSystemFacade mSubSystemFacade;
-    
-/*    private RemotePackageManager mPkgManager;
-    private RemoteDeviceManager mDeviceManager;
-    private RemoteFileManager mFileManager;*/
-    
+
     private ResultFactory mResultFactory;
     private HandlerThread mThread;
     private Handler mHandler;
@@ -80,15 +74,18 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
 
         super.destroy();
     }
-    
-    //don't show namespace out side of this file.
-    public RemoteCmdProcessor(Context context,XmppClient xmppClient){
-        IQDispatcherCommand(context, Constants.XMPP_NAMESPACE_CENTER,
+
+    // don't show namespace out side of this file.
+    public RemoteCmdProcessor(Context context, XmppClient xmppClient) {
+        this(context, Constants.XMPP_NAMESPACE_CENTER,
                 xmppClient);
     }
-    public void setSubsystem(SubSystemFacade subSystemFacade){
+
+    public void setSubSystem(SubSystemFacade subSystemFacade) {
         mSubSystemFacade = subSystemFacade;
+        mResultFactory.setSubSystem(subSystemFacade);
     }
+
     private RemoteCmdProcessor(Context context, String namespace,
             XmppClient XmppCliet) {
         LogManager.local(TAG, "create: " + namespace);
@@ -100,29 +97,22 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
 
         mZMIQProvider = new ZMIQCommandProvider();
         mOutputProvider = new OutputIQCommandProvider();
-        
-        
-        
-        /*
-         * 
-         * Need a better way to handle these components
-        mPkgManager = RemotePackageManager.getInstance(mContext);
-        mDeviceManager = RemoteDeviceManager.getInstance(mContext);
-        mFileManager = RemoteFileManager.getInstance(mContext);
-        
-        mResultFactory = new ResultFactory(mPkgManager, mDeviceManager);*/
+
+        mResultFactory = new ResultFactory();
 
         mThread = new HandlerThread(TAG);
         mThread.start();
-        mHandler = new RemoteHandler(mThread.getLooper());
+        mHandler = new RemoteCmdHandler(mThread.getLooper());
 
     }
-    private class RemoteHandler extends Handler{
 
+    private class RemoteCmdHandler extends Handler {
+        public RemoteCmdHandler(Looper looper){
+            super(looper);
+        }
         @Override
         public void handleMessage(Message msg) {
             boolean ret = false;
-
             switch (msg.what) {
             case EVT_COMMAND:
                 ret = handleIQCommand((ZMIQCommand) msg.obj);
@@ -138,18 +128,17 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
             default:
                 break;
             }
-
-            return ret;
         }
-        
+
     }
+
     @Override
     public IQ parseXMLStream(XmlPullParser parser) {
         IQ ret = null;
 
         LogManager.local(TAG, "parseXMLStream");
         try {
-            if (isOutputType(parser.getAttributeValue(null, "type"))) {
+            if (isOutputType(parser.getAttributeValue(null, CoreConstants.CONSTANT_TYPE))) {
                 ret = mOutputProvider.parseIQ(parser);
             } else {
                 ret = mZMIQProvider.parseIQ(parser);
@@ -162,10 +151,7 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
     }
 
     private boolean isOutputType(String type) {
-        if (type.equals("policy")) {
-            return true;
-        }
-        return false;
+        return type.equals(CoreConstants.CONSTANT_POLICY);
     }
 
     @Override
@@ -193,6 +179,17 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
         return mHandler.sendMessage(msg);
     }
 
+    private void sendResultToServer(IQ iq, IResult result) {
+        ZMIQResult resultIQ = new ZMIQResult(iq);
+        if (iq == null) {
+            resultIQ.setTo(iq.getFrom());
+            resultIQ.setFrom(iq.getTo());
+        }
+        resultIQ.setResult(result);
+
+        mXmppClient.sendPacketAsync((Packet) resultIQ, 0);
+    }
+
     private boolean handleIQCommand(ZMIQCommand iq) {
         boolean ret = true;
         ICommand cmd = iq.getCommand();
@@ -209,10 +206,7 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
         if (cmdType.equals(Constants.XMPP_COMMAND_APP)) {
             IResult result = null;
             result = handleCommand4App((ICommand4App) cmd);
-
-            ZMIQResult resultIQ = new ZMIQResult(iq);
-            resultIQ.setResult(result);
-            mXmppClient.sendPacketAsync((Packet) resultIQ, 0);
+            sendResultToServer(iq, result);
         } else if (cmdType.equals(Constants.XMPP_COMMAND_QUERY)) {
             List<IResult> resultList = null;
             try {
@@ -223,12 +217,7 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
                     // when resultList is not null, send the result immediately
                     for (IResult r : resultList) {
                         LogManager.local(TAG, "send packet start ");
-                        ZMIQResult resultIQ = new ZMIQResult();
-                        resultIQ.setTo(iq.getFrom());
-                        resultIQ.setFrom(iq.getTo());
-
-                        resultIQ.setResult(r);
-                        mXmppClient.sendPacketAsync((Packet) resultIQ, 0);
+                        sendResultToServer(null, r);
                         LogManager.local(TAG, "send packet end ");
                     }
                 } else {
@@ -238,24 +227,24 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
 
             } catch (Exception e) {
                 // when exception, it means failed to get info, send NG
-                ZMIQResult resultIQ = new ZMIQResult(iq);
 
                 IResult r = mResultFactory.getResult(
-                        ResultFactory.RESULT_NORMAL, cmd.getId(), "NG");
-                resultIQ.setResult(r);
+                        ResultFactory.RESULT_NORMAL, cmd.getId(),
+                        CoreConstants.CONSTANT_RESULT_NG);
 
-                mXmppClient.sendPacketAsync((Packet) resultIQ, 0);
+                sendResultToServer(iq, r);
+
             }
         } else if (cmdType.equals(Constants.XMPP_COMMAND_REPORT)) {
             ret = handleCommand4Report(iq);
 
             if (ret == false) {
                 // set NG result
-                ZMIQResult resultIQ = new ZMIQResult(iq);
+
                 IResult r = mResultFactory.getResult(
-                        ResultFactory.RESULT_NORMAL, cmd.getId(), "NG");
-                resultIQ.setResult(r);
-                mXmppClient.sendPacketAsync((Packet) resultIQ, 0);
+                        ResultFactory.RESULT_NORMAL, cmd.getId(),
+                        CoreConstants.CONSTANT_RESULT_NG);
+                sendResultToServer(iq, r);
             }
 
         } else if (cmdType.equals(Constants.XMPP_COMMAND_FILE_TRANSFER)) {
@@ -299,29 +288,47 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
         if (cmd.getAction().equals(Constants.XMPP_APP_ENABLE)) {
             String name = cmd.getAppName();
             int userId = cmd.getUserId();
-            ret = mPkgManager.enablePkgForUser(name, userId);
+            ret = mSubSystemFacade.enablePkgForUser(name, userId);
         } else if (cmd.getAction().equals(Constants.XMPP_APP_DISABLE)) {
             String name = cmd.getAppName();
             int userId = cmd.getUserId();
-            ret = mPkgManager.disablePkgForUser(name, userId);
+            ret = mSubSystemFacade.disablePkgForUser(name, userId);
         } else if (cmd.getAction().equals(Constants.XMPP_APP_INSTALL)) {
             String url = cmd.getAppUrl();
             int userId = cmd.getUserId();
-            ret = mPkgManager.installPkgForUser(url, userId);
+            ret = mSubSystemFacade.installPkgForUser(url, userId);
         } else if (cmd.getAction().equals(Constants.XMPP_APP_REMOVE)) {
             String name = cmd.getAppName();
             int userId = cmd.getUserId();
-            ret = mPkgManager.uninstallPkgForUser(name, userId);
+            ret = mSubSystemFacade.uninstallPkgForUser(name, userId);
         } else {
             LogManager.local(TAG, "bad action");
         }
 
         result = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
-                cmd.getId(), ret == true ? "OK" : "NG");
+                cmd.getId(), getResultStr(ret));
 
         LogManager.local(TAG, "handleCommand4App return:" + ret);
         return result;
 
+    }
+
+    private String getResultStr(Object bOK) {
+        return bOK != null ? CoreConstants.CONSTANT_RESULT_OK
+                : CoreConstants.CONSTANT_RESULT_NG;
+    }
+
+    private String getResultStr(boolean bOK) {
+        return bOK == true ? CoreConstants.CONSTANT_RESULT_OK
+                : CoreConstants.CONSTANT_RESULT_NG;
+    }
+
+    private void setCaptureBundleInfo(Bundle info, ICommand4Query cmd) {
+        info.putString(CoreConstants.CONSTANT_COMMANDID, cmd.getId());
+        info.putString(CoreConstants.CONSTANT_TYPE, cmd.getType());
+        info.putString(CoreConstants.CONSTANT_ACTION, cmd.getAction());
+        info.putString(CoreConstants.CONSTANT_MIME,
+                CoreConstants.CONSTANT_IMG_PNG);
     }
 
     private List<IResult> handleCommand4Query(ICommand4Query cmd,
@@ -347,13 +354,11 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
             }
         } else if (action.equals(Constants.XMPP_QUERY_CAPTURE)) {
             Bundle info = new Bundle();
-            info.putString("commandid", cmd.getId());
-            info.putString("type", cmd.getType());
-            info.putString("action", cmd.getAction());
-            info.putString("mime", "image/png");
+            setCaptureBundleInfo(info, cmd);
+
             final String cmdId = cmd.getId();
-            ScreenshotTask task = mFileManager.getScreenshotTask(cmd.getUrl(),
-                    info, new RemoteFileManager.FileTransferCallback() {
+            mSubSystemFacade.uploadScreenshot(cmd.getUrl(), info,
+                    new RemoteFileManager.FileTransferCallback() {
                         ResultFactory.ResultCallback cb = callback;
                         String id = cmdId;
 
@@ -362,7 +367,7 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
                             String fileName = (String) task.getResult();
                             IResult result = mResultFactory.getResult(
                                     ResultFactory.RESULT_NORMAL, id,
-                                    fileName != null ? "OK" : "NG");
+                                    getResultStr(fileName));
 
                             cb.handleResult(result);
                         }
@@ -371,12 +376,12 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
                         public void onCancel(FileTransferTask task) {
                             // when cancel, send NG
                             IResult result = mResultFactory.getResult(
-                                    ResultFactory.RESULT_NORMAL, id, "NG");
+                                    ResultFactory.RESULT_NORMAL, id,
+                                    CoreConstants.CONSTANT_RESULT_NG);
 
                             cb.handleResult(result);
                         }
                     });
-            task.start();
             results = null;
         } else {
             LogManager.local(TAG, "handleCommand4Query bad action");
@@ -442,8 +447,8 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
 
         if (cmd.getAction().equals(Constants.XMPP_FILE_TRANSFER_WALLPAPER)) {
             final String cmdid = cmd.getId();
-            FileDownloadTask task = mFileManager.getFileDownloadTask(
-                    cmd.getUrl(), new RemoteFileManager.FileTransferCallback() {
+            mSubSystemFacade.downloadFile(cmd.getUrl(),
+                    new RemoteFileManager.FileTransferCallback() {
                         String id = cmdid;
                         ResultFactory.ResultCallback cb = callback;
 
@@ -455,7 +460,7 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
                             File file = ((FileDownloadTask) task).getResult();
 
                             if (file != null) {
-                                ret = mDeviceManager.changeWallpaper(file
+                                ret = mSubSystemFacade.changeWallpaper(file
                                         .toString());
                             }
                             // delete temp file after change wallpaper
@@ -463,7 +468,7 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
 
                             IResult result = mResultFactory.getResult(
                                     ResultFactory.RESULT_NORMAL, id,
-                                    ret == false ? "NG" : "OK");
+                                    getResultStr(ret));
                             cb.handleResult(result);
                         }
 
@@ -471,12 +476,12 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
                         public void onCancel(FileTransferTask task) {
                             // when cancel, send NG
                             IResult result = mResultFactory.getResult(
-                                    ResultFactory.RESULT_NORMAL, id, "NG");
+                                    ResultFactory.RESULT_NORMAL, id,
+                                    CoreConstants.CONSTANT_RESULT_NG);
 
                             cb.handleResult(result);
                         }
                     });
-            task.start();
             ret = true;
         }
         return ret;
@@ -485,17 +490,13 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
     private boolean handleOutputIQCommand(OutputIQCommand iq) {
         boolean ret = false;
         if (iq.getCommandType().equals("policy")) {
-            RemotePolicyManager pm = RemotePolicyManager.getInstance();
-            pm.updatePolicy(iq.getOutput());
+            mSubSystemFacade.updatePolicy(iq.getOutput());
             ret = true;
         }
-
-        // send result
-        ZMIQResult resultIQ = new ZMIQResult(iq);
         IResult result = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
-                iq.getId(), ret == true ? "OK" : "NG");
-        resultIQ.setResult(result);
-        mXmppClient.sendPacketAsync((Packet) resultIQ, 0);
+                iq.getId(), getResultStr(ret));
+        // send result
+        sendResultToServer(iq, result);
 
         return ret;
     }

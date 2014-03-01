@@ -1,6 +1,5 @@
 package com.zm.epad.ui;
 
-import com.zm.epad.R;
 import com.zm.epad.core.LogManager;
 import com.zm.xmpp.communication.Constants;
 import com.zm.xmpp.communication.client.ZMIQCommand;
@@ -10,6 +9,7 @@ import com.zm.xmpp.communication.command.Command4Report;
 
 import org.jivesoftware.smack.XMPPConnection;
 
+import com.zm.epad.R;
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
@@ -20,7 +20,6 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
-import android.os.Build;
 
 public class DebugActivitySender extends Activity {
     public static final String TAG = "DebugActivitySender";
@@ -29,14 +28,14 @@ public class DebugActivitySender extends Activity {
     private Button mEnableBtn = null;
     private Button mRemoveBtn = null;
     private Button mInstallBtn = null;
-    
+
     private Button mAppInfoBtn = null;
     private Button mDeviceInfoBtn = null;
     private Button mUserInfoBtn = null;
-    
-    private Button mAppTraceBtn = null;  
+
+    private Button mAppTraceBtn = null;
     private Button mAppUntraceBtn = null;
-    
+
     private Button mDeviceAdmin = null;
 
     private EditText mNameText = null;
@@ -58,22 +57,22 @@ public class DebugActivitySender extends Activity {
 
         testConnectionOn();
         mDeviceAdmin = (Button) findViewById(R.id.button0);
-        
+
         mDisableBtn = (Button) findViewById(R.id.button1);
         mEnableBtn = (Button) findViewById(R.id.button2);
         mRemoveBtn = (Button) findViewById(R.id.button3);
         mInstallBtn = (Button) findViewById(R.id.button4);
-        
+
         mAppInfoBtn = (Button) findViewById(R.id.button5);
         mDeviceInfoBtn = (Button) findViewById(R.id.button6);
         mUserInfoBtn = (Button) findViewById(R.id.button7);
-        
+
         mAppTraceBtn = (Button) findViewById(R.id.button8);
-        mAppUntraceBtn = (Button) findViewById(R.id.button9);       
+        mAppUntraceBtn = (Button) findViewById(R.id.button9);
 
         mNameText = (EditText) findViewById(R.id.editText1);
         mUserIdText = (EditText) findViewById(R.id.editText2);
-        
+
         mDeviceAdmin.setOnClickListener(new OnClickListener() {
 
             @Override
@@ -81,8 +80,8 @@ public class DebugActivitySender extends Activity {
                 android.content.Intent intent = new Intent();
                 intent.setComponent(new ComponentName("com.zm.epad",
                         "com.zm.epad.ui.RemoteDeviceAdmin"));
-                startActivity(intent);                
-            }         
+                startActivity(intent);
+            }
         });
 
         mDisableBtn.setOnClickListener(new OnClickListener() {
@@ -156,77 +155,77 @@ public class DebugActivitySender extends Activity {
             }
 
         });
-        
-        mAppInfoBtn.setOnClickListener(new OnClickListener(){
 
-			@Override
-			public void onClick(View arg0) {
-				// TODO Auto-generated method stub
+        mAppInfoBtn.setOnClickListener(new OnClickListener() {
+
+            @Override
+            public void onClick(View arg0) {
+                // TODO Auto-generated method stub
                 try {
                     sendTestCommand4Query(Constants.XMPP_QUERY_APP);
                 } catch (Exception e) {
                     LogManager.local(TAG, e.getMessage());
                 }
-			}
-        	
+            }
+
         });
 
-        mDeviceInfoBtn.setOnClickListener(new OnClickListener(){
+        mDeviceInfoBtn.setOnClickListener(new OnClickListener() {
 
-			@Override
-			public void onClick(View arg0) {
-				// TODO Auto-generated method stub
+            @Override
+            public void onClick(View arg0) {
+                // TODO Auto-generated method stub
                 try {
                     sendTestCommand4Query(Constants.XMPP_QUERY_DEVICE);
                 } catch (Exception e) {
                     LogManager.local(TAG, e.getMessage());
                 }
-			}
-        	
+            }
+
         });
 
-        mUserInfoBtn.setOnClickListener(new OnClickListener(){
+        mUserInfoBtn.setOnClickListener(new OnClickListener() {
 
-			@Override
-			public void onClick(View arg0) {
-				// TODO Auto-generated method stub
+            @Override
+            public void onClick(View arg0) {
+                // TODO Auto-generated method stub
                 try {
                     sendTestCommand4Query(Constants.XMPP_QUERY_ENV);
                 } catch (Exception e) {
                     LogManager.local(TAG, e.getMessage());
                 }
-			}
-        	
+            }
+
         });
-        
-        mAppTraceBtn.setOnClickListener(new OnClickListener(){
+
+        mAppTraceBtn.setOnClickListener(new OnClickListener() {
 
             @Override
             public void onClick(View arg0) {
                 // TODO Auto-generated method stub
                 try {
-                    sendTestCommand4Report(Constants.XMPP_REPORT_APP, 
+                    sendTestCommand4Report(Constants.XMPP_REPORT_APP,
                             Constants.XMPP_REPORT_ACT_TRACE);
                 } catch (Exception e) {
                     LogManager.local(TAG, e.getMessage());
                 }
             }
-            
+
         });
-        
-        mAppUntraceBtn.setOnClickListener(new OnClickListener(){
+
+        mAppUntraceBtn.setOnClickListener(new OnClickListener() {
 
             @Override
             public void onClick(View arg0) {
                 // TODO Auto-generated method stub
                 try {
-                    sendTestCommand4Report(Constants.XMPP_REPORT_APP, 
+                    sendTestCommand4Report(Constants.XMPP_REPORT_APP,
                             Constants.XMPP_REPORT_ACT_UNTRACE);
                 } catch (Exception e) {
                     LogManager.local(TAG, e.getMessage());
                 }
             }
-            
+
         });
     }
 
@@ -286,46 +285,45 @@ public class DebugActivitySender extends Activity {
             IntUid = 0;
         }
 
-        Command4App Command = new Command4App(Constants.XMPP_NAMESPACE_CENTER, "9527",
-                action, "time2014", name, "ver1.1.1", "/sdcard/testinstall/"
-                        + name, IntUid, null);
+        Command4App Command = new Command4App(Constants.XMPP_NAMESPACE_CENTER,
+                "9527", action, "time2014", name, "ver1.1.1",
+                "/sdcard/testinstall/" + name, IntUid, null);
         LogManager.local(TAG, "##Command4App##\n" + Command.toXML());
 
         ZMIQCommand cmdIQ = new ZMIQCommand();
         cmdIQ.setCommand(Command);
-        cmdIQ.setTo("dengfanping@com.zm.openfire/"+Build.SERIAL);
+        cmdIQ.setTo("dengfanping@com.zm.openfire/" + Build.SERIAL);
         cmdIQ.setFrom("test@com.zm.openfire/zhimotech");
         cmdIQ.setPacketID("xyzzd");
         testConnection.sendPacket(cmdIQ);
         LogManager.local(TAG, "##IQ##\n" + cmdIQ.toXML());
     }
-    
-    void sendTestCommand4Query(String action)
-    {
-    	Command4Query Command = new Command4Query(Constants.XMPP_NAMESPACE_CENTER, "9528", 
-    			action,"time2014");
-    	LogManager.local(TAG, "##Command4Query##\n" + Command.toXML());
-    	
+
+    void sendTestCommand4Query(String action) {
+        Command4Query Command = new Command4Query(
+                Constants.XMPP_NAMESPACE_CENTER, "9528", action, "time2014");
+        LogManager.local(TAG, "##Command4Query##\n" + Command.toXML());
+
         ZMIQCommand cmdIQ = new ZMIQCommand();
         cmdIQ.setCommand(Command);
-        cmdIQ.setTo("dengfanping@com.zm.openfire/"+Build.SERIAL);
+        cmdIQ.setTo("dengfanping@com.zm.openfire/" + Build.SERIAL);
         cmdIQ.setFrom("test@com.zm.openfire/zhimotech");
         cmdIQ.setPacketID("xyzzd");
         testConnection.sendPacket(cmdIQ);
-        LogManager.local(TAG, "##IQ##\n" + cmdIQ.toXML());    	
+        LogManager.local(TAG, "##IQ##\n" + cmdIQ.toXML());
     }
-    
-    void sendTestCommand4Report(String report, String action){
-        Command4Report Command = new Command4Report(Constants.XMPP_NAMESPACE_CENTER, "9529",
-                report, action, "2014");
-        
+
+    void sendTestCommand4Report(String report, String action) {
+        Command4Report Command = new Command4Report(
+                Constants.XMPP_NAMESPACE_CENTER, "9529", report, action, "2014");
+
         ZMIQCommand cmdIQ = new ZMIQCommand();
         cmdIQ.setCommand(Command);
-        cmdIQ.setTo("dengfanping@com.zm.openfire/"+Build.SERIAL);
+        cmdIQ.setTo("dengfanping@com.zm.openfire/" + Build.SERIAL);
         cmdIQ.setFrom("test@com.zm.openfire/zhimotech");
         cmdIQ.setPacketID("xyzzd");
         testConnection.sendPacket(cmdIQ);
-        LogManager.local(TAG, "##IQ##\n" + cmdIQ.toXML());  
+        LogManager.local(TAG, "##IQ##\n" + cmdIQ.toXML());
     }
 
     @Override

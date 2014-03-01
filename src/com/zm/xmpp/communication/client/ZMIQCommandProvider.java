@@ -1,11 +1,11 @@
 package com.zm.xmpp.communication.client;
 
+import com.zm.epad.core.LogManager;
+import com.zm.xmpp.communication.command.ICommand;
+
 import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.provider.IQProvider;
 import org.xmlpull.v1.XmlPullParser;
-
-import com.zm.xmpp.communication.command.ICommand;
-import com.zm.epad.core.LogManager;
 
 public class ZMIQCommandProvider implements IQProvider {
 
@@ -22,9 +22,8 @@ public class ZMIQCommandProvider implements IQProvider {
             String namespace = parser.getNamespace();
             command.setDirection(namespace);
             iq.setXmlns(namespace);
-            LogManager.local(TAG,
-                    "receive command type:" + type + " namespace:"
-                            + iq.getXmlns());
+            LogManager.local(TAG, "receive command type:" + type
+                    + " namespace:" + iq.getXmlns());
 
             while (!done) {
                 int eventType = parser.next();

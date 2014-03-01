@@ -13,4 +13,11 @@ public interface CoreConstants {
     static String CONSTANT_UPLOAD = "upload";
     static String CONSTANT_MIME = "mime";
     static String CONSTANT_DEVICEID = Build.SERIAL;
+    static String CONSTANT_IMG_PNG = "image/png";
+    static String CONSTANT_POLICY = "policy";
+    static String CONSTANT_RESULT_OK = "OK";
+    static String CONSTANT_RESULT_NG = "NG";
+    static String CONSTANT_RESULT_DONE = "done";
+    static String CONSTANT_RESULT_DONE_ = "done:";
+    static String CONSTANT_RESULT_DONE_0 = "done:0";
 }

@@ -1,8 +1,8 @@
 package com.zm.xmpp.communication.client;
 
-import org.jivesoftware.smack.packet.IQ;
-
 import com.zm.xmpp.communication.command.ICommand;
+
+import org.jivesoftware.smack.packet.IQ;
 
 public class ZMIQCommand extends IQ {
     static private final String TAG = "XMPP-Client IQ Command";

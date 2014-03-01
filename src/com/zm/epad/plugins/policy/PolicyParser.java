@@ -1,22 +1,23 @@
 package com.zm.epad.plugins.policy;
 
-import java.io.IOException;
-import java.io.StringReader;
-import java.util.HashMap;
-
-import org.xmlpull.v1.XmlPullParser;
-import org.xmlpull.v1.XmlPullParserException;
-import org.xmlpull.v1.XmlPullParserFactory;
-
 import com.zm.epad.core.LogManager;
+import com.zm.epad.core.SubSystemFacade;
 import com.zm.epad.plugins.RemoteDeviceManager;
 import com.zm.epad.plugins.RemotePackageManager;
 import com.zm.epad.plugins.policy.RemotePolicyManager.SwitchPolicy;
 import com.zm.epad.plugins.policy.RemotePolicyManager.TimeSlotPolicy;
 
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
+import org.xmlpull.v1.XmlPullParserFactory;
+
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.HashMap;
 
 public class PolicyParser {
     private static final String TAG = "PolicyParser";
@@ -38,7 +39,7 @@ public class PolicyParser {
             throws XmlPullParserException {
         mContext = context;
         mParser = XmlPullParserFactory.newInstance().newPullParser();
-        mManager = RemotePolicyManager.getInstance();
+        mManager = SubSystemFacade.getInstance().getRemotePolicyManager();
         StringReader in = new StringReader(policyForm);
         mParser.setInput(in);
     }
@@ -49,7 +50,8 @@ public class PolicyParser {
             int eventType = mParser.next();
             if (eventType == XmlPullParser.START_TAG) {
                 if (mParser.getName().equals(TAG_POLICY)) {
-                    String type = mParser.getAttributeValue(null, PolicyConstants.ATTR_TYPE);
+                    String type = mParser.getAttributeValue(null,
+                            PolicyConstants.ATTR_TYPE);
                     if (type.equals(PolicyConstants.TYPE_SWITCH)) {
                         parseSwitchPolicy(mParser);
                     }
@@ -107,21 +109,20 @@ public class PolicyParser {
                 public void onStart(TimeSlotPolicy policy) {
                     LogManager.local(TAG,
                             "disable user start:" + policy.getId());
-                    RemotePackageManager.getInstance().setGuestEnabled(false);
-                    // when start, mandatory lock screen.
-                    RemoteDeviceManager.getInstance().lockScreen();
+                    SubSystemFacade.getInstance().setGuestEnabled(false);
+                      
+                    SubSystemFacade.getInstance().lockScreen();
                 }
 
                 @Override
                 public void onEnd(TimeSlotPolicy policy) {
                     LogManager.local(TAG, "disable user end:" + policy.getId());
-                    RemotePackageManager.getInstance().setGuestEnabled(true);
+                    SubSystemFacade.getInstance().setGuestEnabled(true);
                 }
 
                 @Override
                 public boolean runNow(TimeSlotPolicy policy) {
-                    boolean guest = RemotePackageManager.getInstance()
-                            .isGusetEnabled();
+                    boolean guest = SubSystemFacade.getInstance().isGuestEnabled();
                     if (guest && policy.isInSlot()) {
                         return true;
                     } else if (!guest && !policy.isInSlot()) {
@@ -139,21 +140,20 @@ public class PolicyParser {
                 @Override
                 public void onStart(TimeSlotPolicy policy) {
                     LogManager.local(TAG, "enable user start:" + policy.getId());
-                    RemotePackageManager.getInstance().setGuestEnabled(true);
+                    SubSystemFacade.getInstance().setGuestEnabled(true);
                     // when start, mandatory lock screen.
-                    RemoteDeviceManager.getInstance().lockScreen();
+                    SubSystemFacade.getInstance().lockScreen();
                 }
 
                 @Override
                 public void onEnd(TimeSlotPolicy policy) {
                     LogManager.local(TAG, "enable user end:" + policy.getId());
-                    RemotePackageManager.getInstance().setGuestEnabled(false);
+                    SubSystemFacade.getInstance().setGuestEnabled(false);
                 }
 
                 @Override
                 public boolean runNow(TimeSlotPolicy policy) {
-                    boolean guest = RemotePackageManager.getInstance()
-                            .isGusetEnabled();
+                    boolean guest = SubSystemFacade.getInstance().isGuestEnabled();
                     if (!guest && policy.isInSlot()) {
                         return true;
                     } else if (guest && !policy.isInSlot()) {
