@@ -1,7 +1,8 @@
 package com.zm.epad.plugins;
 
 import com.zm.epad.core.LogManager;
-
+import com.zm.epad.core.SubSystemFacade;
+import com.zm.epad.plugins.RemoteFileManager.*;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.content.BroadcastReceiver;
@@ -20,14 +21,9 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.RemoteException;
 import android.os.UserHandle;
-<<<<<<< HEAD
+
 import android.os.ServiceManager;
-=======
 
-import com.zm.epad.core.LogManager;
-import com.zm.epad.plugins.RemoteFileManager.*;
-
->>>>>>> 1055d9ea20c34a4a84ffc591a42743d6a0b3794b
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -289,9 +285,8 @@ public class RemotePackageManager {
             final installCallback cb) {
         LogManager.local(TAG, "installPkgForUser: " + userId);
         if (needDownload(apkLocation)) {
-            FileDownloadTask t = RemoteFileManager.getInstance()
-                    .getFileDownloadTask(apkLocation,
-                            new FileTransferCallback() {
+            SubSystemFacade.getInstance().downloadFile(apkLocation,
+                              new FileTransferCallback() {
                                 int mUserId = userId;
                                 installCallback mCallback = cb;
 
@@ -312,7 +307,6 @@ public class RemotePackageManager {
                                 }
 
                             });
-            t.start();
             return -1;
         } else {
             return installPkgForUser(apkLocation, userId) ? 0 : 1;
@@ -335,7 +329,7 @@ public class RemotePackageManager {
             return apkLocation;
     }
 
-    private boolean installPkgForUser(String apkLocation, int userId) {
+    public boolean installPkgForUser(String apkLocation, int userId) {
         LogManager.local(TAG, "installPkgForUser: " + userId);
         apkLocation = getRealPath(apkLocation);
         if (apkLocation == null)
