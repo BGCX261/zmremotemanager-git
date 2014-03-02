@@ -1,7 +1,9 @@
 package com.zm.epad.plugins.policy;
 
 import com.zm.epad.core.LogManager;
+import com.zm.epad.core.SubSystemFacade;
 
+import android.app.AlarmManager;
 import android.content.Context;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -25,7 +27,8 @@ public class RemotePolicyManager {
     private static final String CHARSET = "utf-8";
 
     private Context mContext;
-    private HandlerThread mThread;
+    //private HandlerThread mThread;
+    private final AlarmManager mAlarmManager;
     private Handler mHandler;
     private List<TimePolicy> mTimePolicies = new ArrayList<TimePolicy>();
     private int mNextPolicyId = 0;
@@ -38,18 +41,19 @@ public class RemotePolicyManager {
 
     public RemotePolicyManager(Context context) {
         mContext = context;
-        mThread = new HandlerThread(TAG);
-        mThread.start();
-        mHandler = new Handler(mThread.getLooper(), new policyAlarmCallback());
+        mAlarmManager = (AlarmManager)mContext.getSystemService(Context.ALARM_SERVICE);
+        //mThread = new HandlerThread(TAG);
+        //mThread.start();
+        //mHandler = new Handler(mThread.getLooper(), new policyAlarmCallback());
     }
-
+    
     private void delete() {
-        try {
+        /*try {
             mThread.quit();
             mThread.join();
         } catch (Exception e) {
             LogManager.local(TAG, "destroy:" + e.toString());
-        }
+        }*/
     }
 
     public void updatePolicy(String policyForm) {
@@ -63,6 +67,9 @@ public class RemotePolicyManager {
     }
 
     public void loadPolicy() {
+        if(mHandler == null){
+            mHandler = new Handler(SubSystemFacade.getInstance().getAThreadLooper());
+        }
         parsePolicy(readPolicy());
         executePolicy();
     }
@@ -154,6 +161,7 @@ public class RemotePolicyManager {
             if (!file.exists()) {
                 return null;
             }
+            //@todo: this code really needs improvement.
             FileInputStream in = new FileInputStream(file);
             byte[] policyForm = new byte[(int) file.length()];
             in.read(policyForm);

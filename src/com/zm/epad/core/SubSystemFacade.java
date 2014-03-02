@@ -2,6 +2,7 @@ package com.zm.epad.core;
 
 import com.zm.epad.plugins.RemoteDeviceManager;
 import com.zm.epad.plugins.RemoteFileManager;
+import com.zm.epad.plugins.UsageStatisticsManager;
 import com.zm.epad.plugins.RemoteFileManager.FileTransferCallback;
 import com.zm.epad.plugins.RemotePackageManager;
 import com.zm.epad.plugins.policy.RemotePolicyManager;
@@ -18,6 +19,7 @@ import android.os.Bundle;
 import android.os.Looper;
 import android.os.UserManager;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -30,6 +32,7 @@ public class SubSystemFacade {
     private RemoteDeviceManager mDeviceManager;
     private RemoteFileManager mFileManager;
     private RemotePolicyManager mPolicyManager;
+    private UsageStatisticsManager mUsageStatisticsManager;
 
     private Context mContext;
     private static SubSystemFacade gSubSystemFacade = null;
@@ -60,6 +63,10 @@ public class SubSystemFacade {
 
         mPolicyManager = new RemotePolicyManager(mContext);
         mPolicyManager.loadPolicy();
+        
+        mUsageStatisticsManager = new UsageStatisticsManager(mContext);
+        mUsageStatisticsManager.start();
+        
     }
 
     public RemotePackageManager getRemotePackageManager() {
@@ -86,6 +93,9 @@ public class SubSystemFacade {
     }
 
     public void stop() {
+        mUsageStatisticsManager.stop();
+        mUsageStatisticsManager = null;
+        
         mPackageManager.stop();
         mPackageManager = null;
 
@@ -343,5 +353,12 @@ public class SubSystemFacade {
      */
     public void updatePolicy(String policy) {
         mPolicyManager.updatePolicy(policy);
+    }
+    
+    /*
+     * Wrapper around UsageStaticsManager
+     */
+    public ArrayList<UsageStatisticsManager.AppUsageStatistic> getAppUsageInfo(){
+        return mUsageStatisticsManager.getAppUsageInfo();
     }
 }
