@@ -4,6 +4,7 @@ import com.zm.epad.plugins.RemoteDeviceManager;
 import com.zm.epad.plugins.RemoteFileManager;
 import com.zm.epad.plugins.UsageStatisticsManager;
 import com.zm.epad.plugins.RemoteFileManager.FileTransferCallback;
+import com.zm.epad.plugins.RemotePackageManager.installCallback;
 import com.zm.epad.plugins.RemotePackageManager;
 import com.zm.epad.plugins.policy.RemotePolicyManager;
 import com.zm.epad.structure.Application;
@@ -147,6 +148,10 @@ public class SubSystemFacade {
 
     public boolean installPkgForUser(String url, int userId) {
         return mPackageManager.installPkgForUser(url, userId);
+    }
+
+    public int installPkgForUser(String url, int userId, installCallback cb) {
+        return mPackageManager.installPkgForUser(url, userId, cb);
     }
 
     public boolean uninstallPkgForUser(String name, int userId) {
