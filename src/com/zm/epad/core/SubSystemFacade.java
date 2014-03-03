@@ -1,8 +1,10 @@
 package com.zm.epad.core;
 
+
+import com.android.internal.os.PkgUsageStats;
 import com.zm.epad.plugins.RemoteDeviceManager;
 import com.zm.epad.plugins.RemoteFileManager;
-import com.zm.epad.plugins.UsageStatisticsManager;
+import com.zm.epad.plugins.RemoteStatsManager;
 import com.zm.epad.plugins.RemoteFileManager.FileTransferCallback;
 import com.zm.epad.plugins.RemotePackageManager.installCallback;
 import com.zm.epad.plugins.RemotePackageManager;
@@ -33,7 +35,7 @@ public class SubSystemFacade {
     private RemoteDeviceManager mDeviceManager;
     private RemoteFileManager mFileManager;
     private RemotePolicyManager mPolicyManager;
-    private UsageStatisticsManager mUsageStatisticsManager;
+    private RemoteStatsManager mStatsManager;
 
     private Context mContext;
     private static SubSystemFacade gSubSystemFacade = null;
@@ -65,8 +67,8 @@ public class SubSystemFacade {
         mPolicyManager = new RemotePolicyManager(mContext);
         mPolicyManager.loadPolicy();
         
-        mUsageStatisticsManager = new UsageStatisticsManager(mContext);
-        mUsageStatisticsManager.start();
+        mStatsManager = new RemoteStatsManager(mContext);
+        mStatsManager.start();
         
     }
 
@@ -85,7 +87,9 @@ public class SubSystemFacade {
     public RemotePolicyManager getRemotePolicyManager() {
         return mPolicyManager;
     }
-
+    public RemoteStatsManager getRemoteStatsManager(){
+        return mStatsManager;
+    }
     public boolean addTaskToSubSystemThreadPool(Runnable task) {
         if (mThreadPool == null)
             return false;
@@ -94,8 +98,8 @@ public class SubSystemFacade {
     }
 
     public void stop() {
-        mUsageStatisticsManager.stop();
-        mUsageStatisticsManager = null;
+        mStatsManager.stop();
+        mStatsManager = null;
         
         mPackageManager.stop();
         mPackageManager = null;
@@ -361,9 +365,9 @@ public class SubSystemFacade {
     }
     
     /*
-     * Wrapper around UsageStaticsManager
+     * Wrapper around RemoteStatsManager
      */
-    public ArrayList<UsageStatisticsManager.AppUsageStatistic> getAppUsageInfo(){
-        return mUsageStatisticsManager.getAppUsageInfo();
+    public PkgUsageStats[] getAllPkgUsageStats(){
+        return mStatsManager.getAllPkgUsageStats();
     }
 }
