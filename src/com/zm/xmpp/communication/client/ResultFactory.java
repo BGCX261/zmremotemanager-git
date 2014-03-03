@@ -18,12 +18,7 @@ import com.zm.epad.structure.Configuration;
 import com.zm.epad.structure.Device;
 import com.zm.epad.structure.Environment;
 import com.zm.xmpp.communication.Constants;
-import com.zm.xmpp.communication.result.IResult;
-import com.zm.xmpp.communication.result.ResultApp;
-import com.zm.xmpp.communication.result.ResultDevice;
-import com.zm.xmpp.communication.result.ResultEnv;
-import com.zm.xmpp.communication.result.ResultNormal;
-import com.zm.xmpp.communication.result.ResultRunningApp;
+import com.zm.xmpp.communication.result.*;
 
 import android.app.ActivityManager.RunningAppProcessInfo;
 
@@ -40,6 +35,8 @@ public class ResultFactory {
     public static final int RESULT_DEVICE = 3;
     public static final int RESULT_ENV = 4;
     public static final int RESULT_RUNNINGAPP = 5;
+    public static final int RESULT_APPUSAGE = 6;
+    public static final int RESULT_POSITION = 7;
 
     private static final int RESULT_APPINFO_LENGTH_MAX = 120;
     private static final int RESULT_APPINFO_LENGTH_TAG = 80;
@@ -151,6 +148,48 @@ public class ResultFactory {
             r.setDirection(Constants.XMPP_NAMESPACE_PAD);
         }
         return resultList;
+    }
+
+    public IResult getEmptyResult(int type, String id) {
+        IResult ret = null;
+
+        LogManager.local(TAG, "getEmptyResult: " + type + ";" + id);
+
+        switch (type) {
+        case RESULT_NORMAL:
+            ret = new ResultNormal();
+            break;
+        case RESULT_APP:
+            ret = new ResultApp();
+            break;
+        case RESULT_DEVICE:
+            ret = new ResultDevice();
+            break;
+        case RESULT_ENV:
+            ret = new ResultEnv();
+            break;
+        case RESULT_RUNNINGAPP:
+            ret = new ResultRunningApp();
+            break;
+        case RESULT_APPUSAGE:
+            ret = new ResultAppUsage();
+            break;
+        case RESULT_POSITION:
+            ret = new ResultDeviceReport();
+            break;
+        default:
+            LogManager.local(TAG, "bad type: " + type);
+            break;
+        }
+
+        if (ret != null) {
+            ret.setId(id);
+            ret.setDeviceId(CoreConstants.CONSTANT_DEVICEID/* Build.SERIAL */);
+            ret.setIssueTime(getCurrentTime());
+            ret.setDirection(Constants.XMPP_NAMESPACE_PAD);
+        }
+
+        return ret;
     }
 
     private static String getCurrentTime() {
@@ -313,4 +352,5 @@ public class ResultFactory {
         }
         return result;
     }
+
 }
