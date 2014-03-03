@@ -163,7 +163,7 @@ public class PolicyParser {
                 }
 
             });
-        } else if (action.equals(PolicyConstants.ACTION_ENABLE_USER)) {
+        } else if (action.equals(PolicyConstants.ACTION_START_APP)) {
             SwitchPolicy policy = (SwitchPolicy) mManager.addPolicy(
                     PolicyConstants.TYPE_SWITCH, start, null);
             final Intent intent = activityMap.get(param);
