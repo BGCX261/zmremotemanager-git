@@ -1,4 +1,4 @@
-package com.zm.xmpp.communication.client;
+package com.zm.xmpp.communication.handler;
 
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
@@ -48,9 +48,11 @@ public class ResultFactory {
      */
     SubSystemFacade mSubSystemFacade;
 
-    /*public ResultFactory() {
-
-    }*/
+    /*
+     * public ResultFactory() {
+     * 
+     * }
+     */
 
     public void setSubSystem(SubSystemFacade subSystemFacade) {
         mSubSystemFacade = subSystemFacade;
@@ -117,28 +119,23 @@ public class ResultFactory {
     public List<IResult> getResults(int type, String id, ResultCallback callback) {
         List<IResult> resultList = null;
 
-        switch (type) {
-        case RESULT_NORMAL:
-        case RESULT_DEVICE:
-        case RESULT_RUNNINGAPP:
-            IResult ret = getResult(type, id,
-                    CoreConstants.CONSTANT_RESULT_DONE_0, callback);
-            if (ret != null) {
-                resultList = new ArrayList<IResult>();
-                resultList.add(ret);
-            } else {
+        IResult ret = getResult(type, id, CoreConstants.CONSTANT_RESULT_DONE_0,
+                callback);
+        if (ret != null) {
+            resultList = new ArrayList<IResult>();
+            resultList.add(ret);
+        } else {
+            switch (type) {
+            case RESULT_APP:
+                resultList = ConfigResultApp();
+                break;
+            case RESULT_ENV:
+                resultList = ConfigResultEnv();
+                break;
+            default:
+                LogManager.local(TAG, "bad type: " + type);
                 return null;
             }
-            break;
-        case RESULT_APP:
-            resultList = ConfigResultApp();
-            break;
-        case RESULT_ENV:
-            resultList = ConfigResultEnv();
-            break;
-        default:
-            LogManager.local(TAG, "bad type: " + type);
-            return null;
         }
 
         for (IResult r : resultList) {
@@ -249,7 +246,8 @@ public class ResultFactory {
                 }
             }
         }
-        result.setStatus(CoreConstants.CONSTANT_RESULT_DONE_ + resultList.size());
+        result.setStatus(CoreConstants.CONSTANT_RESULT_DONE_
+                + resultList.size());
         resultList.add(result);
 
         return resultList;
@@ -320,34 +318,39 @@ public class ResultFactory {
             }
         }
     }
-    public IResult getRunningAppResult(List<RunningAppProcessInfo> runningList){
+
+    public IResult getRunningAppResult(List<RunningAppProcessInfo> runningList) {
         ResultRunningApp result = new ResultRunningApp(
                 mSubSystemFacade.getCurrentUserId(), getCurrentTime());
 
         String[] outArry = new String[mSubSystemFacade.INDEX_MAX];
         for (RunningAppProcessInfo pi : runningList) {
 
-            mSubSystemFacade.getRunningAppProcessInfo(outArry,pi);
-            result.addProcess(outArry[mSubSystemFacade.INDEX_NAME], 
-                    outArry[mSubSystemFacade.INDEX_DISPLAY], outArry[mSubSystemFacade.INDEX_IMPORTANCE], 
+            mSubSystemFacade.getRunningAppProcessInfo(outArry, pi);
+            result.addProcess(outArry[mSubSystemFacade.INDEX_NAME],
+                    outArry[mSubSystemFacade.INDEX_DISPLAY],
+                    outArry[mSubSystemFacade.INDEX_IMPORTANCE],
                     outArry[mSubSystemFacade.INDEX_VERSION]);
         }
         return result;
     }
+
     private IResult getRunningAppResult() {
 
         ResultRunningApp result = new ResultRunningApp(
                 mSubSystemFacade.getCurrentUserId(), getCurrentTime());
 
-        List<RunningAppProcessInfo> runningList =mSubSystemFacade.getRunningAppProcesses();
-        
+        List<RunningAppProcessInfo> runningList = mSubSystemFacade
+                .getRunningAppProcesses();
+
         String[] outArry = new String[mSubSystemFacade.INDEX_MAX];
-        
+
         for (RunningAppProcessInfo pi : runningList) {
 
-            mSubSystemFacade.getRunningAppProcessInfo(outArry,pi);
-            result.addProcess(outArry[mSubSystemFacade.INDEX_NAME], 
-                    outArry[mSubSystemFacade.INDEX_DISPLAY], outArry[mSubSystemFacade.INDEX_IMPORTANCE], 
+            mSubSystemFacade.getRunningAppProcessInfo(outArry, pi);
+            result.addProcess(outArry[mSubSystemFacade.INDEX_NAME],
+                    outArry[mSubSystemFacade.INDEX_DISPLAY],
+                    outArry[mSubSystemFacade.INDEX_IMPORTANCE],
                     outArry[mSubSystemFacade.INDEX_VERSION]);
         }
         return result;

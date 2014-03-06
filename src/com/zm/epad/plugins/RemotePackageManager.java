@@ -5,9 +5,9 @@ import com.zm.epad.core.SubSystemFacade;
 import com.zm.epad.core.XmppClient;
 import com.zm.epad.plugins.RemoteFileManager.*;
 import com.zm.xmpp.communication.Constants;
-import com.zm.xmpp.communication.client.ResultFactory;
 import com.zm.xmpp.communication.client.ZMIQCommand;
 import com.zm.xmpp.communication.client.ZMIQResult;
+import com.zm.xmpp.communication.handler.ResultFactory;
 import com.zm.xmpp.communication.result.IResult;
 
 import org.jivesoftware.smack.packet.Packet;

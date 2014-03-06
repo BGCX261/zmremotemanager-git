@@ -1,42 +1,35 @@
-package com.zm.epad.plugins;
+package com.zm.xmpp.communication.handler;
 
 import com.zm.epad.core.CoreConstants;
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.NetCmdDispatcher.CmdDispatchInfo;
 import com.zm.epad.core.SubSystemFacade;
 import com.zm.epad.core.XmppClient;
-import com.zm.epad.plugins.RemoteFileManager.FileDownloadTask;
-import com.zm.epad.plugins.RemoteFileManager.FileTransferTask;
 import com.zm.xmpp.communication.Constants;
 import com.zm.xmpp.communication.client.OutputIQCommand;
 import com.zm.xmpp.communication.client.OutputIQCommandProvider;
-import com.zm.xmpp.communication.client.ResultFactory;
 import com.zm.xmpp.communication.client.ZMIQCommand;
 import com.zm.xmpp.communication.client.ZMIQCommandProvider;
 import com.zm.xmpp.communication.client.ZMIQResult;
-import com.zm.xmpp.communication.command.Command4FileTransfer;
-import com.zm.xmpp.communication.command.Command4Report;
 import com.zm.xmpp.communication.command.ICommand;
-import com.zm.xmpp.communication.command.ICommand4App;
-import com.zm.xmpp.communication.command.ICommand4Query;
 import com.zm.xmpp.communication.result.IResult;
 
 import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.Packet;
 import org.xmlpull.v1.XmlPullParser;
 
-import android.app.ActivityManager.RunningAppProcessInfo;
 import android.content.Context;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 
-import java.io.File;
+import java.lang.reflect.Constructor;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
-public class RemoteCmdProcessor extends CmdDispatchInfo {
+public class CommandProcessor extends CmdDispatchInfo {
     private static final String TAG = "IQDispatcherCommand";
 
     private static final int EVT_COMMAND = 101;
@@ -52,24 +45,28 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
     private ResultFactory mResultFactory;
     private HandlerThread mThread;
     private Handler mHandler;
-
-    // private final long DEFAULT_INTERVAL = 15*60*1000; /* 15 minutes*/
-    private final long DEFAULT_INTERVAL = 5 * 1000; /*
-                                                     * change interval to 5s to
-                                                     * test
-                                                     */
-   
+    private List<CommandTask> mRunningTaskList = new ArrayList<CommandTask>() {
+    };
+    private List<PairCommandTask> mToPairTaskList = new ArrayList<PairCommandTask>() {
+    };
+    private final HashMap<String, Class<?>> mTaskMap = new HashMap<String, Class<?>>() {
+        {
+            put(Constants.XMPP_COMMAND_APP, CommandTask4App.class);
+            put(Constants.XMPP_COMMAND_QUERY, CommandTask4Query.class);
+            put(Constants.XMPP_COMMAND_REPORT, CommandTask4Report.class);
+            put(Constants.XMPP_COMMAND_FILE_TRANSFER,
+                    CommandTask4FileTransfer.class);
+        }
+    };
 
     @Override
     public void destroy() {
-       stopMonitorAppRunningInfo();
-       super.destroy();
+        super.destroy();
     }
 
     // don't show namespace out side of this file.
-    public RemoteCmdProcessor(Context context, XmppClient xmppClient) {
-        this(context, Constants.XMPP_NAMESPACE_CENTER,
-                xmppClient);
+    public CommandProcessor(Context context, XmppClient xmppClient) {
+        this(context, Constants.XMPP_NAMESPACE_CENTER, xmppClient);
     }
 
     public void setSubSystem(SubSystemFacade subSystemFacade) {
@@ -77,7 +74,7 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
         mResultFactory.setSubSystem(subSystemFacade);
     }
 
-    private RemoteCmdProcessor(Context context, String namespace,
+    private CommandProcessor(Context context, String namespace,
             XmppClient XmppCliet) {
         LogManager.local(TAG, "create: " + namespace);
         mContext = context;
@@ -93,25 +90,27 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
 
         mThread = new HandlerThread(TAG);
         mThread.start();
-        mHandler = new RemoteCmdHandler(mThread.getLooper());
+        mHandler = new CommandProcessorHandler(mThread.getLooper());
 
     }
 
-    private class RemoteCmdHandler extends Handler {
-        public RemoteCmdHandler(Looper looper){
+    private class CommandProcessorHandler extends Handler {
+        public CommandProcessorHandler(Looper looper) {
             super(looper);
         }
+
         @Override
         public void handleMessage(Message msg) {
             boolean ret = false;
             switch (msg.what) {
-            case EVT_COMMAND:
-                ret = handleIQCommand((ZMIQCommand) msg.obj);
+            case CommandTask.EVT_COMMAND:
+                ret = handleCommand((CommandTask) msg.obj);
                 break;
-            case EVT_CALLBACK:
-                if (msg.obj instanceof Packet) {
-                    ret = mXmppClient.sendPacketAsync((Packet) msg.obj, 0);
-                }
+            case CommandTask.EVT_RESULT:
+                ret = handleResult(msg.obj);
+                break;
+            case CommandTask.EVT_TASK_END:
+                ret = handleTaskEnd((CommandTask) msg.obj);
                 break;
             case EVT_OUTPUT:
                 ret = handleOutputIQCommand((OutputIQCommand) msg.obj);
@@ -129,7 +128,8 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
 
         LogManager.local(TAG, "parseXMLStream");
         try {
-            if (isOutputType(parser.getAttributeValue(null, CoreConstants.CONSTANT_TYPE))) {
+            if (isOutputType(parser.getAttributeValue(null,
+                    CoreConstants.CONSTANT_TYPE))) {
                 ret = mOutputProvider.parseIQ(parser);
             } else {
                 ret = mZMIQProvider.parseIQ(parser);
@@ -156,11 +156,27 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
         }
     }
 
-    private boolean postIQCommand(ZMIQCommand iq) {
-        LogManager.local(TAG, "postIQCommand:" + iq.getCommand().getType());
-        Message msg = mHandler.obtainMessage(EVT_COMMAND, iq);
+    private String getCommandType(ZMIQCommand cmd) {
+        return cmd.getCommand().getType();
+    }
 
-        return mHandler.sendMessage(msg);
+    private boolean postIQCommand(ZMIQCommand iq) {
+        LogManager.local(TAG, "postIQCommand:" + getCommandType(iq));
+        boolean ret = true;
+        try {
+            Class<?> taskClass = mTaskMap.get(getCommandType(iq));
+            Constructor<?> constructor = taskClass.getConstructor(
+                    SubSystemFacade.class, Handler.class, ResultFactory.class,
+                    ZMIQCommand.class);
+            CommandTask task = (CommandTask) constructor.newInstance(
+                    mSubSystemFacade, mHandler, mResultFactory, iq);
+            task.postCommand();
+        } catch (Exception e) {
+            e.printStackTrace();
+            ret = false;
+        }
+
+        return ret;
     }
 
     private boolean postOutputIQCommand(OutputIQCommand iq) {
@@ -170,17 +186,82 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
         return mHandler.sendMessage(msg);
     }
 
-    private void sendResultToServer(IQ iq, IResult result) {
-        ZMIQResult resultIQ = new ZMIQResult(iq);
-        if (iq != null) {
-            resultIQ.setTo(iq.getFrom());
-            resultIQ.setFrom(iq.getTo());
-        }
-        resultIQ.setResult(result);
+    private boolean handleCommand(CommandTask task) {
+        int ret = CommandTask.NOT_IMPLEMENTED;
 
-        mXmppClient.sendPacketAsync((Packet) resultIQ, 0);
+        if (task instanceof PairCommandTask) {
+            ret = handlePairCommand((PairCommandTask) task);
+        } else {
+            ret = handleCommandDefault(task);
+        }
+
+        if (ret == CommandTask.RUNNING) {
+            synchronized (mRunningTaskList) {
+                mRunningTaskList.add(task);
+            }
+        }
+        LogManager.local(TAG, "handleCommandTask(" + task.getCommandType()
+                + "):" + ret);
+        return ret == CommandTask.NOT_IMPLEMENTED ? false : true;
     }
 
+    private int handleCommandDefault(CommandTask task) {
+        return task.handleCommand();
+    }
+
+    private int handlePairCommand(PairCommandTask task) {
+        int ret = CommandTask.NOT_IMPLEMENTED;
+        if (task.isStartCommand()) {
+            synchronized (mToPairTaskList) {
+                for (PairCommandTask pc : mToPairTaskList) {
+                    if (pc.isDuplicated(task)) {
+                        LogManager.local(TAG,
+                                "Dulplicated task:" + task.getCommandType());
+                        return CommandTask.NOT_IMPLEMENTED;
+                    }
+                }
+                ret = task.handleCommand();
+                if (ret == CommandTask.SUCCESS) {
+                    mToPairTaskList.add(task);
+                }
+            }
+        } else {
+            synchronized (mToPairTaskList) {
+                for (PairCommandTask pc : mToPairTaskList) {
+                    if (pc.isPaired(task)) {
+                        ret = task.handleCommand();
+                        if (ret == CommandTask.SUCCESS) {
+                            mToPairTaskList.remove(pc);
+                        }
+                        break;
+                    }
+                    LogManager.local(TAG,
+                            "Task not paired:" + task.getCommandType());
+                }
+            }
+        }
+        return ret;
+    }
+
+    private boolean handleResult(Object result) {
+        boolean ret = false;
+        if (result instanceof ZMIQResult) {
+            String type = ((ZMIQResult) result).getResult().getType();
+            LogManager.local(TAG, "send result:" + type);
+            ret = mXmppClient.sendPacketAsync((Packet) result, 0);
+        }
+        return ret;
+    }
+
+    private boolean handleTaskEnd(CommandTask task) {
+        LogManager.local(TAG, "Task End:" + task.getCommandType());
+        synchronized (mRunningTaskList) {
+            mRunningTaskList.remove(task);
+        }
+        return true;
+    }
+
+/*
     private boolean handleIQCommand(ZMIQCommand iq) {
         boolean ret = true;
         ICommand cmd = iq.getCommand();
@@ -201,8 +282,8 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
                 final ZMIQResult resultIQ = new ZMIQResult(iq);
                 final String cmdId = cmdApp.getId();
 
-                int install = mSubSystemFacade.installPkgForUser(cmdApp.getAppUrl(),
-                        cmdApp.getUserId(),
+                int install = mSubSystemFacade.installPkgForUser(
+                        cmdApp.getAppUrl(), cmdApp.getUserId(),
                         new RemotePackageManager.installCallback() {
                             ZMIQResult mResultIQ = resultIQ;
                             String mCmdId = cmdId;
@@ -436,18 +517,21 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
         return ret;
     }
 
-    private boolean startMonitorAppRunningInfo(final ZMIQCommand iq,long interval) {
-        
-        mSubSystemFacade.startMonitorRunningAppInfo(interval,new RemotePackageManager.ReportRunningAppInfo(){
+    private boolean startMonitorAppRunningInfo(final ZMIQCommand iq,
+            long interval) {
 
-            @Override
-            public void reportRunningAppProcessInfos(
-                    List<RunningAppProcessInfo> infos) {
-                IResult iResult = mResultFactory.getRunningAppResult(infos);
-                sendResultToServer(iq, iResult);
-            }
-            
-        });
+        mSubSystemFacade.startMonitorRunningAppInfo(interval,
+                new RemotePackageManager.ReportRunningAppInfo() {
+
+                    @Override
+                    public void reportRunningAppProcessInfos(
+                            List<RunningAppProcessInfo> infos) {
+                        IResult iResult = mResultFactory
+                                .getRunningAppResult(infos);
+                        sendResultToServer(iq, iResult);
+                    }
+
+                });
         return true;
     }
 
@@ -502,17 +586,17 @@ public class RemoteCmdProcessor extends CmdDispatchInfo {
         }
         return ret;
     }
-
+*/
     private boolean handleOutputIQCommand(OutputIQCommand iq) {
         boolean ret = false;
         if (iq.getCommandType().equals("policy")) {
-            mSubSystemFacade.updatePolicy(iq.getOutput());
+            //mSubSystemFacade.updatePolicy(iq.getOutput());
             ret = true;
         }
-        IResult result = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
-                iq.getId(), getResultStr(ret));
+//        IResult result = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
+//                iq.getId(), getResultStr(ret));
         // send result
-        sendResultToServer(iq, result);
+//        sendResultToServer(iq, result);
 
         return ret;
     }

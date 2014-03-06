@@ -1,6 +1,6 @@
 package com.zm.epad.core;
 
-import com.zm.epad.plugins.RemoteCmdProcessor;
+import com.zm.xmpp.communication.handler.CommandProcessor;
 
 import android.app.Service;
 import android.content.Intent;
@@ -20,7 +20,7 @@ public class RemoteManagerService extends Service {
     private LogManager mLogManager = null;
     private NetworkStatusMonitor mNetworkStatusMonitor = null;
     private NetCmdDispatcher mNetCmdDispatcher = null;
-    private RemoteCmdProcessor mRemoteCmdProcessor = null;
+    private CommandProcessor mRemoteCmdProcessor = null;
 
     private SubSystemFacade mSubSystem = null;
 
@@ -83,7 +83,7 @@ public class RemoteManagerService extends Service {
 
         mNetCmdDispatcher = new NetCmdDispatcher();
 
-        mRemoteCmdProcessor = new RemoteCmdProcessor(this, mXmppClient);
+        mRemoteCmdProcessor = new CommandProcessor(this, mXmppClient);
         mRemoteCmdProcessor.setSubSystem(mSubSystem);
 
         mNetCmdDispatcher.registerDispacher(mRemoteCmdProcessor);
