@@ -5,6 +5,8 @@ import com.android.internal.os.PkgUsageStats;
 import com.zm.epad.plugins.RemoteDeviceManager;
 import com.zm.epad.plugins.RemoteFileManager;
 import com.zm.epad.plugins.RemoteStatsManager;
+import com.zm.epad.plugins.RemoteDeviceManager.LocationReportCallback;
+import com.zm.epad.plugins.RemoteDeviceManager.RemoteLocation;
 import com.zm.epad.plugins.RemoteFileManager.FileTransferCallback;
 import com.zm.epad.plugins.RemotePackageManager.installCallback;
 import com.zm.epad.plugins.RemotePackageManager;
@@ -344,6 +346,17 @@ public class SubSystemFacade {
     }
     public void lockScreen(){
         mDeviceManager.lockScreen();
+    }
+    
+    public boolean startTrackLocation(int mode,long minTime,int minDistance,
+            LocationReportCallback callback){
+        return mDeviceManager.startTrackLocation(mode,minTime,minDistance,callback);
+    }
+    public void stopTrackLocation(){
+        mDeviceManager.stopTrackLocation();
+    }
+    public RemoteLocation[] getHistoryLocations(){
+        return mDeviceManager.getHistoryLocations();
     }
     /*
      * Wrapper around RemoteFileManager

@@ -5,21 +5,27 @@ import com.zm.epad.core.LogManager;
 import android.app.NotificationManager;
 import android.app.WallpaperManager;
 import android.bluetooth.BluetoothAdapter;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.hardware.Camera;
+import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
+import android.location.LocationProvider;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.nfc.NfcAdapter;
+import android.os.Bundle;
 import android.os.Handler;
 import android.provider.Settings;
 import android.text.format.Time;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Display;
 import android.view.Surface;
 import android.view.SurfaceView;
@@ -31,6 +37,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class RemoteDeviceManager {
     public static final String TAG = "RemoteDeviceManager";
@@ -39,7 +48,7 @@ public class RemoteDeviceManager {
 
     private Screenshot mScreenshot = null;
 
-
+    private RemoteLocationTrack mLocationTrack = null;
     public void stop() {
         LogManager.local(TAG, "stop");
     }
@@ -47,6 +56,7 @@ public class RemoteDeviceManager {
     public RemoteDeviceManager(Context context) {
         mContext = context;
         mScreenshot = new Screenshot(mContext);
+        mLocationTrack = new RemoteLocationTrack();
     }
 
     public boolean changeWallpaper(String wallImage) {
@@ -218,7 +228,146 @@ public class RemoteDeviceManager {
             }
         }
     }
+    public static final int LOCATION_TRACK_OFF = 0;
+    public static final int LOCATION_TRACK_SENSORS_ONLY = 1;
+    public static final int LOCATION_TRACK_BATTERY_SAVING = 2;
+    public static final int LOCATION_TRACK_HIGH_ACCURACY = 3; 
+    
+    
+   
+    public interface LocationReportCallback{
+        public void reportLocation(RemoteLocation loc);
+        public void reportLocationTrackStatus(boolean bRunning);
+    }
+    public class RemoteLocation{
+        public double mLatitude;
+        public double mLongitude;
+        public long mTime;
+        public float mSpeed;
+        public RemoteLocation(Location loc){
+            mLatitude = loc.getLatitude();
+            mLongitude = loc.getLongitude();
+            mTime = loc.getTime();
+            mSpeed = loc.getSpeed();
+        }
+    }
+    
+    public boolean startTrackLocation(int mode,long minTime,int minDistance,
+            LocationReportCallback callback){
+        return mLocationTrack.startTrackLocation(mode, minTime, minDistance, callback);
+    }
+    public void stopTrackLocation(){
+        mLocationTrack.stopTrackLocation();
+    }
+    public  RemoteLocation[] getHistoryLocations(){
+        return mLocationTrack.getHistoryLocs();
+    }
+    //@todo: 4.4 has changed a lot. 
+    private class RemoteLocationTrack implements LocationListener{
+        int   mMode;
+        long  mMinTime;
+        int   mMinDistance;
+        LocationReportCallback mCallback;
+        LocationManager mLocationManager = null;
+        
+        private final static int LOC_HISTORYSIZE = 10000;
+   
+        private  LinkedList<RemoteLocation> mRemoteLocs;
+        private boolean setLocationTrackMode(int mode){
+            int defMode = Settings.Secure.LOCATION_MODE_OFF;
+            ContentResolver resolver = mContext.getContentResolver();
+            mMode = Settings.Secure.getInt(resolver, Settings.Secure.LOCATION_MODE, defMode);
+            if(defMode == mode)
+                return true;
+            boolean bSuc = Settings.Secure.putInt(resolver,
+                    Settings.Secure.LOCATION_MODE, mode);
+            LogManager.local(TAG, "set location mode to " + mode + " " + bSuc);
+            if(bSuc)
+                mMode = mode;
+            return bSuc;
+        }
+        
+        public boolean startTrackLocation(int mode,long minTime,int minDistance,
+                LocationReportCallback callback){
+            if(mLocationManager == null){
+                mLocationManager = (LocationManager)mContext.getSystemService(Context.LOCATION_SERVICE);
+            }
+            if(mRemoteLocs == null)
+                mRemoteLocs = new  LinkedList<RemoteLocation>();
+            if(setLocationTrackMode(mode) == false)
+                return false;
+            LogManager.local(TAG, "startLocationTrack using mode " + mode);
+            
+            mCallback = callback;
+            mMinTime = minTime;
+            mMinDistance = minDistance;
+            try {
+                mLocationManager.requestLocationUpdates(LocationManager.FUSED_PROVIDER,
+                        minTime, minDistance, this);
+                LogManager.local(TAG, "requestLocationUpdates succeed ");
+                return true;
+            } catch (Exception e) {
+                LogManager.local(TAG, "requestLocationUpdates fail " + e.getMessage());
+                return false;
+            }
+            
+            
+        }
+        public void stopTrackLocation(){
+            if(mLocationManager != null){
+                mLocationManager.removeUpdates(this);
+            }
+            setLocationTrackMode(LOCATION_TRACK_OFF);
+            LogManager.local(TAG, "stopLocationTrack");
+            mLocationManager = null;
+        }
+        //each Object is a RemoteLocation
+        public  RemoteLocation[] getHistoryLocs(){
+            synchronized (this) {
+                if(mRemoteLocs == null || mRemoteLocs.size() == 0)
+                    return null;
+                RemoteLocation[] ret = new RemoteLocation[mRemoteLocs.size()];
+                mRemoteLocs.toArray(ret);
+                return ret;
+            }
+            
+        }
+        private void addHistoryLoc(RemoteLocation newLoc){
+            synchronized(this){
+                if(mRemoteLocs.size() >= LOC_HISTORYSIZE){
+                    mRemoteLocs.pollFirst();
+                }
+                mRemoteLocs.addLast(newLoc);
+            }
+        }
+    @Override
+        public void onLocationChanged(Location location) {
+            RemoteLocation remoteLoc = new RemoteLocation(location);
+            addHistoryLoc(remoteLoc);
+            if(mCallback != null)
+                mCallback.reportLocation(remoteLoc);
+        }
 
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+            // TODO Auto-generated method stub
+            
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+            // TODO Auto-generated method stub
+            
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+            // TODO Auto-generated method stub
+            
+        }
+
+    }
+    
     public byte[] takeScreenshot(final Handler handler) {
         LogManager.local(TAG, "takeScreenshot");
         return mScreenshot.takeScreenshot();
