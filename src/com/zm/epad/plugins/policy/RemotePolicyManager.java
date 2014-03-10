@@ -56,21 +56,28 @@ public class RemotePolicyManager {
         }*/
     }
 
-    public void updatePolicy(String policyForm) {
+    public void updatePolicy(String policyForm) throws Exception {
         if (policyForm == null) {
             return;
         }
 
-        writePolicy(policyForm);
+        // if fail to parse, throw exception and do not write;
         parsePolicy(policyForm);
+        writePolicy(policyForm);
         executePolicy();
     }
 
     public void loadPolicy() {
-        if(mHandler == null){
-            mHandler = new Handler(SubSystemFacade.getInstance().getAThreadLooper());
+        if (mHandler == null) {
+            mHandler = new Handler(SubSystemFacade.getInstance()
+                    .getAThreadLooper());
         }
-        parsePolicy(readPolicy());
+        try {
+            parsePolicy(readPolicy());
+        } catch (Exception e) {
+            LogManager.local(TAG, "Fail to load policy");
+            e.printStackTrace();
+        }
         executePolicy();
     }
 
@@ -134,7 +141,7 @@ public class RemotePolicyManager {
 
     }
 
-    private void parsePolicy(String policyForm) {
+    private void parsePolicy(String policyForm) throws Exception {
         if (policyForm == null) {
             return;
         }
@@ -146,6 +153,7 @@ public class RemotePolicyManager {
             parser.parse();
         } catch (Exception e) {
             e.printStackTrace();
+            throw e;
         }
     }
 

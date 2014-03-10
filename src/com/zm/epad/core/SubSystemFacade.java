@@ -360,7 +360,7 @@ public class SubSystemFacade {
     /*
      * Wrapper around RemotePolicyManager
      */
-    public void updatePolicy(String policy) {
+    public void updatePolicy(String policy) throws Exception {
         mPolicyManager.updatePolicy(policy);
     }
     
