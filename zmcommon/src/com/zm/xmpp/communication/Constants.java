@@ -19,6 +19,7 @@ public class Constants {
     static public final String XMPP_COMMAND_QUERY = "query";
     static public final String XMPP_COMMAND_REPORT = "report";
     static public final String XMPP_COMMAND_FILE_TRANSFER = "push";
+    static public final String XMPP_COMMAND_POLICY = "policy";
 
     static public final String XMPP_APP_INSTALL = "install";
     static public final String XMPP_APP_REMOVE = "remove";
