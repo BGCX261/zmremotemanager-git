@@ -14,13 +14,16 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
@@ -283,24 +286,36 @@ public class RemoteFileManager {
     private List<FileTransferTask> mRunningTask = new ArrayList<FileTransferTask>();
     private List<FileTransferTask> mPendingTask = new ArrayList<FileTransferTask>();
     private ExecutorService mThreadPool;
+     
+
+    public RandomAccessFile getLogFileByType(String type) {
+        return mLogFilesManager.getLogFileByType(type);
+    }
 
     public void setThreadPool(ExecutorService threadPool) {
         mThreadPool = threadPool;
+        mContext.
     }
 
     public void setXmppLoginResource(Bundle srcBundle) {
         mLoginBundle = srcBundle;
     }
 
+    public void start() {
+        mLogFilesManager.ensureLogDirExists();
+    }
+
     public void stop() {
         LogManager.local(TAG, "stop");
         cancelAllPendingTask();
         mThreadPool = null;
+        mLogFilesManager.closeAllFiles();
     }
 
     public RemoteFileManager(Context context) {
         mContext = context;
         mHttpTransferHelper = new HttpTransferHelper();
+        mLogFilesManager = new LogFilesManager(context);
     }
 
     public void addFileDownloadTask(String url, FileTransferCallback callback) {
@@ -413,7 +428,7 @@ public class RemoteFileManager {
             mCallback = cb;
         }
 
-          public synchronized void prepare() {
+        public synchronized void prepare() {
             if (addTask(this) == false) {
                 mStatus = PENDING;
             }

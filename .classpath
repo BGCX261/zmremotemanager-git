@@ -5,7 +5,7 @@
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.DEPENDENCIES"/>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="gen"/>
-	<classpathentry kind="lib" path="/thunderst/disk/android4.4/out/target/common/obj/JAVA_LIBRARIES/smackxmpp_intermediates/classes-full-debug.jar" sourcepath="smack"/>
-	<classpathentry kind="lib" path="/thunderst/disk/android4.4/out/target/common/obj/JAVA_LIBRARIES/zmcommon_intermediates/classes-full-debug.jar" sourcepath=""/>
+	<classpathentry kind="lib" path="/thunderst/disk2/android4.4/out/target/product/generic/obj/JAVA_LIBRARIES/smackxmpp_intermediates/javalib.jar" sourcepath="smack"/>
+	<classpathentry kind="lib" path="/thunderst/disk2/android4.4/out/target/product/generic/obj/JAVA_LIBRARIES/zmcommon_intermediates/javalib.jar" sourcepath=""/>
 	<classpathentry kind="output" path="bin/classes"/>
 </classpath>
