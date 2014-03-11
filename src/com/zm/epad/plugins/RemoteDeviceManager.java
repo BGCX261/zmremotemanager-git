@@ -1,6 +1,9 @@
 package com.zm.epad.plugins;
 
+import com.zm.epad.core.CoreConstants;
+import com.zm.epad.core.LogFilesManager;
 import com.zm.epad.core.LogManager;
+import com.zm.epad.core.LogFilesManager.LogFileTransferInterface;
 
 import android.app.NotificationManager;
 import android.app.WallpaperManager;
@@ -41,7 +44,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
-public class RemoteDeviceManager {
+public class RemoteDeviceManager implements LogFileTransferInterface{
     public static final String TAG = "RemoteDeviceManager";
 
     private Context mContext = null;
@@ -49,7 +52,10 @@ public class RemoteDeviceManager {
     private Screenshot mScreenshot = null;
 
     private RemoteLocationTrack mLocationTrack = null;
+    private LogFilesManager mMyLogFileManager = null;
     public void stop() {
+        mMyLogFileManager.closeLogFiles();
+        mMyLogFileManager = null;
         LogManager.local(TAG, "stop");
     }
 
@@ -233,8 +239,17 @@ public class RemoteDeviceManager {
     public static final int LOCATION_TRACK_BATTERY_SAVING = 2;
     public static final int LOCATION_TRACK_HIGH_ACCURACY = 3; 
     
-    
-   
+    public boolean uploadLogFiles(String filePath){
+        return true;
+    }
+    public boolean uploadAllLogFiles(){
+        return true;
+    }
+    public String[] getLogFiles(){
+        if(mMyLogFileManager == null)
+            return null;
+        return mMyLogFileManager.listLogFiles();
+    }
     public interface LocationReportCallback{
         public void reportLocation(RemoteLocation loc);
         public void reportLocationTrackStatus(boolean bRunning);
@@ -250,6 +265,34 @@ public class RemoteDeviceManager {
             mTime = loc.getTime();
             mSpeed = loc.getSpeed();
         }
+        
+        public String toString(){
+            StringBuffer sb = new StringBuffer();
+            sb.append("<location>\n");
+            sb.append("<longitude>\n");
+            sb.append("" + mLatitude);
+            sb.append("\n<longitude/>\n");
+            
+            sb.append("<longitude>\n");
+            sb.append("" + mLongitude);
+            sb.append("\n<longitude/>\n");
+            
+            sb.append("<latitude>\n");
+            sb.append("" + mLatitude);
+            sb.append("\n<latitude/>\n");
+            
+            sb.append("<time>\n");
+            sb.append("" + mTime);
+            sb.append("\n<time/>\n");
+            
+            sb.append("<speed>\n");
+            sb.append("" + mSpeed);
+            sb.append("\n<speed/>\n");
+            
+            sb.append("<location/>\n");
+            
+            return sb.toString();
+        }
     }
     
     public boolean startTrackLocation(int mode,long minTime,int minDistance,
@@ -263,6 +306,13 @@ public class RemoteDeviceManager {
         return mLocationTrack.getHistoryLocs();
     }
     //@todo: 4.4 has changed a lot. 
+    public void start(){
+        if(mMyLogFileManager == null){
+            mMyLogFileManager = new LogFilesManager(mContext,
+                    CoreConstants.CONSTANT_LOGTYPE_LOCATION);
+        }
+    }
+    
     private class RemoteLocationTrack implements LocationListener{
         int   mMode;
         long  mMinTime;
@@ -344,6 +394,7 @@ public class RemoteDeviceManager {
         public void onLocationChanged(Location location) {
             RemoteLocation remoteLoc = new RemoteLocation(location);
             addHistoryLoc(remoteLoc);
+            mMyLogFileManager.addLog(remoteLoc.toString());
             if(mCallback != null)
                 mCallback.reportLocation(remoteLoc);
         }

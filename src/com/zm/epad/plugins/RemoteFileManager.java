@@ -288,34 +288,23 @@ public class RemoteFileManager {
     private ExecutorService mThreadPool;
      
 
-    public RandomAccessFile getLogFileByType(String type) {
-        return mLogFilesManager.getLogFileByType(type);
-    }
-
     public void setThreadPool(ExecutorService threadPool) {
         mThreadPool = threadPool;
-        mContext.
     }
 
     public void setXmppLoginResource(Bundle srcBundle) {
         mLoginBundle = srcBundle;
     }
 
-    public void start() {
-        mLogFilesManager.ensureLogDirExists();
-    }
-
     public void stop() {
         LogManager.local(TAG, "stop");
         cancelAllPendingTask();
         mThreadPool = null;
-        mLogFilesManager.closeAllFiles();
     }
 
     public RemoteFileManager(Context context) {
         mContext = context;
         mHttpTransferHelper = new HttpTransferHelper();
-        mLogFilesManager = new LogFilesManager(context);
     }
 
     public void addFileDownloadTask(String url, FileTransferCallback callback) {
