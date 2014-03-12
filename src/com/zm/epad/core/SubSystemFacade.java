@@ -1,6 +1,5 @@
 package com.zm.epad.core;
 
-
 import com.android.internal.os.PkgUsageStats;
 import com.zm.epad.plugins.RemoteAlarmManager;
 import com.zm.epad.plugins.RemoteDeviceManager;
@@ -19,6 +18,7 @@ import com.zm.epad.structure.Device;
 import com.zm.xmpp.communication.result.ResultRunningApp;
 
 import android.app.ActivityManager.RunningAppProcessInfo;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.UserInfo;
@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
 public class SubSystemFacade {
 
     private static final String TAG = "SubSystemFacade";
@@ -45,6 +46,12 @@ public class SubSystemFacade {
 
     private Context mContext;
     private static SubSystemFacade gSubSystemFacade = null;
+    @SuppressWarnings("serial")
+    private List<NotifyListener> mListeners = new ArrayList<NotifyListener>() {
+    };
+
+    public static final int NOTIFY_APP_USAGE = 1;
+    public static final int NOTIFY_POSITION = 2;
 
     public SubSystemFacade(Context context) {
         mContext = context;
@@ -52,6 +59,20 @@ public class SubSystemFacade {
 
     public static SubSystemFacade getInstance() {
         return gSubSystemFacade;
+    }
+
+    public interface NotifyListener {
+        void callback(int type, Object obj);
+    }
+
+    public void setListener(NotifyListener listener) {
+        mListeners.add(listener);
+    }
+
+    public void sendCallback(int type, Object obj) {
+        for (NotifyListener nl : mListeners) {
+            nl.callback(type, obj);
+        }
     }
 
     private ExecutorService mThreadPool;
@@ -90,9 +111,11 @@ public class SubSystemFacade {
     public RemotePolicyManager getRemotePolicyManager() {
         return mPolicyManager;
     }
-    public RemoteStatsManager getRemoteStatsManager(){
+
+    public RemoteStatsManager getRemoteStatsManager() {
         return mStatsManager;
     }
+
     public boolean addTaskToSubSystemThreadPool(Runnable task) {
         if (mThreadPool == null)
             return false;
@@ -101,6 +124,8 @@ public class SubSystemFacade {
     }
 
     public void stop() {
+        mListeners.clear();
+
         mStatsManager.stop();
         mStatsManager = null;
 
@@ -141,20 +166,20 @@ public class SubSystemFacade {
     void shutdownAndAwaitTermination() {
         mThreadPool.shutdown(); // Disable new tasks from being submitted
         try {
-          // Wait a while for existing tasks to terminate
-          if (!mThreadPool.awaitTermination(60, TimeUnit.SECONDS))
-              mThreadPool.shutdownNow(); // Cancel currently executing tasks
+            // Wait a while for existing tasks to terminate
+            if (!mThreadPool.awaitTermination(60, TimeUnit.SECONDS))
+                mThreadPool.shutdownNow(); // Cancel currently executing tasks
             // Wait a while for tasks to respond to being cancelled
             if (!mThreadPool.awaitTermination(60, TimeUnit.SECONDS))
-                LogManager.local(TAG,"Pool did not terminate");
-          
+                LogManager.local(TAG, "Pool did not terminate");
+
         } catch (InterruptedException ie) {
-          // (Re-)Cancel if current thread also interrupted
+            // (Re-)Cancel if current thread also interrupted
             mThreadPool.shutdownNow();
-          // Preserve interrupt status
-          // Thread.currentThread().interrupt();
+            // Preserve interrupt status
+            // Thread.currentThread().interrupt();
         }
-   }
+    }
 
     /*
      * 
@@ -179,9 +204,11 @@ public class SubSystemFacade {
     public boolean uninstallPkgForUser(String name, int userId) {
         return mPackageManager.uninstallPkgForUser(name, userId);
     }
+
     public void setGuestEnabled(boolean enable) {
         mPackageManager.setGuestEnabled(enable);
     }
+
     public Configuration getZMUserConfigInfo(int uid) {
         Bundle userRestrictionInfo = mPackageManager.getUserRestrictions(uid);
 
@@ -214,15 +241,15 @@ public class SubSystemFacade {
         return cfg;
     }
 
-   public List<UserInfo> getAllUsers() {
+    public List<UserInfo> getAllUsers() {
         return mPackageManager.getAllUsers();
     }
 
-   public List<PackageInfo> getInstalledPackages(int flags, int userid) {
+    public List<PackageInfo> getInstalledPackages(int flags, int userid) {
         return mPackageManager.getInstalledPackages(0, userid);
     }
 
-   public Application getZMApplicationInfo(PackageInfo pi) {
+    public Application getZMApplicationInfo(PackageInfo pi) {
         String name = mPackageManager.getApplicationName(pi);
         String pkgname = pi.packageName;
         String enabled = String.valueOf(pi.applicationInfo.enabled);
@@ -298,21 +325,31 @@ public class SubSystemFacade {
 
         return ret;
     }
-    public int getCurrentUserId(){
+
+    public int getCurrentUserId() {
         return mPackageManager.getCurrentUserId();
     }
-    
-    public boolean isGuestEnabled(){
+
+    public boolean isGuestEnabled() {
         return mPackageManager.isGuestEnabled();
     }
-    public void startMonitorRunningAppInfo(long interval, RemotePackageManager.ReportRunningAppInfo callback){
-        mPackageManager.startMonitorRunningApp(interval,callback);
+
+    public void startMonitorRunningAppInfo(long interval,
+            RemotePackageManager.ReportRunningAppInfo callback) {
+        mPackageManager.startMonitorRunningApp(interval, callback);
     }
-    public void stopMonitorRunningAppInfo(){
+
+    public void stopMonitorRunningAppInfo() {
         mPackageManager.stopMonitorRunningApp();
     }
-    private class ThreadRunnable implements Runnable{
+
+    public List<ComponentName> getPackageComponent(String action, String pkgName) {
+        return mPackageManager.getPackageComponent(action, pkgName);
+    }
+
+    private class ThreadRunnable implements Runnable {
         private Looper retLooper = null;
+
         public void run() {
             Looper.prepare();
             retLooper = Looper.myLooper();
@@ -321,24 +358,26 @@ public class SubSystemFacade {
             }
             retLooper.loop();
         }
-        
-        public synchronized Looper  getLooper(){
-            if(retLooper == null){
+
+        public synchronized Looper getLooper() {
+            if (retLooper == null) {
                 try {
                     wait();
                 } catch (Exception e) {
                     // TODO: handle exception
                 }
-               
+
             }
             return retLooper;
         }
     }
-    public Looper getAThreadLooper(){
+
+    public Looper getAThreadLooper() {
         ThreadRunnable looperHelper = new ThreadRunnable();
         mThreadPool.execute(looperHelper);
         return looperHelper.getLooper();
     }
+
     /**
      * Wrapper around RemoteDeviceManager
      */
@@ -356,24 +395,29 @@ public class SubSystemFacade {
         LogManager.local(TAG, device.toString());
         return device;
     }
-    
-    public boolean changeWallpaper(String wallpaperFile){
+
+    public boolean changeWallpaper(String wallpaperFile) {
         return mDeviceManager.changeWallpaper(wallpaperFile);
     }
-    public void lockScreen(){
+
+    public void lockScreen() {
         mDeviceManager.lockScreen();
     }
-    
-    public boolean startTrackLocation(int mode,long minTime,int minDistance,
-            LocationReportCallback callback){
-        return mDeviceManager.startTrackLocation(mode,minTime,minDistance,callback);
+
+    public boolean startTrackLocation(int mode, long minTime, int minDistance,
+            LocationReportCallback callback) {
+        return mDeviceManager.startTrackLocation(mode, minTime, minDistance,
+                callback);
     }
-    public void stopTrackLocation(){
+
+    public void stopTrackLocation() {
         mDeviceManager.stopTrackLocation();
     }
-    public RemoteLocation[] getHistoryLocations(){
+
+    public RemoteLocation[] getHistoryLocations() {
         return mDeviceManager.getHistoryLocations();
     }
+
     /*
      * Wrapper around RemoteFileManager
      */
@@ -392,11 +436,11 @@ public class SubSystemFacade {
     public void updatePolicy(String policy) throws Exception {
         mPolicyManager.updatePolicy(policy);
     }
-    
+
     /*
      * Wrapper around RemoteStatsManager
      */
-    public PkgUsageStats[] getAllPkgUsageStats(){
+    public PkgUsageStats[] getAllPkgUsageStats() {
         return mStatsManager.getAllPkgUsageStats();
     }
 

@@ -15,6 +15,7 @@ import org.jivesoftware.smack.packet.Packet;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
@@ -23,6 +24,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.IPackageManager;
 import android.content.pm.IPackageDeleteObserver;
 import android.content.pm.IPackageInstallObserver;
+import android.content.pm.ResolveInfo;
 import android.content.pm.UserInfo;
 import android.os.IUserManager;
 import android.net.Uri;
@@ -638,5 +640,23 @@ public class RemotePackageManager {
             }
         }
         
+    }
+
+    public List<ComponentName> getPackageComponent(String action, String pkgName) {
+        try {
+            Intent resolveIntent = new Intent(action, null);
+            resolveIntent.setPackage(pkgName);
+            List<ResolveInfo> apps = mPackageManager.queryIntentActivities(
+                    resolveIntent, 0);
+            List<ComponentName> cnList = new ArrayList<ComponentName>();
+            for (ResolveInfo ri : apps) {
+                String className = ri.activityInfo.name;
+                cnList.add(new ComponentName(pkgName, className));
+            }
+            return cnList;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

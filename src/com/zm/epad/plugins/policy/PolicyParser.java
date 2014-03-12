@@ -22,13 +22,6 @@ public class PolicyParser {
     private XmlPullParser mParser;
     private final String TAG_POLICY = "policy";
     private final String TAG_COMMAND = "command";
-    @SuppressWarnings("serial")
-    private final HashMap<String, Intent> activityMap = new HashMap<String, Intent>() {
-        {
-            put("zmdebug", new Intent().setComponent(new ComponentName(
-                    "com.zm.epad", "com.zm.epad.core.ui.DebugActivityHome")));
-        }
-    };
 
     public PolicyParser(Context context, String policyForm)
             throws XmlPullParserException {
@@ -110,15 +103,11 @@ public class PolicyParser {
         } else if (action.equals(PolicyConstants.ACTION_START_APP)) {
             SwitchPolicy policy = (SwitchPolicy) mManager.addPolicy(
                     PolicyConstants.TYPE_SWITCH, start, null);
-            final Intent intent = activityMap.get(param);
-            policy.setCallback(new Runnable() {
-                @Override
-                public void run() {
-                    LogManager.local(TAG, "start activity:"
-                            + intent.getComponent().toString());
-                    mContext.startActivity(intent);
-                }
-            });
+            policy.setCallback(new StartAppRunnable(mContext, param));
+        } else if (action.equals(PolicyConstants.ACTION_APP_USAGE)) {
+            SwitchPolicy policy = (SwitchPolicy) mManager.addPolicy(
+                    PolicyConstants.TYPE_SWITCH, start, null);
+            policy.setCallback(new AppUsageRunnable());
         }
     }
 }

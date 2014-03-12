@@ -10,4 +10,5 @@ public class PolicyConstants {
     public static final String ACTION_DISABLE_USER = "disableuser";
     public static final String ACTION_ENABLE_USER = "enableuser";
     public static final String ACTION_START_APP = "startapp";
+    public static final String ACTION_APP_USAGE = "appusage";
 }
