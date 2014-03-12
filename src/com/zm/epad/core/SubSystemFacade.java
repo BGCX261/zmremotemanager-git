@@ -2,9 +2,11 @@ package com.zm.epad.core;
 
 
 import com.android.internal.os.PkgUsageStats;
+import com.zm.epad.plugins.RemoteAlarmManager;
 import com.zm.epad.plugins.RemoteDeviceManager;
 import com.zm.epad.plugins.RemoteFileManager;
 import com.zm.epad.plugins.RemoteStatsManager;
+import com.zm.epad.plugins.RemoteAlarmManager.AlarmCallback;
 import com.zm.epad.plugins.RemoteDeviceManager.LocationReportCallback;
 import com.zm.epad.plugins.RemoteDeviceManager.RemoteLocation;
 import com.zm.epad.plugins.RemoteFileManager.FileTransferCallback;
@@ -38,6 +40,7 @@ public class SubSystemFacade {
     private RemoteFileManager mFileManager;
     private RemotePolicyManager mPolicyManager;
     private RemoteStatsManager mStatsManager;
+    private RemoteAlarmManager mAlarmManager;
 
     private Context mContext;
     private static SubSystemFacade gSubSystemFacade = null;
@@ -68,10 +71,11 @@ public class SubSystemFacade {
 
         mPolicyManager = new RemotePolicyManager(mContext);
         mPolicyManager.loadPolicy();
-        
+
         mStatsManager = new RemoteStatsManager(mContext);
         mStatsManager.start();
-        
+
+        mAlarmManager = new RemoteAlarmManager(mContext);
     }
 
     public RemotePackageManager getRemotePackageManager() {
@@ -382,5 +386,20 @@ public class SubSystemFacade {
      */
     public PkgUsageStats[] getAllPkgUsageStats(){
         return mStatsManager.getAllPkgUsageStats();
+    }
+
+    /*
+     * Wrapper around RemoteAlarmManager
+     */
+    public void setAlarm(long triggerAtMillis, String AlarmId,
+            AlarmCallback callback) throws Exception {
+        mAlarmManager.setAlarm(triggerAtMillis, AlarmId, callback);
+    }
+
+    /*
+     * Wrapper around RemoteAlarmManager
+     */
+    public void cancelAlarm(String alarmId) {
+        mAlarmManager.cancelAlarm(alarmId);
     }
 }
