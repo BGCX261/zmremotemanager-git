@@ -111,6 +111,7 @@
     <string name="debug_disconnectbtn">Disconnect</string>
     <string name="debug_connectstatus">Server Connected</string>
     <string name="debug_debug">Debug Console</string>
+    <string name="debug_remote_desktop">Remote Desktop</string>
     <string name="debug_advancedbtn">Advanced</string>
     <string name="debug_inputname">Please Input Package Name and useId</string>
     <string name="debug_enable">Enable</string>
@@ -132,5 +133,9 @@
     <string name="acc_label">ZMTech Account Authenticator</string>
     <string name="acc_title_fmt">ZMTech Account Format</string>
     
+    <!-- Strings used by DebugRemoteDesktop -->
+    <string name="rd_open_rtsp">Open Remote Desktop</string>
+    <string name="rd_close_rtsp">Close Remote Desktop</string>
+
 	<string name="app_name">智墨向导</string>
 </resources>

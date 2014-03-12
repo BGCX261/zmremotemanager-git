@@ -23,6 +23,7 @@ public class DebugActivityHome extends Activity {
     private Button mDisconnectBtn = null;
     private Button mDebugBtn = null;
     private Button mAdvancedBtn = null;
+    private Button mDesktopBtn = null;
     private EditText mIpText = null;
     private EditText mNameText = null;
     private EditText mPwdText = null;
@@ -53,6 +54,7 @@ public class DebugActivityHome extends Activity {
         mPrompt = (TextView) findViewById(R.id.textView4);
 
         mDebugBtn = (Button) findViewById(R.id.button4);
+        mDesktopBtn = (Button) findViewById(R.id.button_remote_desktop);
         mAdvancedBtn = (Button) findViewById(R.id.button2);
 
         mConnectBtn.setOnClickListener(new OnClickListener() {
@@ -103,7 +105,15 @@ public class DebugActivityHome extends Activity {
                 intent.putExtra("ServerIP", ip);
                 startActivity(intent);
             }
+        });
 
+        mDesktopBtn.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent();
+                intent.setClass(mContext, DebugActivityRemoteDesktop.class);
+                startActivity(intent);
+            }
         });
 
         mAdvancedBtn.setOnClickListener(new OnClickListener() {
