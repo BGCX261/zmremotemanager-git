@@ -227,8 +227,7 @@ public class CommandProcessor extends CmdDispatchInfo {
             String type = ((ZMIQResult) result).getResult().getType();
             LogManager.local(TAG, "send result:" + type);
             ret = mXmppClient.sendPacketAsync((Packet) result, 0);
-
-            mSubSystemFacade.addLog(CoreConstants.CONSTANT_LOGTYPE_COMMON,
+            LogManager.getInstance().addLog(CoreConstants.CONSTANT_INT_LOGTYPE_COMMON,
                     ((ZMIQResult) result).getResult().toXML());
         }
         return ret;

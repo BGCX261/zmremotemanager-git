@@ -90,7 +90,7 @@ public class RemoteManagerService extends Service {
 
         mXmppClient.addXmppClientCallback(mNetCmdDispatcher);
 
-        mLogManager = new LogManager(this, mXmppClient);
+        mLogManager = LogManager.createLogManager(this);
         mLogManager.start();
 
         mNetworkStatusMonitor = new NetworkStatusMonitor(this);

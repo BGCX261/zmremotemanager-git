@@ -459,24 +459,6 @@ public class SubSystemFacade {
         mAlarmManager.cancelAlarm(alarmId);
     }
 
-    /*
-     * Wrapper around LogFilesManager
-     */
-    public void addLog(String type, String log) {
-        // stub
-    }
-
-    /*
-     * Wrapper around LogFilesManager
-     */
-    public void uploadLog(String type, Calendar date) {
-        // stub
-    }
-
-    /*
-     * Wrapper around LogFilesManager
-     */
-    public void uploadAllLogs() {
-        // stub
-    }
+   
+ 
 }
