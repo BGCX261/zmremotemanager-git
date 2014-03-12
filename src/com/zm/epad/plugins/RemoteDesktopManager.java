@@ -257,9 +257,9 @@ public class RemoteDesktopManager {
                     mDisplay = null;
                     callbackstop = true;
                 }
+                if (callbackstop && mListener != null) mListener.onServerStopped();
                 mIface = null;
                 mListener = null;
-                if (callbackstop && mListener != null) mListener.onServerStopped();
             }
         });
     }
