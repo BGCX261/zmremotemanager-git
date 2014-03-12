@@ -9,7 +9,7 @@ public class AppUsageRunnable implements Runnable {
     public void run() {
         SubSystemFacade system = SubSystemFacade.getInstance();
         PkgUsageStats[] usage = system.getAllPkgUsageStats();
-        system.sendCallback(SubSystemFacade.NOTIFY_APP_USAGE, (Object)usage);
+        system.sendNotify(SubSystemFacade.NOTIFY_APP_USAGE, (Object)usage);
     }
 
 }

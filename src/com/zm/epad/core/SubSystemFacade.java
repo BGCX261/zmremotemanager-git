@@ -62,16 +62,16 @@ public class SubSystemFacade {
     }
 
     public interface NotifyListener {
-        void callback(int type, Object obj);
+        void notify(int type, Object obj);
     }
 
     public void setListener(NotifyListener listener) {
         mListeners.add(listener);
     }
 
-    public void sendCallback(int type, Object obj) {
+    public void sendNotify(int type, Object obj) {
         for (NotifyListener nl : mListeners) {
-            nl.callback(type, obj);
+            nl.notify(type, obj);
         }
     }
 
