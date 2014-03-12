@@ -28,7 +28,7 @@ public class RemotePolicyManager {
     }
 
     private void delete() {
-
+        cancelAll();
     }
 
     public void updatePolicy(String policyForm) throws Exception {

@@ -53,9 +53,12 @@ public class RemoteDeviceManager implements LogFileTransferInterface{
 
     private RemoteLocationTrack mLocationTrack = null;
     private LogFilesManager mMyLogFileManager = null;
+
     public void stop() {
-        mMyLogFileManager.closeLogFiles();
-        mMyLogFileManager = null;
+        if (mMyLogFileManager != null) {
+            mMyLogFileManager.closeLogFiles();
+            mMyLogFileManager = null;
+        }
         LogManager.local(TAG, "stop");
     }
 

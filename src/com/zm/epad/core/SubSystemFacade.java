@@ -61,21 +61,17 @@ public class SubSystemFacade {
 
         mThreadPool = Executors.newCachedThreadPool();
 
+        startFirstPriority(loginBundle);
+
         mPackageManager = new RemotePackageManager(mContext);
 
         mDeviceManager = new RemoteDeviceManager(mContext);
-
-        mFileManager = new RemoteFileManager(mContext);
-        mFileManager.setXmppLoginResource(loginBundle);
-        mFileManager.setThreadPool(mThreadPool);
 
         mPolicyManager = new RemotePolicyManager(mContext);
         mPolicyManager.loadPolicy();
 
         mStatsManager = new RemoteStatsManager(mContext);
         mStatsManager.start();
-
-        mAlarmManager = new RemoteAlarmManager(mContext);
     }
 
     public RemotePackageManager getRemotePackageManager() {
@@ -106,24 +102,39 @@ public class SubSystemFacade {
     public void stop() {
         mStatsManager.stop();
         mStatsManager = null;
-        
+
         mPackageManager.stop();
         mPackageManager = null;
 
         mDeviceManager.stop();
         mDeviceManager = null;
 
-        mFileManager.stop();
-        mFileManager = null;
-
         mPolicyManager.stop();
         mPolicyManager = null;
+
+        stopFirstPriority();
 
         shutdownAndAwaitTermination();
 
         mThreadPool = null;
 
         gSubSystemFacade = null;
+    }
+
+    private void startFirstPriority(Bundle loginBundle) {
+        mAlarmManager = new RemoteAlarmManager(mContext);
+
+        mFileManager = new RemoteFileManager(mContext);
+        mFileManager.setXmppLoginResource(loginBundle);
+        mFileManager.setThreadPool(mThreadPool);
+    }
+
+    private void stopFirstPriority() {
+        mFileManager.stop();
+        mFileManager = null;
+
+        mAlarmManager.stop();
+        mAlarmManager = null;
     }
 
     void shutdownAndAwaitTermination() {

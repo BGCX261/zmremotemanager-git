@@ -1,6 +1,8 @@
 package com.zm.epad.plugins;
 
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Set;
 
 import com.zm.epad.core.LogManager;
 
@@ -13,7 +15,7 @@ import android.content.IntentFilter;
 
 public class RemoteAlarmManager {
 
-    private static final String TAG = "AlarmReceiver";
+    private static final String TAG = "RemoteAlarmManager";
     private static final String AlarmAction = "com.zm.epad.ALARM";
 
     private final String ALARM_ID = "alarmId";
@@ -60,20 +62,37 @@ public class RemoteAlarmManager {
         intent.putExtra(ALARM_ID, alarmId);
         PendingIntent pi = PendingIntent.getBroadcast(mContext, 0, intent,
                 PendingIntent.FLAG_ONE_SHOT);
-        if (mWaitingAlarm.containsKey(alarmId)) {
-            throw new Exception("alarm id is duplicated");
+        synchronized (mWaitingAlarm) {
+            if (mWaitingAlarm.containsKey(alarmId)) {
+                throw new Exception("alarm id is duplicated");
+            }
+            mWaitingAlarm.put(alarmId, new ZMAlarm(pi, callback));
+            LogManager.local(TAG, "set :" + type + " :" + triggerAtMillis);
+            mAlarmManger.set(type, triggerAtMillis, pi);
         }
-
-        mWaitingAlarm.put(alarmId, new ZMAlarm(pi, callback));
-        LogManager.local(TAG, "set :" + type + " :" + triggerAtMillis);
-        mAlarmManger.set(type, triggerAtMillis, pi);
     }
 
     public void cancelAlarm(String alarmId) {
-        ZMAlarm alarm = mWaitingAlarm.get(alarmId);
-        if (alarm != null) {
-            mAlarmManger.cancel(alarm.pendingIntent);
-            mWaitingAlarm.remove(alarmId);
+        synchronized (mWaitingAlarm) {
+            ZMAlarm alarm = mWaitingAlarm.get(alarmId);
+            if (alarm != null) {
+                mAlarmManger.cancel(alarm.pendingIntent);
+                mWaitingAlarm.remove(alarmId);
+            }
+        }
+    }
+
+    public void stop() {
+        LogManager.local(TAG, "stop");
+        mContext.unregisterReceiver(mReceiver);
+        synchronized (mWaitingAlarm) {
+            Set<String> Keys = mWaitingAlarm.keySet();
+            for (Iterator<String> i = Keys.iterator(); i.hasNext();) {
+                String alarmId = i.next();
+                ZMAlarm alarm = mWaitingAlarm.get(alarmId);
+                mAlarmManger.cancel(alarm.pendingIntent);
+            }
+            mWaitingAlarm.clear();
         }
     }
 
@@ -88,7 +107,9 @@ public class RemoteAlarmManager {
                 ZMAlarm alarm = mWaitingAlarm.get(alarmId);
                 if (alarm != null) {
                     LogManager.local(TAG, "wake up on alarm:" + alarmId);
-                    mWaitingAlarm.remove(alarmId);
+                    synchronized (mWaitingAlarm) {
+                        mWaitingAlarm.remove(alarmId);
+                    }
                     alarm.callback.wakeUp();
                 }
             }
