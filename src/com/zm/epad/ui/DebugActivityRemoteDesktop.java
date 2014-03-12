@@ -93,6 +93,7 @@ public class DebugActivityRemoteDesktop extends Activity {
 
                         @Override
                         public void onServerCreated(String iface) {
+                            Log.i(TAG, "Rtsp server running now");
                             if (iface != null) {
                                 mTextIP[0].setText("Rtsp server running now: " + iface);
                             }
@@ -121,13 +122,16 @@ public class DebugActivityRemoteDesktop extends Activity {
 
                         @Override
                         public void onServerStarted() {
+                            Log.i(TAG, "Start mirror the desktop to remote");
                             mTextIP[2].setText("Start mirror the desktop to remote");
                         }
 
                         @Override
                         public void onServerStopped() {
+                            Log.i(TAG, "Get host IP address fail");
                             mTextIP[2].setText("remote desktop stopped! ");
                             mTextIP[0].setText(mIPtext);
+                            updateStopRemoteDesktop();
                         }
                     });
                 } else {
@@ -143,17 +147,21 @@ public class DebugActivityRemoteDesktop extends Activity {
 
         mBtnCloseRtsp.setOnClickListener(new OnClickListener() {
             @Override public void onClick(View v) {
-                mRdManager.stopRemoteDesktop();
-                for (TextView tv : mTextIP) {
-                    tv.setText("");
-                }
-                for (TextView tv : mTextDisplay) {
-                    tv.setText("");
-                }
-                mIface = null;
-                mBtnCloseRtsp.setVisibility(View.GONE);
-                mBtnOpenRtsp.setVisibility(View.VISIBLE);
+                updateStopRemoteDesktop();
             }
         });
+    }
+
+    private void updateStopRemoteDesktop() {
+        mRdManager.stopRemoteDesktop();
+        for (TextView tv : mTextIP) {
+            tv.setText("");
+        }
+        for (TextView tv : mTextDisplay) {
+            tv.setText("");
+        }
+        mIface = null;
+        mBtnCloseRtsp.setVisibility(View.GONE);
+        mBtnOpenRtsp.setVisibility(View.VISIBLE);
     }
 }
