@@ -27,6 +27,7 @@ import android.os.Looper;
 import android.os.UserManager;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -412,5 +413,26 @@ public class SubSystemFacade {
      */
     public void cancelAlarm(String alarmId) {
         mAlarmManager.cancelAlarm(alarmId);
+    }
+
+    /*
+     * Wrapper around LogFilesManager
+     */
+    public void addLog(String type, String log) {
+        // stub
+    }
+
+    /*
+     * Wrapper around LogFilesManager
+     */
+    public void uploadLog(String type, Calendar date) {
+        // stub
+    }
+
+    /*
+     * Wrapper around LogFilesManager
+     */
+    public void uploadAllLogs() {
+        // stub
     }
 }

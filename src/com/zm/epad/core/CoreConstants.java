@@ -20,12 +20,13 @@ public interface CoreConstants {
     final static String CONSTANT_RESULT_DONE = "done";
     final static String CONSTANT_RESULT_DONE_ = "done:";
     final static String CONSTANT_RESULT_DONE_0 = "done:0";
-    
+
+    final static String CONSTANT_LOGTYPE_COMMON = "common-log";
     final static String CONSTANT_LOGTYPE_LOCATION = "location-log";
     final static String CONSTANT_LOGTYPE_APPRUNTIME = "appruntime-log";
     final static String CONSTANT_LOGTYPE_RUNTIME = "runtime-log";
-    final static String[] CONSTANT_LOGTYPE_ARRAYS = {
-        CONSTANT_LOGTYPE_LOCATION,CONSTANT_LOGTYPE_APPRUNTIME,CONSTANT_LOGTYPE_RUNTIME
-    };
-    
+    final static String[] CONSTANT_LOGTYPE_ARRAYS = { CONSTANT_LOGTYPE_COMMON,
+            CONSTANT_LOGTYPE_LOCATION, CONSTANT_LOGTYPE_APPRUNTIME,
+            CONSTANT_LOGTYPE_RUNTIME };
+
 }
