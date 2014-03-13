@@ -125,6 +125,8 @@
     <string name="debug_userinfo">User</string>
     <string name="debug_apptrace">App Trace</string>
     <string name="debug_appuntrace">App Untrace</string>
+    <string name="debug_postrace">Pos Trace</string>
+    <string name="debug_posuntrace">Pos Untrace</string>
     <string name="debug_deviceadmin">Remote Device Admin</string>
     <string name="debug_sendpolicy">Send Policy</string>
     <string name="debug_policy">Policy</string>

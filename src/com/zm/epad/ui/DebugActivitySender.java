@@ -39,6 +39,8 @@ public class DebugActivitySender extends Activity {
 
     private Button mAppTraceBtn = null;
     private Button mAppUntraceBtn = null;
+    private Button mPosTraceBtn = null;
+    private Button mPosUntraceBtn = null;
 
     private Button mPolicyBtn = null;
 
@@ -75,6 +77,8 @@ public class DebugActivitySender extends Activity {
 
         mAppTraceBtn = (Button) findViewById(R.id.button8);
         mAppUntraceBtn = (Button) findViewById(R.id.button9);
+        mPosTraceBtn = (Button) findViewById(R.id.button11);
+        mPosUntraceBtn = (Button) findViewById(R.id.button12);
 
         mPolicyBtn = (Button) findViewById(R.id.button10);
 
@@ -228,6 +232,36 @@ public class DebugActivitySender extends Activity {
                 // TODO Auto-generated method stub
                 try {
                     sendTestCommand4Report(Constants.XMPP_REPORT_APP,
+                            Constants.XMPP_REPORT_ACT_UNTRACE);
+                } catch (Exception e) {
+                    LogManager.local(TAG, e.getMessage());
+                }
+            }
+
+        });
+
+        mPosTraceBtn.setOnClickListener(new OnClickListener() {
+
+            @Override
+            public void onClick(View arg0) {
+                // TODO Auto-generated method stub
+                try {
+                    sendTestCommand4Report(Constants.XMPP_REPORT_POS,
+                            Constants.XMPP_REPORT_ACT_TRACE);
+                } catch (Exception e) {
+                    LogManager.local(TAG, e.getMessage());
+                }
+            }
+
+        });
+
+        mPosUntraceBtn.setOnClickListener(new OnClickListener() {
+
+            @Override
+            public void onClick(View arg0) {
+                // TODO Auto-generated method stub
+                try {
+                    sendTestCommand4Report(Constants.XMPP_REPORT_POS,
                             Constants.XMPP_REPORT_ACT_UNTRACE);
                 } catch (Exception e) {
                     LogManager.local(TAG, e.getMessage());

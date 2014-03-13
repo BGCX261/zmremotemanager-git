@@ -140,15 +140,6 @@
 	    android:layout_centerVertical="true"
 	    android:text="@string/debug_appuntrace" />
 
-	<TextView
-	    android:id="@+id/textView4"
-	    android:layout_width="wrap_content"
-	    android:layout_height="wrap_content"
-	    android:layout_alignLeft="@+id/button8"
-	    android:layout_below="@+id/button8"
-	    android:layout_marginTop="46dp"
-	    android:text="@string/debug_sendpolicy" />
-
 	<Button
 	    android:id="@+id/button10"
 	    android:layout_width="150dp"
@@ -157,5 +148,32 @@
 	    android:layout_below="@+id/textView4"
 	    android:layout_marginTop="20dp"
 	    android:text="@string/debug_policy" />
+
+	<TextView
+	    android:id="@+id/textView4"
+	    android:layout_width="wrap_content"
+	    android:layout_height="wrap_content"
+	    android:layout_alignLeft="@+id/button8"
+	    android:layout_below="@+id/button8"
+	    android:layout_marginTop="100dp"
+	    android:text="@string/debug_sendpolicy" />
+
+	<Button
+	    android:id="@+id/button11"
+	    android:layout_width="150dp"
+	    android:layout_height="wrap_content"
+	    android:layout_alignLeft="@+id/button8"
+	    android:layout_below="@+id/button8"
+	    android:layout_marginTop="18dp"
+	    android:text="@string/debug_postrace" />
+
+	<Button
+	    android:id="@+id/button12"
+	    android:layout_width="150dp"
+	    android:layout_height="wrap_content"
+	    android:layout_alignBaseline="@+id/button11"
+	    android:layout_alignBottom="@+id/button11"
+	    android:layout_alignLeft="@+id/button9"
+	    android:text="@string/debug_posuntrace" />
 	
 </RelativeLayout>
