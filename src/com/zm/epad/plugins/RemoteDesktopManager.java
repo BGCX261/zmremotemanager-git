@@ -1,5 +1,9 @@
 package com.zm.epad.plugins;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -10,7 +14,7 @@ import org.apache.http.conn.util.InetAddressUtils;
 import android.content.Context;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
-import android.media.RemoteDesktop;
+//import android.media.RemoteDesktop;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
@@ -28,7 +32,7 @@ public class RemoteDesktopManager {
     private final Handler mHandler;
     private final DisplayManager mDisplayManager;
 
-    private RemoteDesktop mRemoteDesktop;
+    private Object mRemoteDesktop;
     private VirtualDisplay mDisplay;
     private final static String mDisplayName = "zm_display";
     private final DisplayParam mDisplayParam[] = new DisplayParam[3];
@@ -67,10 +71,11 @@ public class RemoteDesktopManager {
         }
     }
 
-    public final static int RD_IN_USE = 1;
-    public final static int RD_NO_NETWORK = 2;
-    public final static int RD_SERVER_CREATE_FAILED = 3;
-    public final static int RD_DISPLAY_CREATE_FAILED = 4;
+    public final static int RD_NOT_SUPPORT = 1;
+    public final static int RD_IN_USE = 2;
+    public final static int RD_NO_NETWORK = 3;
+    public final static int RD_SERVER_CREATE_FAILED = 4;
+    public final static int RD_DISPLAY_CREATE_FAILED = 5;
 
     /**
      * Listener invoked when the remote display connection changes state.
@@ -82,12 +87,68 @@ public class RemoteDesktopManager {
         void onServerStopped();
     }
 
+    private static Class<?> sRemoteDesktop;
+    private static Class<?> sRemoteDesktopListener;
+    private static Method sListen;
+    private static Method sDispose;
+    private static Class<?>[] sRemoteDesktopListenerArray;
+
+    static {
+        try {
+            sRemoteDesktop = Class.forName("android.media.RemoteDesktop");
+            sRemoteDesktopListener = Class.forName("android.media.RemoteDesktop$Listener");
+            sRemoteDesktopListenerArray = new Class<?>[1];
+            sRemoteDesktopListenerArray[0] = sRemoteDesktopListener;
+            sListen = sRemoteDesktop.getMethod("listen", String.class,
+                    sRemoteDesktopListener, Handler.class);
+            sDispose = sRemoteDesktop.getMethod("dispose");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static Object listenRtsp(String iface, Object listener, Handler mHandler) {
+        try {
+            return sListen.invoke(sRemoteDesktop, iface, listener, mHandler);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private void disposeRtsp() {
+        try {
+            sDispose.invoke(mRemoteDesktop);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static boolean support() {
+        return sRemoteDesktop != null;
+    }
+
     public RemoteDesktopManager(Context context) {
         mContext = context;
         mHandler = new Handler();
         mDisplayManager = (DisplayManager) mContext.getSystemService(Context.DISPLAY_SERVICE);
-        mDisplayManager.registerDisplayListener(mDisplayListener, mHandler);
-        updateDisplayParams();
+        if (sRemoteDesktop != null) {
+            Log.i(TAG, "This Android version support Remote Desktop");
+            mDisplayManager.registerDisplayListener(mDisplayListener, mHandler);
+            updateDisplayParams();
+        } else {
+            Log.e(TAG, "This Android version don't support Remote Desktop");
+        }
     }
 
     private void updateDisplayParams() {
@@ -132,8 +193,12 @@ public class RemoteDesktopManager {
     }
 
     public void startRemoteDesktop(Listener listener) {
+        if (sRemoteDesktop == null) {
+            notityError(listener, RD_NOT_SUPPORT);
+            return;
+        }
         if (mListener != null) {
-            listener.onServerError(RD_IN_USE);
+            notityError(listener, RD_IN_USE);
             return;
         }
         mListener = listener;
@@ -146,13 +211,14 @@ public class RemoteDesktopManager {
             startRtspServer(iface);
         } else {
             if (mListener != null) {
-                mListener.onServerError(RD_NO_NETWORK);
+                notityError(RD_NO_NETWORK);
                 mListener = null;
             }
         }
     }
 
     public void stopRemoteDesktop() {
+        if (sRemoteDesktop == null) return;
         release();
     }
 
@@ -192,35 +258,64 @@ public class RemoteDesktopManager {
 
     private void startRtspServer(String iface) {
         Log.i(TAG, "Rtsp Server listen at: " + iface);
-        mRemoteDesktop = RemoteDesktop.listen(iface, mRemoteDesktopListener, mHandler);
+        //mRemoteDesktop = RemoteDesktop.listen(iface, mRemoteDesktopListener, mHandler);
+        mRemoteDesktop = listenRtsp(iface, mRemoteDesktopListener, mHandler);
         if (mRemoteDesktop == null) {
-            if (mListener != null) mListener.onServerError(RD_SERVER_CREATE_FAILED);
+            if (mListener != null) notityError(RD_SERVER_CREATE_FAILED);
             mListener = null;
         } else {
             if (mListener != null) mListener.onServerCreated(getUrl());
         }
     }
 
-    private final RemoteDesktop.Listener mRemoteDesktopListener =
-        new RemoteDesktop.Listener() {
-        @Override public void onDesktopConnected(final Surface surface,
-                int width, int height, int flags, int session) {
-            Log.i(TAG, "Rtsp Server: recieved a client: width(" + width +
-                    ") height(" + height + ") flags(" + flags + ") session("
-                    + session + ")" );
-            createDisplay(surface, width, height);
+    private class RemoteDesktopListener implements InvocationHandler {
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args)
+                throws Throwable {
+            if (method.getName().equals("onDesktopConnected")) {
+                final Surface surface = (Surface) args[0];
+                int width = (Integer) args[1];
+                int height = (Integer) args[2];
+                int flags = (Integer) args[3];
+                int session = (Integer) args[4];
+                Log.i(TAG, "Rtsp Server: recieved a client: width(" + width +
+                        ") height(" + height + ") flags(" + flags + ") session("
+                        + session + ")" );
+                createDisplay(surface, width, height);
+            } else if (method.getName().equals("onDesktopDisconnected")) {
+                Log.i(TAG, "Rtsp Server: client disconnected");
+                release();
+            } else if (method.getName().equals("onDesktopError")) {
+                int error = (Integer) args[0];
+                Log.i(TAG, "Rtsp Server: client error: " + error);
+            }
+            return null;
         }
+    }
 
-        @Override public void onDesktopDisconnected() {
-            Log.i(TAG, "Rtsp Server: client disconnected");
-            release();
-        }
+    private Object mRemoteDesktopListener = Proxy.newProxyInstance(null,
+            sRemoteDesktopListenerArray, new RemoteDesktopListener());
 
-        @Override public void onDesktopError(int error) {
-            Log.i(TAG, "Rtsp Server: client error: " + error);
-            //release();
-        }
-    };
+//    private final RemoteDesktop.Listener mRemoteDesktopListener =
+//        new RemoteDesktop.Listener() {
+//        @Override public void onDesktopConnected(final Surface surface,
+//                int width, int height, int flags, int session) {
+//            Log.i(TAG, "Rtsp Server: recieved a client: width(" + width +
+//                    ") height(" + height + ") flags(" + flags + ") session("
+//                    + session + ")" );
+//            createDisplay(surface, width, height);
+//        }
+//
+//        @Override public void onDesktopDisconnected() {
+//            Log.i(TAG, "Rtsp Server: client disconnected");
+//            release();
+//        }
+//
+//        @Override public void onDesktopError(int error) {
+//            Log.i(TAG, "Rtsp Server: client error: " + error);
+//            //release();
+//        }
+//    };
 
     private void createDisplay(final Surface surface, int width, int height) {
         mHandler.post(new Runnable() {
@@ -248,7 +343,8 @@ public class RemoteDesktopManager {
                 boolean callbackstop = false;
                 if (mRemoteDesktop != null) {
                     Log.i(TAG, "Release Rtsp Server");
-                    mRemoteDesktop.dispose();
+                    //mRemoteDesktop.dispose();
+                    disposeRtsp();
                     mRemoteDesktop = null;
                     callbackstop = true;
                 }
@@ -260,6 +356,18 @@ public class RemoteDesktopManager {
                 if (callbackstop && mListener != null) mListener.onServerStopped();
                 mIface = null;
                 mListener = null;
+            }
+        });
+    }
+
+    private void notityError(final int error) {
+        notityError(mListener, error);
+    }
+
+    private void notityError(final Listener listener, final int error) {
+        mHandler.post(new Runnable() {
+            @Override public void run() {
+                if (listener != null) listener.onServerError(error);
             }
         });
     }
