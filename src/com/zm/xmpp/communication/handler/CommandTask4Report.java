@@ -54,7 +54,7 @@ public class CommandTask4Report extends PairCommandTask {
         boolean ret = false;
         ret = mSubSystemFacade.startTrackLocation(
                 Settings.Secure.LOCATION_MODE_HIGH_ACCURACY,
-                POSITION_DEFAULT_INTERVAL, 0, new LocationCallback());
+                POSITION_DEFAULT_INTERVAL, 100, new LocationCallback());
         return ret == true ? SUCCESS : FAILED;
     }
 
