@@ -68,21 +68,26 @@ public class ResultDeviceReport extends AbstractResult implements IResult {
         buf.append("\" type=\"");
         buf.append(type);
         buf.append("\">");
-        buf.append("<id>");
-        buf.append(this.id);
-        buf.append("</id>");
-        buf.append("<deviceid>");
-        buf.append(this.deviceId);
-        buf.append("</deviceid>");
-        buf.append("<status>");
-        buf.append(this.status);
-        buf.append("</status>");
-        buf.append("<errorcode>");
-        buf.append(this.errorCode);
-        buf.append("</errorcode>");
-        buf.append("<action>");
-        buf.append(this.action);
-        buf.append("</action>");
+        if (this.id != null) {
+            buf.append("<id>");
+            buf.append(this.id);
+            buf.append("</id>");
+        }
+        if (this.deviceId != null) {
+            buf.append("<deviceid>");
+            buf.append(this.deviceId);
+            buf.append("</deviceid>");
+        }
+        if (this.status != null) {
+            buf.append("<status>");
+            buf.append(this.status);
+            buf.append("</status>");
+        }
+        if (this.errorCode != null) {
+            buf.append("<errorcode>");
+            buf.append(this.errorCode);
+            buf.append("</errorcode>");
+        }
         buf.append("<longitude>");
         buf.append(this.longitude);
         buf.append("</longitude>");
