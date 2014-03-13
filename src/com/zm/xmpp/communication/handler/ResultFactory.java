@@ -8,10 +8,13 @@ import android.os.Bundle;
 import android.os.UserManager;
 import android.text.format.Time;
 
+import com.android.internal.os.PkgUsageStats;
+
 import com.zm.epad.core.CoreConstants;
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.SubSystemFacade;
 import com.zm.epad.plugins.RemoteDeviceManager;
+import com.zm.epad.plugins.RemoteDeviceManager.RemoteLocation;
 import com.zm.epad.plugins.RemotePackageManager;
 import com.zm.epad.structure.Application;
 import com.zm.epad.structure.Configuration;
@@ -23,6 +26,7 @@ import com.zm.xmpp.communication.result.*;
 import android.app.ActivityManager.RunningAppProcessInfo;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class ResultFactory {
@@ -46,7 +50,11 @@ public class ResultFactory {
      * private RemotePackageManager mPkgsManager = null; private
      * RemoteDeviceManager mDeviceManager = null;
      */
-    SubSystemFacade mSubSystemFacade;
+    private SubSystemFacade mSubSystemFacade;
+
+    private List<PkgUsageStats> mLastUsage = null;
+    private int mLastUsageUser = 0;
+    private long mLastUsageTime = System.currentTimeMillis();
 
     /*
      * public ResultFactory() {
@@ -62,7 +70,7 @@ public class ResultFactory {
         public void handleResult(IResult result);
     }
 
-    public IResult getResult(int type, String id, String status,
+    public IResult getResult(int type, String id, String status, Object obj,
             ResultCallback callback) {
         IResult ret = null;
 
@@ -81,6 +89,11 @@ public class ResultFactory {
         case RESULT_RUNNINGAPP:
             ret = getRunningAppResult();
             break;
+        case RESULT_APPUSAGE:
+            ret = getAppUsageResult(obj);
+            break;
+        case RESULT_POSITION:
+            ret = getPositionResult(obj);
         default:
             LogManager.local(TAG, "bad type: " + type);
             ret = null;
@@ -105,11 +118,15 @@ public class ResultFactory {
     }
 
     public IResult getResult(int type, String id) {
-        return getResult(type, id, null, null);
+        return getResult(type, id, null, null, null);
     }
 
     public IResult getResult(int type, String id, String status) {
-        return getResult(type, id, status, null);
+        return getResult(type, id, status, null, null);
+    }
+
+    public IResult getResult(int type, String id, Object obj) {
+        return getResult(type, null, null, obj, null);
     }
 
     public List<IResult> getResults(int type, String id) {
@@ -117,10 +134,15 @@ public class ResultFactory {
     }
 
     public List<IResult> getResults(int type, String id, ResultCallback callback) {
+        return getResults(type, id, null, callback);
+    }
+
+    public List<IResult> getResults(int type, String id, Object obj,
+            ResultCallback callback) {
         List<IResult> resultList = null;
 
         IResult ret = getResult(type, id, CoreConstants.CONSTANT_RESULT_DONE_0,
-                callback);
+                null, callback);
         if (ret != null) {
             resultList = new ArrayList<IResult>();
             resultList.add(ret);
@@ -356,4 +378,53 @@ public class ResultFactory {
         return result;
     }
 
+    private IResult getAppUsageResult(Object obj) {
+        int CurrentUser = mSubSystemFacade.getCurrentUserId();
+        if (CurrentUser != mLastUsageUser) {
+            mLastUsageUser = CurrentUser;
+            mLastUsage = null;
+        }
+        PkgUsageStats[] usage = (PkgUsageStats[]) obj;
+        ResultAppUsage result = new ResultAppUsage();
+        long currentTime = System.currentTimeMillis();
+        result.setStartTime(mLastUsageTime);
+        result.setEndTime(currentTime);
+        result.addUser(CurrentUser);
+        List<PkgUsageStats> nowlist = Arrays.asList(usage);
+        RemotePackageManager pkgManager = mSubSystemFacade
+                .getRemotePackageManager();
+        for (PkgUsageStats now : nowlist) {
+            if (mLastUsage != null) {
+                // calculate the time increment of each app
+                for (PkgUsageStats last : mLastUsage) {
+                    if (now.packageName.equals(last.packageName)) {
+                        now.usageTime = now.usageTime - last.usageTime;
+                    }
+                }
+            }
+            if (now.usageTime > 0) {
+                String label = pkgManager.getApplicationName(now.packageName,
+                        0, CurrentUser);
+                String version = pkgManager.getApplicationVersion(
+                        now.packageName, 0, CurrentUser);
+                result.addAppUsage(CurrentUser, label, now.packageName,
+                        version, now.usageTime);
+            }
+        }
+        mLastUsageUser = CurrentUser;
+        mLastUsage = nowlist;
+        mLastUsageTime = currentTime;
+
+        return result;
+    }
+
+    private IResult getPositionResult(Object obj) {
+        RemoteLocation location = (RemoteLocation) obj;
+        ResultDeviceReport result = new ResultDeviceReport();
+        result.setLongitude(String.valueOf(location.mLongitude));
+        result.setLatitude(String.valueOf(location.mLatitude));
+        result.setLoctime(location.mTime);
+
+        return result;
+    }
 }

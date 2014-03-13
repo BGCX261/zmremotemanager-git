@@ -38,6 +38,7 @@ public class CommandProcessor extends CmdDispatchInfo {
     private ResultFactory mResultFactory;
     private HandlerThread mThread;
     private Handler mHandler;
+    private SystemNotifyTask mSystemTask = null;
     private List<CommandTask> mRunningTaskList = new ArrayList<CommandTask>() {
     };
     private List<PairCommandTask> mToPairTaskList = new ArrayList<PairCommandTask>() {
@@ -55,6 +56,10 @@ public class CommandProcessor extends CmdDispatchInfo {
 
     @Override
     public void destroy() {
+        if (mSystemTask != null) {
+            mSystemTask.forceClose();
+            mSystemTask = null;
+        }
         for (CommandTask t : mRunningTaskList) {
             t.forceClose();
         }
@@ -72,6 +77,8 @@ public class CommandProcessor extends CmdDispatchInfo {
     public void setSubSystem(SubSystemFacade subSystemFacade) {
         mSubSystemFacade = subSystemFacade;
         mResultFactory.setSubSystem(subSystemFacade);
+        mSystemTask = new SystemNotifyTask(mSubSystemFacade, mHandler,
+                mResultFactory);
     }
 
     private CommandProcessor(Context context, String namespace,
@@ -227,7 +234,8 @@ public class CommandProcessor extends CmdDispatchInfo {
             String type = ((ZMIQResult) result).getResult().getType();
             LogManager.local(TAG, "send result:" + type);
             ret = mXmppClient.sendPacketAsync((Packet) result, 0);
-            LogManager.getInstance().addLog(CoreConstants.CONSTANT_INT_LOGTYPE_COMMON,
+            LogManager.getInstance().addLog(
+                    CoreConstants.CONSTANT_INT_LOGTYPE_COMMON,
                     ((ZMIQResult) result).getResult().toXML());
         }
         return ret;

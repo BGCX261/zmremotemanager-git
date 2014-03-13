@@ -69,6 +69,10 @@ public class SubSystemFacade {
         mListeners.add(listener);
     }
 
+    public void cancelListener(NotifyListener listener) {
+        mListeners.remove(listener);
+    }
+
     public void sendNotify(int type, Object obj) {
         for (NotifyListener nl : mListeners) {
             nl.notify(type, obj);
@@ -459,6 +463,4 @@ public class SubSystemFacade {
         mAlarmManager.cancelAlarm(alarmId);
     }
 
-   
- 
 }

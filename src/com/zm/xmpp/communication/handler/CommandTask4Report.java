@@ -4,8 +4,11 @@ import java.util.List;
 
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.os.Handler;
+import android.provider.Settings;
 
 import com.zm.epad.core.SubSystemFacade;
+import com.zm.epad.plugins.RemoteDeviceManager;
+import com.zm.epad.plugins.RemoteDeviceManager.RemoteLocation;
 import com.zm.epad.plugins.RemotePackageManager;
 import com.zm.xmpp.communication.client.ZMIQCommand;
 import com.zm.xmpp.communication.command.Command4Report;
@@ -17,6 +20,7 @@ public class CommandTask4Report extends PairCommandTask {
     private String mReport;
 
     private long APP_DEFAULT_INTERVAL = 5 * 1000;
+    private long POSITION_DEFAULT_INTERVAL = 5 * 1000;
 
     public CommandTask4Report(SubSystemFacade subSystemFacade, Handler handler,
             ResultFactory factory, ZMIQCommand command) {
@@ -46,12 +50,44 @@ public class CommandTask4Report extends PairCommandTask {
         return SUCCESS;
     }
 
+    private int startTrackLocation() {
+        boolean ret = false;
+        ret = mSubSystemFacade.startTrackLocation(
+                Settings.Secure.LOCATION_MODE_HIGH_ACCURACY,
+                POSITION_DEFAULT_INTERVAL, 0, new LocationCallback());
+        return ret == true ? SUCCESS : FAILED;
+    }
+
+    private int stopTrackLocation() {
+        mSubSystemFacade.stopTrackLocation();
+        return SUCCESS;
+    }
+
+    private class LocationCallback implements
+            RemoteDeviceManager.LocationReportCallback {
+
+        @Override
+        public void reportLocation(RemoteLocation loc) {
+            IResult result = mResultFactory
+                    .getResult(ResultFactory.RESULT_POSITION, getCommandId(),
+                            (Object) loc);
+            postResult(result);
+        }
+
+        @Override
+        public void reportLocationTrackStatus(boolean bRunning) {
+            // do nothing
+
+        }
+
+    }
+
     private int start(ZMIQCommand start) {
         int ret = FAILED;
         if (mReport.equals(Constants.XMPP_REPORT_APP)) {
             ret = startMonitorAppRunningInfo(APP_DEFAULT_INTERVAL);
         } else if (mReport.equals(Constants.XMPP_REPORT_POS)) {
-
+            ret = startTrackLocation();
         }
         return ret;
     }
@@ -61,7 +97,7 @@ public class CommandTask4Report extends PairCommandTask {
         if (mReport.equals(Constants.XMPP_REPORT_APP)) {
             ret = stopMonitorAppRunningInfo();
         } else if (mReport.equals(Constants.XMPP_REPORT_POS)) {
-
+            ret = stopTrackLocation();
         }
         return ret;
     }
@@ -103,7 +139,7 @@ public class CommandTask4Report extends PairCommandTask {
         if (mReport.equals(Constants.XMPP_REPORT_APP)) {
             stopMonitorAppRunningInfo();
         } else if (mReport.equals(Constants.XMPP_REPORT_POS)) {
-
+            stopTrackLocation();
         }
     }
 

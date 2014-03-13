@@ -37,8 +37,8 @@ public class RemoteManagerService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        subsystemsStop();
         coreSystemStop();
+        subsystemsStop();
         mbInitialized = false;
     }
 
