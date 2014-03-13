@@ -1,22 +1,5 @@
 package com.zm.epad.core;
 
-import com.android.internal.os.PkgUsageStats;
-import com.zm.epad.plugins.RemoteAlarmManager;
-import com.zm.epad.plugins.RemoteDeviceManager;
-import com.zm.epad.plugins.RemoteFileManager;
-import com.zm.epad.plugins.RemoteStatsManager;
-import com.zm.epad.plugins.RemoteAlarmManager.AlarmCallback;
-import com.zm.epad.plugins.RemoteDeviceManager.LocationReportCallback;
-import com.zm.epad.plugins.RemoteDeviceManager.RemoteLocation;
-import com.zm.epad.plugins.RemoteFileManager.FileTransferCallback;
-import com.zm.epad.plugins.RemotePackageManager.installCallback;
-import com.zm.epad.plugins.RemotePackageManager;
-import com.zm.epad.plugins.policy.RemotePolicyManager;
-import com.zm.epad.structure.Application;
-import com.zm.epad.structure.Configuration;
-import com.zm.epad.structure.Device;
-import com.zm.xmpp.communication.result.ResultRunningApp;
-
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.content.ComponentName;
 import android.content.Context;
@@ -24,10 +7,29 @@ import android.content.pm.PackageInfo;
 import android.content.pm.UserInfo;
 import android.os.Bundle;
 import android.os.Looper;
+import android.os.Message;
 import android.os.UserManager;
 
+import com.android.internal.os.PkgUsageStats;
+import com.zm.epad.plugins.RemoteAlarmManager;
+import com.zm.epad.plugins.RemoteAlarmManager.AlarmCallback;
+import com.zm.epad.plugins.RemoteDesktopManager;
+import com.zm.epad.plugins.RemoteDeviceManager;
+import com.zm.epad.plugins.RemoteDeviceManager.LocationReportCallback;
+import com.zm.epad.plugins.RemoteDeviceManager.RemoteLocation;
+import com.zm.epad.plugins.RemoteFileManager;
+import com.zm.epad.plugins.RemoteFileManager.FileTransferCallback;
+import com.zm.epad.plugins.RemotePackageManager;
+import com.zm.epad.plugins.RemotePackageManager.installCallback;
+import com.zm.epad.plugins.RemoteStatsManager;
+import com.zm.epad.plugins.SmartShareManager;
+import com.zm.epad.plugins.policy.RemotePolicyManager;
+import com.zm.epad.structure.Application;
+import com.zm.epad.structure.Configuration;
+import com.zm.epad.structure.Device;
+import com.zm.xmpp.communication.result.ResultRunningApp;
+
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,6 +45,7 @@ public class SubSystemFacade {
     private RemotePolicyManager mPolicyManager;
     private RemoteStatsManager mStatsManager;
     private RemoteAlarmManager mAlarmManager;
+    private SmartShareManager mSmartShare;
 
     private Context mContext;
     private static SubSystemFacade gSubSystemFacade = null;
@@ -52,6 +55,13 @@ public class SubSystemFacade {
 
     public static final int NOTIFY_APP_USAGE = 1;
     public static final int NOTIFY_POSITION = 2;
+
+    // TODO: need to figure out whether NotifyListener is suitable.
+    // Because it will broadcast all notification to all listeners.
+    // Some listener should not receive all message at all.
+    // And, it cannot carry more than 2 data directly.
+    // I try to use Message/Looper/Handler for instead.
+    public static final int NOTIFY_DESKTOP_SHARE = 3;
 
     public SubSystemFacade(Context context) {
         mContext = context;
@@ -92,6 +102,9 @@ public class SubSystemFacade {
         mPackageManager = new RemotePackageManager(mContext);
 
         mDeviceManager = new RemoteDeviceManager(mContext);
+
+        mSmartShare = new SmartShareManager(mContext);
+        mSmartShare.setThreadPool(mThreadPool);
 
         mPolicyManager = new RemotePolicyManager(mContext);
         mPolicyManager.loadPolicy();
@@ -463,4 +476,32 @@ public class SubSystemFacade {
         mAlarmManager.cancelAlarm(alarmId);
     }
 
+    public boolean supportDesktopShare() {
+        return RemoteDesktopManager.support();
+    }
+
+    /**
+     * Following msg set to arg1 of desktop's notify.
+     */
+    public final static int MSG_DESKTOP_SERVER_CREATED_OK = 1; // return url
+                                                              // in the object
+                                                              // param of notify
+    public final static int MSG_DESKTOP_RUNNING_OK = 2;
+    public final static int MSG_DESKTOP_STOPPED = 3;
+    public final static int MSG_DESKTOP_NOT_SUPPORT = 4;
+    public final static int MSG_DESKTOP_IN_USE = 5;
+    public final static int MSG_DESKTOP_NO_NETWORK = 6;
+    public final static int MSG_DESKTOP_SERVER_CREATE_FAILED = 7;
+    public final static int MSG_DESKTOP_DISPLAY_CREATE_FAILED = 8;
+    /**
+     * Start Remote Desktop
+     * @param notify what=NOTIFY_DESKTOP_SHARE, I don't know if what is needed.
+     */
+    public void startDesktopShare(Message notify) {
+        mSmartShare.startDesktopShare(notify);
+    }
+
+    public void stopDesktopShare() {
+        mSmartShare.stopDesktopShare();
+    }
 }
