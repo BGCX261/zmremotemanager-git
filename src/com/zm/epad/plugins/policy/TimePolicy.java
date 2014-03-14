@@ -5,6 +5,7 @@ import com.zm.epad.core.SubSystemFacade;
 import com.zm.epad.plugins.RemoteAlarmManager;
 
 public abstract class TimePolicy extends Policy {
+    protected int mAlarmId = -1;
 
     public TimePolicy(int id) {
         super(id);
@@ -21,7 +22,7 @@ public abstract class TimePolicy extends Policy {
         LogManager.local("TimePolicy", "now:" + System.currentTimeMillis()
                 + "; next:" + next);
         try {
-            SubSystemFacade.getInstance().setAlarm(next, getAlarmId(),
+            mAlarmId = SubSystemFacade.getInstance().setAlarm(next,
                     new AlarmCallback(this));
         } catch (Exception e) {
             e.printStackTrace();
@@ -30,7 +31,9 @@ public abstract class TimePolicy extends Policy {
 
     @Override
     void cancel() {
-        SubSystemFacade.getInstance().cancelAlarm(getAlarmId());
+        if (mAlarmId >= 0) {
+            SubSystemFacade.getInstance().cancelAlarm(mAlarmId);
+        }
     }
 
     protected class AlarmCallback implements RemoteAlarmManager.AlarmCallback {
@@ -46,9 +49,5 @@ public abstract class TimePolicy extends Policy {
             mPolicy.setNextAlarm(mPolicy.getNextAlarmTime());
         }
 
-    }
-
-    protected String getAlarmId() {
-        return "TimePolicy_" + mId;
     }
 }

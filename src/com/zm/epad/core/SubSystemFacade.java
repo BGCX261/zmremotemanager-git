@@ -464,15 +464,15 @@ public class SubSystemFacade {
     /*
      * Wrapper around RemoteAlarmManager
      */
-    public void setAlarm(long triggerAtMillis, String AlarmId,
-            AlarmCallback callback) throws Exception {
-        mAlarmManager.setAlarm(triggerAtMillis, AlarmId, callback);
+    public int setAlarm(long triggerAtMillis, AlarmCallback callback)
+            throws Exception {
+        return mAlarmManager.setAlarm(triggerAtMillis, callback);
     }
 
     /*
      * Wrapper around RemoteAlarmManager
      */
-    public void cancelAlarm(String alarmId) {
+    public void cancelAlarm(int alarmId) {
         mAlarmManager.cancelAlarm(alarmId);
     }
 

@@ -1,7 +1,9 @@
 package com.zm.epad.plugins;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import com.zm.epad.core.LogManager;
@@ -18,12 +20,12 @@ public class RemoteAlarmManager {
     private static final String TAG = "RemoteAlarmManager";
     private static final String AlarmAction = "com.zm.epad.ALARM";
 
-    private final String ALARM_ID = "alarmId";
+    private final int ALARM_NUM_MAX = 200;
     private Context mContext;
     private AlarmManager mAlarmManger;
     private BroadcastReceiver mReceiver;
     @SuppressWarnings("serial")
-    private HashMap<String, ZMAlarm> mWaitingAlarm = new HashMap<String, ZMAlarm>() {
+    private List<ZMAlarm> mAlarmList = new ArrayList<ZMAlarm>(ALARM_NUM_MAX) {
     };
 
     public static interface AlarmCallback {
@@ -31,13 +33,39 @@ public class RemoteAlarmManager {
     }
 
     private class ZMAlarm {
-        public ZMAlarm(PendingIntent pi, AlarmCallback cb) {
-            pendingIntent = pi;
-            callback = cb;
+        public ZMAlarm(int alarmId) {
+            id = alarmId;
+            action = AlarmAction + id;
         }
 
-        public PendingIntent pendingIntent;
-        public AlarmCallback callback;
+        public final int id;
+        public final String action;
+        private PendingIntent mPendingIntent = null;
+        private AlarmCallback mCallback = null;
+
+        public boolean isActive() {
+            return mPendingIntent == null ? false : true;
+        }
+
+        public void activate(PendingIntent pi, AlarmCallback cb) {
+            mPendingIntent = pi;
+            mCallback = cb;
+        }
+
+        public void inactivate() {
+            mPendingIntent = null;
+            mCallback = null;
+        }
+
+        public PendingIntent getPendingIntent() {
+            return mPendingIntent;
+        }
+
+        public void goOff() {
+            if (mCallback != null) {
+                mCallback.wakeUp();
+            }
+        }
     }
 
     public RemoteAlarmManager(Context context) {
@@ -46,38 +74,53 @@ public class RemoteAlarmManager {
                 .getSystemService(Context.ALARM_SERVICE);
         mReceiver = new AlarmReceiver();
         IntentFilter filter = new IntentFilter();
-        filter.addAction(AlarmAction);
+        for (int i = 0; i < ALARM_NUM_MAX; i++) {
+            ZMAlarm alarm = new ZMAlarm(i);
+            mAlarmList.add(alarm);
+            filter.addAction(alarm.action);
+        }
         mContext.registerReceiver(mReceiver, filter);
     }
 
-    public void setAlarm(long triggerAtMillis, String alarmId,
-            AlarmCallback callback) throws Exception {
-        setAlarm(AlarmManager.RTC_WAKEUP, triggerAtMillis, alarmId, callback);
+    public int setAlarm(long triggerAtMillis, AlarmCallback callback)
+            throws Exception {
+        return setAlarm(AlarmManager.RTC_WAKEUP, triggerAtMillis, callback);
     }
 
-    public void setAlarm(int type, long triggerAtMillis, String alarmId,
-            AlarmCallback callback) throws Exception {
-        Intent intent = new Intent();
-        intent.setAction(AlarmAction);
-        intent.putExtra(ALARM_ID, alarmId);
-        PendingIntent pi = PendingIntent.getBroadcast(mContext, 0, intent,
-                PendingIntent.FLAG_ONE_SHOT);
-        synchronized (mWaitingAlarm) {
-            if (mWaitingAlarm.containsKey(alarmId)) {
-                throw new Exception("alarm id is duplicated");
+    public int setAlarm(int type, long triggerAtMillis, AlarmCallback callback)
+            throws Exception {
+        ZMAlarm alarm = null;
+        PendingIntent pi = null;
+        synchronized (mAlarmList) {
+            for (ZMAlarm a : mAlarmList) {
+                if (!a.isActive()) {
+                    alarm = a;
+                    break;
+                }
             }
-            mWaitingAlarm.put(alarmId, new ZMAlarm(pi, callback));
-            LogManager.local(TAG, "set :" + type + " :" + triggerAtMillis);
-            mAlarmManger.set(type, triggerAtMillis, pi);
+            if (alarm == null) {
+                throw new Exception("Not enough alarm");
+            }
+            Intent intent = new Intent();
+            intent.setAction(alarm.action);
+
+            pi = PendingIntent.getBroadcast(mContext, 0, intent,
+                    PendingIntent.FLAG_ONE_SHOT);
+
+            alarm.activate(pi, callback);
         }
+        LogManager.local(TAG, "set :" + type + " :" + triggerAtMillis + " :"
+                + alarm.id);
+        mAlarmManger.set(type, triggerAtMillis, pi);
+        return alarm.id;
     }
 
-    public void cancelAlarm(String alarmId) {
-        synchronized (mWaitingAlarm) {
-            ZMAlarm alarm = mWaitingAlarm.get(alarmId);
-            if (alarm != null) {
-                mAlarmManger.cancel(alarm.pendingIntent);
-                mWaitingAlarm.remove(alarmId);
+    public void cancelAlarm(int alarmId) {
+        synchronized (mAlarmList) {
+            ZMAlarm alarm = mAlarmList.get(alarmId);
+            if (alarm != null && alarm.isActive()) {
+                mAlarmManger.cancel(alarm.getPendingIntent());
+                alarm.inactivate();
             }
         }
     }
@@ -85,15 +128,18 @@ public class RemoteAlarmManager {
     public void stop() {
         LogManager.local(TAG, "stop");
         mContext.unregisterReceiver(mReceiver);
-        synchronized (mWaitingAlarm) {
-            Set<String> Keys = mWaitingAlarm.keySet();
-            for (Iterator<String> i = Keys.iterator(); i.hasNext();) {
-                String alarmId = i.next();
-                ZMAlarm alarm = mWaitingAlarm.get(alarmId);
-                mAlarmManger.cancel(alarm.pendingIntent);
+        synchronized (mAlarmList) {
+            for (ZMAlarm a : mAlarmList) {
+                if (a.isActive()) {
+                    mAlarmManger.cancel(a.getPendingIntent());
+                }
             }
-            mWaitingAlarm.clear();
+            mAlarmList.clear();
         }
+    }
+
+    private int getAlarmId(String action) {
+        return Integer.valueOf(action.substring(AlarmAction.length()));
     }
 
     private class AlarmReceiver extends BroadcastReceiver {
@@ -102,16 +148,12 @@ public class RemoteAlarmManager {
         public void onReceive(Context context, Intent intent) {
             LogManager.local(TAG, "onReceive :" + intent.getAction());
 
-            if (intent.getAction().equals(AlarmAction)) {
-                String alarmId = intent.getStringExtra(ALARM_ID);
-                ZMAlarm alarm = mWaitingAlarm.get(alarmId);
-                if (alarm != null) {
-                    LogManager.local(TAG, "wake up on alarm:" + alarmId);
-                    synchronized (mWaitingAlarm) {
-                        mWaitingAlarm.remove(alarmId);
-                    }
-                    alarm.callback.wakeUp();
-                }
+            int alarmId = getAlarmId(intent.getAction());
+            ZMAlarm alarm = mAlarmList.get(alarmId);
+            if (alarm.isActive()) {
+                LogManager.local(TAG, "wake up on alarm:" + alarmId);
+                alarm.goOff();
+                alarm.inactivate();
             }
         }
     }
