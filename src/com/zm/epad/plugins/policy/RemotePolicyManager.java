@@ -16,6 +16,7 @@ public class RemotePolicyManager {
 
     private Context mContext;
     private List<TimePolicy> mTimePolicies = new ArrayList<TimePolicy>();
+    private List<AccumulatePolicy> mAccumulatePolicies = new ArrayList<AccumulatePolicy>();
     private int mNextPolicyId = 0;
 
     public void stop() {
@@ -62,6 +63,9 @@ public class RemotePolicyManager {
                     ret = new TimeSlotPolicy(getPolicyId(), arg1, arg2);
                 }
                 addTimePolicyInner((TimePolicy) ret);
+            } else if (type.equals(PolicyConstants.TYPE_ACCUMULATE)) {
+                ret = new AccumulatePolicy(getPolicyId(), Long.valueOf(arg1));
+                mAccumulatePolicies.add((AccumulatePolicy) ret);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -108,6 +112,10 @@ public class RemotePolicyManager {
             p.cancel();
         }
         mTimePolicies.clear();
+        for (AccumulatePolicy p : mAccumulatePolicies) {
+            p.cancel();
+        }
+        mAccumulatePolicies.clear();
         mNextPolicyId = 0;
     }
 

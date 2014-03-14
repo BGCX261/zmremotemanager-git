@@ -12,9 +12,5 @@ public abstract class Policy {
         return mId;
     }
 
-    public String getType() {
-        return mType;
-    }
-
     abstract void cancel();
 }

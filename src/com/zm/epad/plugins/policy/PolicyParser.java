@@ -22,6 +22,7 @@ public class PolicyParser {
     private XmlPullParser mParser;
     private final String TAG_POLICY = "policy";
     private final String TAG_COMMAND = "command";
+    private final String TAG_COMMA = ",";
 
     public PolicyParser(Context context, String policyForm)
             throws XmlPullParserException {
@@ -42,6 +43,8 @@ public class PolicyParser {
                             PolicyConstants.ATTR_TYPE);
                     if (type.equals(PolicyConstants.TYPE_SWITCH)) {
                         parseSwitchPolicy(mParser);
+                    } else if (type.equals(PolicyConstants.TYPE_ACCUMULATE)) {
+                        parseAccumulatePolicy(mParser);
                     }
                 }
             } else if (eventType == XmlPullParser.END_TAG) {
@@ -110,4 +113,45 @@ public class PolicyParser {
             policy.setCallback(new AppUsageRunnable());
         }
     }
+
+    private void parseAccumulatePolicy(XmlPullParser parser)
+            throws XmlPullParserException, IOException {
+        boolean done = false;
+        String action = null;
+        String param = null;
+
+        while (!done) {
+            int eventType = parser.next();
+            if (eventType == XmlPullParser.START_TAG) {
+                if (parser.getName().equals(PolicyConstants.ACCUMULATE_ACTION)) {
+                    action = parser.nextText();
+                } else if (parser.getName().equals(
+                        PolicyConstants.ACCUMULATE_PARAM)) {
+                    param = parser.nextText();
+                }
+            } else if (eventType == XmlPullParser.END_TAG) {
+                if (parser.getName().equals(TAG_POLICY)) {
+                    done = true;
+                }
+            } else if (eventType == XmlPullParser.END_DOCUMENT) {
+                done = true;
+            }
+        }
+        handleAccumulatePolicy(action, param);
+    }
+
+    private void handleAccumulatePolicy(String action, String param) {
+        LogManager.local(TAG, "handleAccumulatePolicy: act:" + action
+                + ";param:" + param);
+        if (action.equals(PolicyConstants.ACTION_EYE)) {
+            int devide = param.indexOf(TAG_COMMA);
+            String accumulate = param.substring(0, devide);
+            String closeTime = param.substring(devide + 1);
+            AccumulatePolicy policy = (AccumulatePolicy) mManager.addPolicy(
+                    PolicyConstants.TYPE_ACCUMULATE, accumulate, null);
+            policy.setCallbck(new Accumulate4Eye(mContext, Long
+                    .valueOf(closeTime)));
+        }
+    }
+
 }

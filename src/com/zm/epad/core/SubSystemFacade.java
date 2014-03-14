@@ -436,6 +436,24 @@ public class SubSystemFacade {
     }
 
     /*
+     * Wrapper around RemoteAlarmManager
+     */
+    public boolean isScreenOn() {
+        return mDeviceManager.isScreenOn();
+    }
+
+    /**
+     * Wrapper around RemoteDeviceManager Used to make screen off and block any
+     * key event
+     * 
+     * @param disable
+     *            : if true, disable screen; if false, enable screen.
+     */
+    public void disableScreen(boolean disable) {
+        // stub
+    }
+
+    /*
      * Wrapper around RemoteFileManager
      */
     public void downloadFile(String url, FileTransferCallback callback) {
@@ -504,4 +522,5 @@ public class SubSystemFacade {
     public void stopDesktopShare() {
         mSmartShare.stopDesktopShare();
     }
+
 }

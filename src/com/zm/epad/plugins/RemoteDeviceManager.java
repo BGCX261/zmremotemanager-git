@@ -25,6 +25,7 @@ import android.net.wifi.WifiManager;
 import android.nfc.NfcAdapter;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.text.format.Time;
 import android.util.DisplayMetrics;
@@ -554,6 +555,12 @@ public class RemoteDeviceManager{
         return String.valueOf(Settings.Global.getInt(
                 mContext.getContentResolver(),
                 Settings.Global.AIRPLANE_MODE_ON, 0) != 0);
+    }
+
+    public boolean isScreenOn() {
+        PowerManager pm = (PowerManager) mContext
+                .getSystemService(Context.POWER_SERVICE);
+        return pm.isScreenOn();
     }
 }
 /*
