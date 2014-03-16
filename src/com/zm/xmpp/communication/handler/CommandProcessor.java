@@ -231,12 +231,19 @@ public class CommandProcessor extends CmdDispatchInfo {
     private boolean handleResult(Object result) {
         boolean ret = false;
         if (result instanceof ZMIQResult) {
-            String type = ((ZMIQResult) result).getResult().getType();
+            IResult zmresult = ((ZMIQResult) result).getResult();
+            String type = null;
+            if(zmresult == null){
+                type = "no-type";
+            }else{
+                type = zmresult.getType();
+            }
+            
             LogManager.local(TAG, "send result:" + type);
             ret = mXmppClient.sendPacketAsync((Packet) result, 0);
             LogManager.getInstance().addLog(
                     CoreConstants.CONSTANT_INT_LOGTYPE_COMMON,
-                    ((ZMIQResult) result).getResult().toXML());
+                    zmresult!=null?zmresult.toXML():"send result with no content");
         }
         return ret;
     }

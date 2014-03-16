@@ -103,8 +103,8 @@ public class SubSystemFacade {
 
         mDeviceManager = new RemoteDeviceManager(mContext);
 
-        mSmartShare = new SmartShareManager(mContext);
-        mSmartShare.setThreadPool(mThreadPool);
+        /*mSmartShare = new SmartShareManager(mContext);
+        mSmartShare.setThreadPool(mThreadPool);*/
 
         mPolicyManager = new RemotePolicyManager(mContext);
         mPolicyManager.loadPolicy();
@@ -459,7 +459,14 @@ public class SubSystemFacade {
     public void downloadFile(String url, FileTransferCallback callback) {
         mFileManager.addFileDownloadTask(url, callback);
     }
-
+    public void uploadFile(String url,String filePath,String fileName,Bundle info,
+            FileTransferCallback callback){
+        mFileManager.addFileUploadTask(url, filePath, fileName, info, callback);
+    }
+    public void zipAndUploadFile(String url,String srcPath,String zipPath,Bundle info,
+            FileTransferCallback callback){
+        mFileManager.zipAndUploadFile(url, srcPath, zipPath, info, callback);
+    }
     public void uploadScreenshot(String url, Bundle info,
             FileTransferCallback callback) {
         mFileManager.addScreenshotTask(url, info, callback);

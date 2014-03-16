@@ -26,6 +26,9 @@ import java.util.Locale;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 public class RemoteFileManager {
     private static final String TAG = "RemoteFileManager";
@@ -146,8 +149,16 @@ public class RemoteFileManager {
         // http://blog.csdn.net/qq247890212/article/details/16358581
         // about multi-part/data, see
         // http://blog.csdn.net/five3/article/details/7181521
+
+        /*
+         * Explain: 1 if data is not null, then it will upload data[] to the
+         * server. This is used for small data transfer 2 if data is null and
+         * inputStream is no null, then we will use inputStream to read data.
+         * This is used for large date transfer. Because we can not read the
+         * content of a a large file into a single buffer.
+         */
         public String uploadObject(byte[] data, final String desc,
-                String requestUrl, Bundle Info) {
+                String requestUrl, Bundle Info, InputStream inputStream) {
             String BOUNDARY = PREFIX + UUID.randomUUID().toString();
             HttpURLConnection conn = createUrlConnection(requestUrl, BOUNDARY);
             if (conn == null)
@@ -170,7 +181,15 @@ public class RemoteFileManager {
             try {
                 // the http form data must be written one by one
                 writeHttpFormInfo(dos, fileName, BOUNDARY, Info);
-                dos.write(data, 0, data.length);
+                if (data != null) {
+                    dos.write(data, 0, data.length);
+                } else if (inputStream != null) {
+                    byte[] inputBuffer = new byte[1 << 10];
+                    int readCount = 0;
+                    while ((readCount = inputStream.read(inputBuffer)) > 0) {
+                        dos.write(inputBuffer, 0, readCount);
+                    }
+                }
                 dos.write(getHttpTailInfo(BOUNDARY).getBytes());
                 dos.flush();
                 dos.close();
@@ -286,7 +305,6 @@ public class RemoteFileManager {
     private List<FileTransferTask> mRunningTask = new ArrayList<FileTransferTask>();
     private List<FileTransferTask> mPendingTask = new ArrayList<FileTransferTask>();
     private ExecutorService mThreadPool;
-     
 
     public void setThreadPool(ExecutorService threadPool) {
         mThreadPool = threadPool;
@@ -317,6 +335,14 @@ public class RemoteFileManager {
             Bundle info, FileTransferCallback callback) {
         FileTransferTask fileUploadTask = new FileUploadTask(url, callback,
                 filePath, fileName, info);
+        fileUploadTask.prepare();
+        mThreadPool.execute(fileUploadTask);
+    }
+    public void zipAndUploadFile(String url, String srcfilePath,String zipPath,
+            Bundle info, FileTransferCallback callback){
+        FileUploadTask fileUploadTask = new FileUploadTask(url, callback,
+                srcfilePath, zipPath, info);
+        fileUploadTask.mbZipTask = true;
         fileUploadTask.prepare();
         mThreadPool.execute(fileUploadTask);
     }
@@ -380,6 +406,66 @@ public class RemoteFileManager {
     private void removePendingTask(FileTransferTask task) {
         synchronized (mPendingTask) {
             mPendingTask.remove(task);
+        }
+    }
+
+    public boolean zip(String fileOrDir, String targetFile) {
+        File target = new File(fileOrDir);
+        if (target.exists() == false)
+            return false;
+        try {
+            File zipFile = new File(targetFile);
+            if (zipFile.exists() == false)
+                zipFile.createNewFile();
+            return zip(target, zipFile);
+
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private boolean zip(File inputFile, File outputFile) {
+        ZipOutputStream out = null;
+        try {
+            out = new ZipOutputStream(new FileOutputStream(
+                    outputFile));
+        } catch (Exception e) {
+            LogManager.local(TAG, "create zip file fails " + e.getMessage());
+            return false;
+        }
+        
+        boolean ret = true;
+        try {
+            zip(out, inputFile, "");
+        } catch (Exception ex) {
+            ret = false;
+        }
+        try {
+            out.close();
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
+
+        return ret;
+    }
+
+    private void zip(ZipOutputStream out, File f, String base) throws Exception {
+        if (f.isDirectory()) {
+            File[] fl = f.listFiles();
+            out.putNextEntry(new ZipEntry(base + "/"));
+            base = base.length() == 0 ? "" : base + "/";
+            for (int i = 0; i < fl.length; i++) {
+                zip(out, fl[i], base + fl[i].getName());
+            }
+        } else {
+            out.putNextEntry(new ZipEntry(base));
+            FileInputStream in = new FileInputStream(f);
+            int b;
+            System.out.println(base);
+            while ((b = in.read()) != -1) {
+                out.write(b);
+            }
+            in.close();
         }
     }
 
@@ -471,11 +557,20 @@ public class RemoteFileManager {
     }
 
     public class FileUploadTask extends FileTransferTask {
-
+        
+        /*
+         1 for zip task:
+         * mFilePath is src dir
+         * mFileName is target zip file
+         2 for nomral task:
+         * mFilePath is dir or the file's full path name
+         * mFileName: if not null, it is the file name. if null,
+         * use mFilePath
+         */
         protected String mFilePath;
         protected String mFileName;
         protected Bundle mInfo;
-
+        public boolean mbZipTask;
         public FileUploadTask() {
             super();
         }
@@ -483,7 +578,7 @@ public class RemoteFileManager {
         public FileUploadTask(String url, FileTransferCallback callback) {
             super(url, callback);
         }
-
+        
         public FileUploadTask(String url, FileTransferCallback callback,
                 String filePath, String fileName, Bundle info) {
             this(url, callback);
@@ -500,16 +595,41 @@ public class RemoteFileManager {
         public void setFileInfo(Bundle info) {
             mInfo = info;
         }
-
+        private boolean compressFile(){
+           boolean bret = zip(mFilePath,mFileName);
+           if(bret){
+               //now, the compressed file is in mFileName
+               //we need to split it the 
+               mFilePath = mFileName;
+               mFileName = null;
+               splitPathAndFileName(mFilePath);
+           }else{
+               LogManager.local(TAG, "compress " + mFilePath +" to " + mFileName + " faild");
+           }
+           return bret;
+        }
         @Override
         protected Object runForResult() {
             String fileName = null;
+            if(mbZipTask && compressFile()){
+                return fileName;
+            }
+            InputStream inputStream = getInputStream();
             try {
-                fileName = mHttpTransferHelper.uploadObject(getDate(),
-                        mFileName, mUrl, mInfo);
+
+                fileName = mHttpTransferHelper.uploadObject(
+                        null/* getDate() */, mFileName, mUrl,mInfo, inputStream);
             } catch (Exception e) {
                 e.printStackTrace();
             }
+            try {
+                if (inputStream != null) {
+                    inputStream.close();
+                }
+            } catch (Exception e) {
+                // TODO: handle exception
+            }
+
             return fileName;
         }
 
@@ -518,10 +638,47 @@ public class RemoteFileManager {
             // TODO Auto-generated method stub
             return (String) super.getResult();
         }
+        //this function is used to spit a full path name into path and filename
+        //For example: /dirA/dirB/dirC/fileA is splitted into:
+        //mFilePath = /dirA/dirB/dirC and
+        //mFileName = fileA
+        private void splitPathAndFileName(String fullPathFileName){
+            int lastSplash = fullPathFileName.lastIndexOf("/") + 1;
+            int totalLength = fullPathFileName.length();
+            mFileName = fullPathFileName.subSequence(lastSplash, totalLength).toString();
+            mFilePath = fullPathFileName.subSequence(0, lastSplash).toString();
+            
+            return;
+        }
+        protected InputStream getInputStream() {
+            try {
+                File upFile = null;
+                if (mFileName == null)//mFilePath contains full path file name
+                    splitPathAndFileName(mFilePath);
+                
+                 upFile = new File(mFilePath, mFileName);
+                
+                FileInputStream in = new FileInputStream(upFile);
+                return in;
+                /*
+                 * LogManager.local(TAG, "upload file size:" + upFile.length());
+                 * byte[] buf = new byte[(int) upFile.length()]; in.read(buf);
+                 * in.close();
+                 */
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
+
+        }
 
         protected byte[] getDate() {
             try {
+                if (mFileName == null)//mFilePath contains full path file name
+                    splitPathAndFileName(mFilePath);
+               
                 File upFile = new File(mFilePath, mFileName);
+               
                 FileInputStream in = new FileInputStream(upFile);
                 LogManager.local(TAG, "upload file size:" + upFile.length());
                 byte[] buf = new byte[(int) upFile.length()];

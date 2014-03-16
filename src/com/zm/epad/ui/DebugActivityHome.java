@@ -1,5 +1,6 @@
 package com.zm.epad.ui;
 
+import com.zm.epad.core.CoreConstants;
 import com.zm.epad.core.LogManager;
 
 import org.jivesoftware.smack.Connection;
@@ -9,6 +10,7 @@ import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -61,7 +63,7 @@ public class DebugActivityHome extends Activity {
 
             @Override
             public void onClick(View arg0) {
-                // TODO Auto-generated method stub
+                setDefaultValue(false);
                 ip = mIpText.getText().toString();
                 username = mNameText.getText().toString();
                 password = mPwdText.getText().toString();
@@ -128,9 +130,34 @@ public class DebugActivityHome extends Activity {
             }
 
         });
+        
+        setDefaultValue(true);
 
     }
-
+    private void setDefaultValue(boolean bGetValue){
+      SharedPreferences sharePref =  getSharedPreferences(CoreConstants.CONSTANT_DEFAULTSET, 
+                Context.MODE_PRIVATE);
+      if(bGetValue){
+          if(sharePref.contains(CoreConstants.CONSTANT_SERVER)){
+              mIpText.setText(sharePref.getString(CoreConstants.CONSTANT_SERVER, ""));
+          }
+          if(sharePref.contains(CoreConstants.CONSTANT_USRNAME)){
+              mNameText.setText(sharePref.getString(CoreConstants.CONSTANT_USRNAME, ""));
+          }
+          if(sharePref.contains(CoreConstants.CONSTANT_PASSWORD)){
+              mPwdText.setText(sharePref.getString(CoreConstants.CONSTANT_PASSWORD, ""));
+          } 
+      }else{
+          SharedPreferences.Editor editor = sharePref.edit();
+          editor.putString(CoreConstants.CONSTANT_SERVER, mIpText.getText().toString());
+          editor.putString(CoreConstants.CONSTANT_USRNAME, mNameText.getText().toString());
+          editor.putString(CoreConstants.CONSTANT_PASSWORD, mPwdText.getText().toString());
+          editor.commit();
+          editor.apply();
+      }
+      return;
+      
+    }
     @Override
     protected void onDestroy() {
         // TODO Auto-generated method stub

@@ -130,6 +130,8 @@
     <string name="debug_deviceadmin">Remote Device Admin</string>
     <string name="debug_sendpolicy">Send Policy</string>
     <string name="debug_policy">Policy</string>
+    <string name="debug_uploadlogs">Upload Logs</string>
+    <string name="debug_logs">Logs</string>
 
     <!-- Strings used by zmtech_authenticator -->
     <string name="acc_label">ZMTech Account Authenticator</string>

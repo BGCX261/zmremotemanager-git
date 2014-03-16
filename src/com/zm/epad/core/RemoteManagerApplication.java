@@ -1,7 +1,10 @@
 package com.zm.epad.core;
 
 import android.app.Application;
-
+import com.android.internal.os.RuntimeInit;
+import android.app.ApplicationErrorReport;
+import android.os.IBinder;
+import android.app.ActivityManagerNative;
 import java.lang.Thread.UncaughtExceptionHandler;
 
 public class RemoteManagerApplication extends Application {
@@ -29,7 +32,15 @@ public class RemoteManagerApplication extends Application {
                     // Even Slog.e() fails! Oh well.
                 }
             } finally {
-                LogManager.local(TAG, "before we quit, kill all resources");
+                try {
+                    LogManager.local(TAG, "before we quit, kill all resources");
+                    IBinder applicationObject = RuntimeInit.getApplicationObject();
+                    ActivityManagerNative.getDefault().handleApplicationCrash(
+                            applicationObject, new ApplicationErrorReport.CrashInfo(e));
+                } catch (Exception e2) {
+                    // TODO: handle exception
+                }
+                
 
             }
         }

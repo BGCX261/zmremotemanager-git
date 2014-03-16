@@ -176,4 +176,22 @@
 	    android:layout_alignLeft="@+id/button9"
 	    android:text="@string/debug_posuntrace" />
 	
+	<TextView
+        android:id="@+id/textView5"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/button8"
+        android:layout_below="@+id/button12"
+        android:layout_marginTop="150dp"
+        android:text="@string/debug_uploadlogs" />
+
+    <Button
+        android:id="@+id/button13"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/button8"
+        android:layout_below="@+id/textView5"
+        android:layout_marginTop="18dp"
+        android:text="@string/debug_logs" />
+	
 </RelativeLayout>

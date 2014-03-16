@@ -55,8 +55,8 @@
     <uses-permission
         android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
     <uses-sdk android:maxSdkVersion="19" android:minSdkVersion="14"/>
-    <uses-permission
-        android:name="android.permission.PACKAGE_VERIFICATION_AGENT" />
+    <!-- uses-permission
+        android:name="android.permission.PACKAGE_VERIFICATION_AGENT" /-->
     <uses-permission
         android:name="android.permission.SET_ACTIVITY_WATCHER" />
     <uses-permission
@@ -69,8 +69,7 @@
         android:allowClearUserData="false"
         android:hardwareAccelerated="true"
         android:persistent="true"
-        android:process="system"
-		android:name=".core.RemoteManagerApplication">
+        android:name=".core.RemoteManagerApplication">
         <service android:name=".core.RemoteManagerService" />
         
         <service android:name=".plugins.RemoteAccountService" 
@@ -111,7 +110,7 @@
             </intent-filter>
         </receiver>
 
-        <receiver
+        <!-- receiver
             android:name=".plugins.RemotePackageManager$PackageVerificationReceiver"
             android:permission="android.permission.BIND_PACKAGE_VERIFIER"
             android:exported="true" >
@@ -120,7 +119,7 @@
                 <action android:name="android.intent.action.PACKAGE_VERIFIED" />
                 <data android:mimeType="application/vnd.android.package-archive" />
             </intent-filter>
-        </receiver>
+        </receiver -->
 
         <activity android:name=".ui.DebugActivityHome" >
             <intent-filter>

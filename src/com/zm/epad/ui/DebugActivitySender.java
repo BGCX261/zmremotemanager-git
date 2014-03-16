@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 
 import com.zm.epad.core.LogManager;
+import com.zm.epad.core.SubSystemFacade;
 import com.zm.xmpp.communication.Constants;
 import com.zm.xmpp.communication.client.ZMIQCommand;
 import com.zm.xmpp.communication.client.ZMStringCommand;
@@ -20,6 +21,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Debug;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -42,8 +44,10 @@ public class DebugActivitySender extends Activity {
     private Button mPosTraceBtn = null;
     private Button mPosUntraceBtn = null;
 
+    
     private Button mPolicyBtn = null;
-
+    private Button mLogsBtn = null;
+    
     private Button mDeviceAdmin = null;
 
     private EditText mNameText = null;
@@ -84,7 +88,9 @@ public class DebugActivitySender extends Activity {
 
         mNameText = (EditText) findViewById(R.id.editText1);
         mUserIdText = (EditText) findViewById(R.id.editText2);
-
+        
+        mLogsBtn = (Button) findViewById(R.id.button13);
+        
         mDeviceAdmin.setOnClickListener(new OnClickListener() {
 
             @Override
@@ -244,6 +250,7 @@ public class DebugActivitySender extends Activity {
 
             @Override
             public void onClick(View arg0) {
+                Debug.waitForDebugger();
                 // TODO Auto-generated method stub
                 try {
                     sendTestCommand4Report(Constants.XMPP_REPORT_POS,
@@ -277,6 +284,19 @@ public class DebugActivitySender extends Activity {
                 // TODO Auto-generated method stub
                 try {
                     sendTestCommand4Policy();
+                } catch (Exception e) {
+                    LogManager.local(TAG, e.getMessage());
+                }
+            }
+
+        });
+        mLogsBtn.setOnClickListener(new OnClickListener() {
+
+            @Override
+            public void onClick(View arg0) {
+                // TODO Auto-generated method stub
+                try {
+                    LogManager.getInstance().uploadLog("testurl", -1, null);
                 } catch (Exception e) {
                     LogManager.local(TAG, e.getMessage());
                 }
