@@ -9,10 +9,13 @@ public interface CoreConstants {
     final static String CONSTANT_RESOURCE = "resource";
     final static String CONSTANT_COMMANDID = "commandid";
     final static String CONSTANT_DEFAULTSET = "defaultset";
+    final static String CONSTANT_CRC = "crc";
+    final static String CONSTANT_CRC_DEFAULT = "0";
     final static String CONSTANT_TYPE = "type";
     final static String CONSTANT_ACTION = "action";
     final static String CONSTANT_UPLOAD = "upload";
     final static String CONSTANT_MIME = "mime";
+    final static String CONSTANT_MIME_DEFAULT = "text/plain";
     final static String CONSTANT_DEVICEID = Build.SERIAL;
     final static String CONSTANT_IMG_PNG = "image/png";
     final static String CONSTANT_POLICY = "policy";

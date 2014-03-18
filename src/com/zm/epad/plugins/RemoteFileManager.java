@@ -216,15 +216,17 @@ public class RemoteFileManager {
 
         void writeHeadInfo(StringBuilder sb, String nameStr, String nameValue,
                 String Boundary, DataOutputStream dos) throws IOException {
-            sb.setLength(0);
-            sb.append("--" + Boundary + LINE_END);
-            sb.append("Content-Disposition: form-data; name=\"");
-            sb.append(nameStr + "\"");
-            sb.append(LINE_END + LINE_END);
-            sb.append(nameValue);
+            if (nameStr != null && nameValue != null) {
+                sb.setLength(0);
+                sb.append("--" + Boundary + LINE_END);
+                sb.append("Content-Disposition: form-data; name=\"");
+                sb.append(nameStr + "\"");
+                sb.append(LINE_END + LINE_END);
+                sb.append(nameValue);
 
-            dos.write(sb.toString().getBytes(CHARSET));
-            dos.write(LINE_END.getBytes(CHARSET));
+                dos.write(sb.toString().getBytes(CHARSET));
+                dos.write(LINE_END.getBytes(CHARSET));
+            }
         }
 
         void writeFileHeadInfo(StringBuilder sb, String nameStr,
@@ -233,7 +235,7 @@ public class RemoteFileManager {
             sb.setLength(0);
             sb.append("--" + Boundary + LINE_END);
             sb.append("Content-Disposition: form-data; name=\"");
-            sb.append(nameStr + "\" ");
+            sb.append(nameStr + "\"; ");
             sb.append("filename=\"" + fileName + "\"" + LINE_END);
             sb.append("Content-Type: " + nameValue);
             sb.append(LINE_END + LINE_END);
@@ -243,50 +245,61 @@ public class RemoteFileManager {
         public void writeHttpFormInfo(DataOutputStream dos, String filename,
                 String Boundary, Bundle info) {
 
-            if (dos == null || filename == null || Boundary == null
-                    || info == null)
+            if (dos == null || filename == null || Boundary == null)
                 return;
 
             try {
                 StringBuilder sb = new StringBuilder();
-                // write user name
-                writeHeadInfo(sb, CoreConstants.CONSTANT_USRNAME,
-                        mLoginBundle.getString(CoreConstants.CONSTANT_USRNAME),
-                        Boundary, dos);
+                /*
+                 * don't need to check authority in form // write user name
+                 * writeHeadInfo(sb, CoreConstants.CONSTANT_USRNAME,
+                 * mLoginBundle.getString(CoreConstants.CONSTANT_USRNAME),
+                 * Boundary, dos);
+                 * 
+                 * // write password writeHeadInfo( sb,
+                 * CoreConstants.CONSTANT_PASSWORD,
+                 * mLoginBundle.getString(CoreConstants.CONSTANT_PASSWORD),
+                 * Boundary, dos);
+                 * 
+                 * // write resource writeHeadInfo( sb,
+                 * CoreConstants.CONSTANT_RESOURCE,
+                 * mLoginBundle.getString(CoreConstants.CONSTANT_RESOURCE),
+                 * Boundary, dos);
+                 */
+                writeHeadInfo(sb, CoreConstants.CONSTANT_CRC,
+                        CoreConstants.CONSTANT_CRC_DEFAULT, Boundary, dos);
 
-                // write password
-                writeHeadInfo(
-                        sb,
-                        CoreConstants.CONSTANT_PASSWORD,
-                        mLoginBundle.getString(CoreConstants.CONSTANT_PASSWORD),
-                        Boundary, dos);
+                if (info != null) {
+                    // write command id
+                    writeHeadInfo(sb, CoreConstants.CONSTANT_COMMANDID,
+                            info.getString(CoreConstants.CONSTANT_COMMANDID),
+                            Boundary, dos);
 
-                // write resource
-                writeHeadInfo(
-                        sb,
-                        CoreConstants.CONSTANT_PASSWORD,
-                        mLoginBundle.getString(CoreConstants.CONSTANT_PASSWORD),
-                        Boundary, dos);
+                    // write command id
+                    writeHeadInfo(sb, CoreConstants.CONSTANT_COMMANDID,
+                            info.getString(CoreConstants.CONSTANT_COMMANDID),
+                            Boundary, dos);
 
-                // write command id
-                writeHeadInfo(sb, CoreConstants.CONSTANT_COMMANDID,
-                        info.getString(CoreConstants.CONSTANT_COMMANDID),
-                        Boundary, dos);
+                    // write type
+                    writeHeadInfo(sb, CoreConstants.CONSTANT_TYPE,
+                            info.getString(CoreConstants.CONSTANT_TYPE),
+                            Boundary, dos);
 
-                // write type
-                writeHeadInfo(sb, CoreConstants.CONSTANT_TYPE,
-                        info.getString(CoreConstants.CONSTANT_TYPE), Boundary,
-                        dos);
+                    // write action
+                    writeHeadInfo(sb, CoreConstants.CONSTANT_ACTION,
+                            info.getString(CoreConstants.CONSTANT_ACTION),
+                            Boundary, dos);
 
-                // write action
-                writeHeadInfo(sb, CoreConstants.CONSTANT_ACTION,
-                        info.getString(CoreConstants.CONSTANT_ACTION),
-                        Boundary, dos);
-
-                // write upload file info
-                writeFileHeadInfo(sb, CoreConstants.CONSTANT_UPLOAD,
-                        info.getString(CoreConstants.CONSTANT_MIME), Boundary,
-                        filename, dos);
+                    // write upload file info
+                    writeFileHeadInfo(sb, CoreConstants.CONSTANT_UPLOAD,
+                            info.getString(CoreConstants.CONSTANT_MIME),
+                            filename, Boundary, dos);
+                } else {
+                    // write upload file info with default mime
+                    writeFileHeadInfo(sb, CoreConstants.CONSTANT_UPLOAD,
+                            CoreConstants.CONSTANT_MIME_DEFAULT, filename,
+                            Boundary, dos);
+                }
 
             } catch (Exception e) {
                 LogManager.local(TAG,
@@ -338,8 +351,9 @@ public class RemoteFileManager {
         fileUploadTask.prepare();
         mThreadPool.execute(fileUploadTask);
     }
-    public void zipAndUploadFile(String url, String srcfilePath,String zipPath,
-            Bundle info, FileTransferCallback callback){
+
+    public void zipAndUploadFile(String url, String srcfilePath,
+            String zipPath, Bundle info, FileTransferCallback callback) {
         FileUploadTask fileUploadTask = new FileUploadTask(url, callback,
                 srcfilePath, zipPath, info);
         fileUploadTask.mbZipTask = true;
@@ -427,13 +441,12 @@ public class RemoteFileManager {
     private boolean zip(File inputFile, File outputFile) {
         ZipOutputStream out = null;
         try {
-            out = new ZipOutputStream(new FileOutputStream(
-                    outputFile));
+            out = new ZipOutputStream(new FileOutputStream(outputFile));
         } catch (Exception e) {
             LogManager.local(TAG, "create zip file fails " + e.getMessage());
             return false;
         }
-        
+
         boolean ret = true;
         try {
             zip(out, inputFile, "");
@@ -470,7 +483,7 @@ public class RemoteFileManager {
     }
 
     public interface FileTransferCallback {
-        void onDone(FileTransferTask task);
+        void onDone(boolean success, FileTransferTask task);
 
         void onCancel(FileTransferTask task);
     }
@@ -538,7 +551,7 @@ public class RemoteFileManager {
             removeTask(this);
 
             if (mCallback != null) {
-                mCallback.onDone(this);
+                mCallback.onDone(mResult == null ? false : true, this);
             }
         }
 
@@ -557,20 +570,17 @@ public class RemoteFileManager {
     }
 
     public class FileUploadTask extends FileTransferTask {
-        
+
         /*
-         1 for zip task:
-         * mFilePath is src dir
-         * mFileName is target zip file
-         2 for nomral task:
-         * mFilePath is dir or the file's full path name
-         * mFileName: if not null, it is the file name. if null,
-         * use mFilePath
+         * 1 for zip task: mFilePath is src dir mFileName is target zip file 2
+         * for nomral task: mFilePath is dir or the file's full path name
+         * mFileName: if not null, it is the file name. if null, use mFilePath
          */
         protected String mFilePath;
         protected String mFileName;
         protected Bundle mInfo;
         public boolean mbZipTask;
+
         public FileUploadTask() {
             super();
         }
@@ -578,7 +588,7 @@ public class RemoteFileManager {
         public FileUploadTask(String url, FileTransferCallback callback) {
             super(url, callback);
         }
-        
+
         public FileUploadTask(String url, FileTransferCallback callback,
                 String filePath, String fileName, Bundle info) {
             this(url, callback);
@@ -595,30 +605,41 @@ public class RemoteFileManager {
         public void setFileInfo(Bundle info) {
             mInfo = info;
         }
-        private boolean compressFile(){
-           boolean bret = zip(mFilePath,mFileName);
-           if(bret){
-               //now, the compressed file is in mFileName
-               //we need to split it the 
-               mFilePath = mFileName;
-               mFileName = null;
-               splitPathAndFileName(mFilePath);
-           }else{
-               LogManager.local(TAG, "compress " + mFilePath +" to " + mFileName + " faild");
-           }
-           return bret;
+
+        private boolean compressFile() {
+            boolean bret = zip(mFilePath, mFileName);
+            if (bret) {
+                // now, the compressed file is in mFileName
+                // we need to split it the
+                mFilePath = mFileName;
+                mFileName = null;
+                splitPathAndFileName(mFilePath);
+            } else {
+                LogManager.local(TAG, "compress " + mFilePath + " to "
+                        + mFileName + " faild");
+            }
+            return bret;
         }
+
         @Override
         protected Object runForResult() {
             String fileName = null;
-            if(mbZipTask && compressFile()){
-                return fileName;
+            if (mbZipTask) {
+                boolean ret = compressFile();
+                if (ret == false)
+                    return null;
             }
             InputStream inputStream = getInputStream();
             try {
+                if (inputStream != null) {
+                    fileName = mHttpTransferHelper.uploadObject(
+                            null/* getDate() */, mFileName, mUrl, mInfo,
+                            inputStream);
+                } else {
+                    fileName = mHttpTransferHelper.uploadObject(getDate(),
+                            mFileName, mUrl, mInfo, null);
+                }
 
-                fileName = mHttpTransferHelper.uploadObject(
-                        null/* getDate() */, mFileName, mUrl,mInfo, inputStream);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -638,26 +659,33 @@ public class RemoteFileManager {
             // TODO Auto-generated method stub
             return (String) super.getResult();
         }
-        //this function is used to spit a full path name into path and filename
-        //For example: /dirA/dirB/dirC/fileA is splitted into:
-        //mFilePath = /dirA/dirB/dirC and
-        //mFileName = fileA
-        private void splitPathAndFileName(String fullPathFileName){
+
+        // this function is used to spit a full path name into path and filename
+        // For example: /dirA/dirB/dirC/fileA is splitted into:
+        // mFilePath = /dirA/dirB/dirC and
+        // mFileName = fileA
+        private void splitPathAndFileName(String fullPathFileName) {
             int lastSplash = fullPathFileName.lastIndexOf("/") + 1;
             int totalLength = fullPathFileName.length();
-            mFileName = fullPathFileName.subSequence(lastSplash, totalLength).toString();
+            mFileName = fullPathFileName.subSequence(lastSplash, totalLength)
+                    .toString();
             mFilePath = fullPathFileName.subSequence(0, lastSplash).toString();
-            
+
             return;
         }
+
         protected InputStream getInputStream() {
             try {
+                if (mFilePath == null) {
+                    return null;
+                }
+
                 File upFile = null;
-                if (mFileName == null)//mFilePath contains full path file name
+                if (mFileName == null)// mFilePath contains full path file name
                     splitPathAndFileName(mFilePath);
-                
-                 upFile = new File(mFilePath, mFileName);
-                
+
+                upFile = new File(mFilePath, mFileName);
+
                 FileInputStream in = new FileInputStream(upFile);
                 return in;
                 /*
@@ -674,11 +702,11 @@ public class RemoteFileManager {
 
         protected byte[] getDate() {
             try {
-                if (mFileName == null)//mFilePath contains full path file name
+                if (mFileName == null)// mFilePath contains full path file name
                     splitPathAndFileName(mFilePath);
-               
+
                 File upFile = new File(mFilePath, mFileName);
-               
+
                 FileInputStream in = new FileInputStream(upFile);
                 LogManager.local(TAG, "upload file size:" + upFile.length());
                 byte[] buf = new byte[(int) upFile.length()];

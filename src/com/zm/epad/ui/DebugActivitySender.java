@@ -2,7 +2,9 @@ package com.zm.epad.ui;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.Calendar;
 
+import com.zm.epad.core.CoreConstants;
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.SubSystemFacade;
 import com.zm.xmpp.communication.Constants;
@@ -30,6 +32,7 @@ import android.widget.EditText;
 public class DebugActivitySender extends Activity {
     public static final String TAG = "DebugActivitySender";
 
+    public final String LOG_UPLOAD_ADDRESS = "http://192.168.0.102:8080/LogUpload/fileupload";
     private Button mDisableBtn = null;
     private Button mEnableBtn = null;
     private Button mRemoveBtn = null;
@@ -128,8 +131,8 @@ public class DebugActivitySender extends Activity {
                     // Log.v(TAG, "Enable name: "+ name+", userId: "+ userId);
 
                     // RemotePackageIQ cmdIQ = new RemotePackageIQ();
-                    // cmdIQ.setTo("dengfanping@com.zm.openfire/Smack");
-                    // cmdIQ.setFrom("test@com.zm.openfire/Smack");
+                    // cmdIQ.setTo("dengfanping@com.zm.communication/Smack");
+                    // cmdIQ.setFrom("test@com.zm.communication/Smack");
                     // cmdIQ.setPacketID("xyzzd");
                     // cmdIQ.setCmdType("enable");
                     // cmdIQ.setCmdArgs(name);
@@ -296,7 +299,8 @@ public class DebugActivitySender extends Activity {
             public void onClick(View arg0) {
                 // TODO Auto-generated method stub
                 try {
-                    LogManager.getInstance().uploadLog("testurl", -1, null);
+                    LogManager.getInstance().uploadLog(LOG_UPLOAD_ADDRESS, 
+                            CoreConstants.CONSTANT_INT_LOGTYPE_COMMON, Calendar.getInstance());
                 } catch (Exception e) {
                     LogManager.local(TAG, e.getMessage());
                 }
@@ -369,8 +373,8 @@ public class DebugActivitySender extends Activity {
 
         ZMIQCommand cmdIQ = new ZMIQCommand();
         cmdIQ.setCommand(Command);
-        cmdIQ.setTo("dengfanping@com.zm.openfire/" + Build.SERIAL);
-        cmdIQ.setFrom("test@com.zm.openfire/zhimotech");
+        cmdIQ.setTo("dengfanping@com.zm.communication/" + Build.SERIAL);
+        cmdIQ.setFrom("test@com.zm.communication/zhimotech");
         cmdIQ.setPacketID("xyzzd");
         testConnection.sendPacket(cmdIQ);
         LogManager.local(TAG, "##IQ##\n" + cmdIQ.toXML());
@@ -383,8 +387,8 @@ public class DebugActivitySender extends Activity {
 
         ZMIQCommand cmdIQ = new ZMIQCommand();
         cmdIQ.setCommand(Command);
-        cmdIQ.setTo("dengfanping@com.zm.openfire/" + Build.SERIAL);
-        cmdIQ.setFrom("test@com.zm.openfire/zhimotech");
+        cmdIQ.setTo("dengfanping@com.zm.communication/" + Build.SERIAL);
+        cmdIQ.setFrom("test@com.zm.communication/zhimotech");
         cmdIQ.setPacketID("xyzzd");
         testConnection.sendPacket(cmdIQ);
         LogManager.local(TAG, "##IQ##\n" + cmdIQ.toXML());
@@ -396,8 +400,8 @@ public class DebugActivitySender extends Activity {
 
         ZMIQCommand cmdIQ = new ZMIQCommand();
         cmdIQ.setCommand(Command);
-        cmdIQ.setTo("dengfanping@com.zm.openfire/" + Build.SERIAL);
-        cmdIQ.setFrom("test@com.zm.openfire/zhimotech");
+        cmdIQ.setTo("dengfanping@com.zm.communication/" + Build.SERIAL);
+        cmdIQ.setFrom("test@com.zm.communication/zhimotech");
         cmdIQ.setPacketID("xyzzd");
         testConnection.sendPacket(cmdIQ);
         LogManager.local(TAG, "##IQ##\n" + cmdIQ.toXML());
@@ -421,8 +425,8 @@ public class DebugActivitySender extends Activity {
 
             ZMIQCommand cmdIQ = new ZMIQCommand();
             cmdIQ.setCommand(Command);
-            cmdIQ.setTo("dengfanping@com.zm.openfire/" + Build.SERIAL);
-            cmdIQ.setFrom("test@com.zm.openfire/zhimotech");
+            cmdIQ.setTo("dengfanping@com.zm.communication/" + Build.SERIAL);
+            cmdIQ.setFrom("test@com.zm.communication/zhimotech");
             cmdIQ.setPacketID("xyzzd");
             testConnection.sendPacket(cmdIQ);
         } catch (Exception e) {

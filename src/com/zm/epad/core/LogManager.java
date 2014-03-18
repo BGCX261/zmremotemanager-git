@@ -4,12 +4,11 @@ import com.zm.epad.plugins.RemoteFileManager;
 import com.zm.epad.plugins.RemoteFileManager.FileTransferTask;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Calendar;
 
 import android.content.Context;
-import android.renderscript.Type;
-import android.webkit.WebView.FindListener;
 
 public class LogManager {
     private Context mContext;
@@ -18,6 +17,8 @@ public class LogManager {
     private RandomAccessFile[] mDefaultLogFiles = null;
     private String[] mDefaultLogDirs = null;
     private static final String TAG = "LogManager";
+    private final String LINE_END = "\r\n";
+    private final String CHARSET = "utf-8";
 
     private static LogManager gLogManager = null;
 
@@ -81,7 +82,8 @@ public class LogManager {
         File logFileDir = new File(logTypeDir);
         logFileDir.mkdirs();
         logFileDir = null;
-        String logToday = logTypeDir + "/" + today;
+        // log file name is: logTypeDir/<deviceId>.<date>.log
+        String logToday = logTypeDir + "/" + getLogFileName(today);
         File logFile = new File(logToday);
         if (logFile.exists() == false) {
             try {
@@ -89,12 +91,12 @@ public class LogManager {
             } catch (Exception e) {
                 local(TAG, " ensureLogDirExists failed:" + e.getMessage());
             }
-
         }
         closeLogFile(index);
         try {
             mDefaultLogFiles[index] = new RandomAccessFile(logFile, "rw");
             mDefaultLogFiles[index].seek(logFile.length());
+            mDefaultLogDirs[index] = logTypeDir;
         } catch (Exception e) {
             LogManager.local(TAG, " openFile failed:" + e.getMessage());
         }
@@ -135,18 +137,25 @@ public class LogManager {
         StringBuffer sb = new StringBuffer();
         sb.append(today.get(Calendar.YEAR));
         sb.append("-");
-        sb.append(today.get(Calendar.MONTH));
+        sb.append(today.get(Calendar.MONTH) + 1); // JANUARY = 0, ...
         sb.append("-");
         sb.append(today.get(Calendar.DATE));
         return sb.toString();
     }
 
-    public void addLog(int type, String logLine) {
-        RandomAccessFile logFile = mDefaultLogFiles[type];
-        if (logFile == null)
-            return;
+    // synchronized to avoid call from multi-thread
+    public synchronized void addLog(int type, String logLine) {
+        if (checkIfCreateLogFile(type)) {
+            // when turn to another day or other reason which cause no right log
+            // file exists, create a new log file
+            ensureLogDirExists(mDefaultLogDirs[type], getTodayDateString(null),
+                    type);
+        }
         try {
-            logFile.writeChars(logLine);
+            RandomAccessFile logFile = null;
+            logFile = mDefaultLogFiles[type];
+            logFile.write(logLine.getBytes(CHARSET));
+            logFile.writeBytes(LINE_END);
         } catch (Exception e) {
             local(TAG, "addLog failed:" + e.getMessage());
             local(TAG, "addLog failed:" + logLine);
@@ -156,67 +165,96 @@ public class LogManager {
 
     private class LogFileUploadCallback implements
             RemoteFileManager.FileTransferCallback {
-        
+
         public String mTargetFile = null;
         private int mType = -1;
-        
-        @Override
-        public void onDone(FileTransferTask task) {
-            // TODO Auto-generated method stub
-            LogManager.local(TAG,"upload logfile " + mTargetFile + "succed");
-            cleanup();
+        private boolean mUpdate = false;
 
+        @Override
+        public void onDone(boolean success, FileTransferTask task) {
+            // TODO Auto-generated method stub
+            LogManager.local(TAG, "upload logfile " + mTargetFile
+                    + "; success:" + success);
+            cleanup();
+            if (success && mUpdate) {
+                update();
+            }
         }
 
         @Override
         public void onCancel(FileTransferTask task) {
-            LogManager.local(TAG,"upload logfile " + mTargetFile + "canceled");
+            LogManager.local(TAG, "upload logfile " + mTargetFile + "canceled");
             cleanup();
 
         }
-        private void cleanup(){
-            if(mType == -1){
-                try{
+
+        private void cleanup() {
+
+            if (mType == -1) {
+                try {
                     File gzFile = new File(mTargetFile);
-                    if(gzFile.exists())
+                    if (gzFile.exists())
                         gzFile.delete();
-                }catch (Exception e) {
-                    
+                } catch (Exception e) {
+
+                }
+            }
+
+        }
+
+        private void update() {
+            if (mType != -1) {
+                try {
+                    // clear all logs in the file before
+                    synchronized (mDefaultLogFiles) {
+                        mDefaultLogFiles[mType].setLength(0);
+                    }
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
                 }
             }
         }
-        public void prepareUploadFiles(int type, Calendar date) {
+
+        public void prepareUploadFiles(int type, Calendar date, boolean update) {
             String today = getTodayDateString(date);
             mType = type;
+            mUpdate = update;
+
             if (type == -1) {
-                mTargetFile = mRootDir + "/" + today +".all.zip";
+                mTargetFile = mRootDir + "/" + today + ".all.zip";
                 return;
             } else {
                 String rootDir = mDefaultLogDirs[type];
-                mTargetFile = rootDir + "/" + today;
+                mTargetFile = rootDir + "/" + getLogFileName(today);
             }
             return;
 
         }
- 
     }
-    //if type == -1, it means upload all log files.
+
+    // if type == -1, it means upload all log files.
     // we will first compress these logs and them upload
-   // if type != -1, then we will upload the specified log file according to date
+    // if type != -1, then we will upload the specified log file according to
+    // date
     public void uploadLog(String url, int type, Calendar date) {
+        uploadLog(url, type, date, true);
+    }
+
+    public void uploadLog(String url, int type, Calendar date, boolean update) {
         LogFileUploadCallback logFileUploadCB = new LogFileUploadCallback();
-        
-        logFileUploadCB.prepareUploadFiles(type, date);
-        
+
+        logFileUploadCB.prepareUploadFiles(type, date, update);
+
         SubSystemFacade subSystemFacade = SubSystemFacade.getInstance();
-        if(type != -1)
-            subSystemFacade.uploadFile(url, logFileUploadCB.mTargetFile,null, null,
-                    logFileUploadCB);
-        else{
+        if (type != -1)
+            subSystemFacade.uploadFile(url, logFileUploadCB.mTargetFile, null,
+                    null, logFileUploadCB);
+        else {
             String logDir = mRootDir + "/logs/";
-            subSystemFacade.zipAndUploadFile(url,
-                    logDir ,logFileUploadCB.mTargetFile,null,logFileUploadCB);
-            
+            subSystemFacade.zipAndUploadFile(url, logDir,
+                    logFileUploadCB.mTargetFile, null, logFileUploadCB);
+
         }
     }
 
@@ -235,4 +273,18 @@ public class LogManager {
         return fileName;
     }
 
+    private String getLogFileName(String date) {
+        // defined with server team
+        // log file name is: logTypeDir/<deviceId>.<date>.log
+        return CoreConstants.CONSTANT_DEVICEID + "." + date + ".log";
+    }
+
+    private boolean checkIfCreateLogFile(int type) {
+        if (type < 0) {
+            return false;
+        }
+        File logFile = new File(mDefaultLogDirs[type],
+                getLogFileName(getTodayDateString(null)));
+        return !logFile.exists();
+    }
 }

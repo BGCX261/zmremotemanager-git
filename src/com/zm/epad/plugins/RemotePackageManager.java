@@ -305,8 +305,12 @@ public class RemotePackageManager {
                                 installCallback mCallback = cb;
 
                                 @Override
-                                public void onDone(FileTransferTask task) {
+                                public void onDone(boolean success, FileTransferTask task) {
                                     // TODO Auto-generated method stub
+                                    if(success == false) {
+                                        LogManager.local(TAG, "fail to download apk");
+                                        return;
+                                    }
                                     File result = (File) task.getResult();
                                     boolean ret = installPkgForUser(
                                             result.getAbsolutePath(), mUserId);

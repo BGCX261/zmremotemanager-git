@@ -233,17 +233,15 @@ public class CommandProcessor extends CmdDispatchInfo {
         if (result instanceof ZMIQResult) {
             IResult zmresult = ((ZMIQResult) result).getResult();
             String type = null;
-            if(zmresult == null){
+            if (zmresult == null) {
                 type = "no-type";
-            }else{
+            } else {
                 type = zmresult.getType();
             }
-            
+
             LogManager.local(TAG, "send result:" + type);
             ret = mXmppClient.sendPacketAsync((Packet) result, 0);
-            LogManager.getInstance().addLog(
-                    CoreConstants.CONSTANT_INT_LOGTYPE_COMMON,
-                    zmresult!=null?zmresult.toXML():"send result with no content");
+            saveLog(zmresult);
         }
         return ret;
     }
@@ -256,4 +254,11 @@ public class CommandProcessor extends CmdDispatchInfo {
         return true;
     }
 
+    private void saveLog(IResult result) {
+        if (result == null) {
+            return;
+        }
+        LogManager.getInstance().addLog(
+                CoreConstants.CONSTANT_INT_LOGTYPE_COMMON, result.toXML());
+    }
 }

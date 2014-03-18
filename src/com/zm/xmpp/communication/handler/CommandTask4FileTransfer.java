@@ -44,18 +44,18 @@ public class CommandTask4FileTransfer extends CommandTask {
                 new RemoteFileManager.FileTransferCallback() {
 
                     @Override
-                    public void onDone(FileTransferTask task) {
+                    public void onDone(boolean success, FileTransferTask task) {
 
                         boolean ret = false;
 
                         File file = ((FileDownloadTask) task).getResult();
 
-                        if (file != null) {
+                        if (success == true && file != null) {
                             ret = mSubSystemFacade.changeWallpaper(file
                                     .toString());
+                            // delete temp file after change wallpaper
+                            file.delete();
                         }
-                        // delete temp file after change wallpaper
-                        file.delete();
 
                         IResult result = mResultFactory.getResult(
                                 ResultFactory.RESULT_NORMAL, getCommandId(),

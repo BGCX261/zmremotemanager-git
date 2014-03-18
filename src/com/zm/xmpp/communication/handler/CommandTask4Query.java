@@ -113,7 +113,7 @@ public class CommandTask4Query extends CommandTask {
                 new RemoteFileManager.FileTransferCallback() {
 
                     @Override
-                    public void onDone(FileTransferTask task) {
+                    public void onDone(boolean success, FileTransferTask task) {
                         String fileName = (String) task.getResult();
                         IResult result = mResultFactory.getResult(
                                 ResultFactory.RESULT_NORMAL, getCommandId(),
