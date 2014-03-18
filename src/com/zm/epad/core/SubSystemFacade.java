@@ -450,7 +450,7 @@ public class SubSystemFacade {
      *            : if true, disable screen; if false, enable screen.
      */
     public void disableScreen(boolean disable) {
-        // stub
+        mDeviceManager.toggleScreen(!disable);
     }
 
     /*

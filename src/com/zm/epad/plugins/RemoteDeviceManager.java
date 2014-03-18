@@ -7,6 +7,7 @@ import com.zm.epad.core.LogManager.LogFileTransferInterface;
 
 import android.app.NotificationManager;
 import android.app.WallpaperManager;
+import android.app.admin.DevicePolicyManager;
 import android.bluetooth.BluetoothAdapter;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -561,6 +562,18 @@ public class RemoteDeviceManager{
         PowerManager pm = (PowerManager) mContext
                 .getSystemService(Context.POWER_SERVICE);
         return pm.isScreenOn();
+    }
+
+    public void toggleScreen(boolean on) {
+        if (!on) {
+            DevicePolicyManager dpm = (DevicePolicyManager) mContext
+                    .getSystemService(Context.DEVICE_POLICY_SERVICE);
+            dpm.lockNow();
+            // If to keep the screen lock status, it need modify the keyguard
+        } else {
+            // do nothing. if there is a secure keyguard, we need to modify the
+            // keyguard too.
+        }
     }
 }
 /*
