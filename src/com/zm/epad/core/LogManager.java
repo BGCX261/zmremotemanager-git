@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Calendar;
+import java.util.TimeZone;
 
 import android.content.Context;
 
@@ -19,6 +20,8 @@ public class LogManager {
     private static final String TAG = "LogManager";
     private final String LINE_END = "\r\n";
     private final String CHARSET = "utf-8";
+    private final TimeZone mTimeZone = SubSystemFacade.getInstance()
+            .getDefaultTimeZone();
 
     private static LogManager gLogManager = null;
 
@@ -131,7 +134,7 @@ public class LogManager {
     private String getTodayDateString(Calendar day) {
         Calendar today = null;
         if (day == null)
-            today = Calendar.getInstance();
+            today = Calendar.getInstance(mTimeZone);
         else
             today = day;
         StringBuffer sb = new StringBuffer();

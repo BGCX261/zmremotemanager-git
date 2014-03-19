@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.TimeZone;
 
 import com.zm.epad.core.LogManager;
+import com.zm.epad.core.SubSystemFacade;
 
 public class SwitchPolicy extends TimePolicy {
     private static final String TAG = "SwitchPolicy";
@@ -17,7 +18,7 @@ public class SwitchPolicy extends TimePolicy {
         super(id);
         mType = PolicyConstants.TYPE_SWITCH;
         mStartTime = start;
-        mTimeZone = TimeZone.getDefault();
+        mTimeZone = SubSystemFacade.getInstance().getDefaultTimeZone();
         mCron = new CronExpression(mStartTime);
         mCron.setTimeZone(mTimeZone);
     }

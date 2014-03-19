@@ -48,4 +48,5 @@ public interface CoreConstants {
             CONSTANT_LOGTYPE_LOCATION, CONSTANT_LOGTYPE_APPRUNTIME,
             CONSTANT_LOGTYPE_RUNTIME };
 
+    final static String CONSTANT_TIMEZOME_DEFAULT = "Asia/Chongqing";
 }
