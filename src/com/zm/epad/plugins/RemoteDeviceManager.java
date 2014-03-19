@@ -1,13 +1,7 @@
 package com.zm.epad.plugins;
 
-import com.zm.epad.core.CoreConstants;
-import com.zm.epad.core.LogManager;
-import com.zm.epad.core.LogManager;
-import com.zm.epad.core.LogManager.LogFileTransferInterface;
-
 import android.app.NotificationManager;
 import android.app.WallpaperManager;
-import android.app.admin.DevicePolicyManager;
 import android.bluetooth.BluetoothAdapter;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -15,11 +9,11 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
+import android.graphics.PixelFormat;
 import android.hardware.Camera;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.location.LocationProvider;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -27,24 +21,29 @@ import android.nfc.NfcAdapter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.PowerManager;
+import android.os.SystemClock;
 import android.provider.Settings;
 import android.text.format.Time;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.Display;
+import android.view.Gravity;
 import android.view.Surface;
-import android.view.SurfaceView;
-import android.view.WindowManager;
 import android.view.SurfaceControl;
+import android.view.SurfaceView;
+import android.view.View;
+import android.view.WindowManager;
 import android.view.WindowManagerGlobal;
+import android.widget.TextView;
+
+import com.zm.epad.R;
+import com.zm.epad.core.LogManager;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.Queue;
 
 public class RemoteDeviceManager{
     public static final String TAG = "RemoteDeviceManager";
@@ -54,6 +53,8 @@ public class RemoteDeviceManager{
     private Screenshot mScreenshot = null;
 
     private RemoteLocationTrack mLocationTrack = null;
+
+    private View mKeyguard = null;
   
     public void stop() {
          LogManager.local(TAG, "stop");
@@ -565,14 +566,41 @@ public class RemoteDeviceManager{
     }
 
     public void toggleScreen(boolean on) {
-        if (!on) {
-            DevicePolicyManager dpm = (DevicePolicyManager) mContext
-                    .getSystemService(Context.DEVICE_POLICY_SERVICE);
-            dpm.lockNow();
-            // If to keep the screen lock status, it need modify the keyguard
-        } else {
-            // do nothing. if there is a secure keyguard, we need to modify the
-            // keyguard too.
+        WindowManager wm = (WindowManager) mContext
+                .getSystemService(Context.WINDOW_SERVICE);
+        if (!on && mKeyguard == null) {
+            // show window to mask all event.
+            final WindowManager.LayoutParams attrs =
+                    new WindowManager.LayoutParams(
+                            WindowManager.LayoutParams.MATCH_PARENT,
+                            WindowManager.LayoutParams.MATCH_PARENT,
+                            WindowManager.LayoutParams.TYPE_KEYGUARD,
+                            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
+                            WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+                            PixelFormat.TRANSLUCENT);
+            attrs.gravity = Gravity.CENTER;
+            attrs.packageName = mContext.getPackageName();
+            attrs.setTitle("zm_keyguard");
+            attrs.windowAnimations = com.android.internal.R.style.Animation_Dialog;
+            mKeyguard = View.inflate(mContext, R.layout.keyguard, null);
+            TextView prompt = (TextView) mKeyguard.findViewById(R.id.prompt_text);
+            prompt.setText("Screen Protected by ZM");
+            wm.addView(mKeyguard, attrs);
+            // ask screen to go off.
+            PowerManager pm = (PowerManager) mContext
+                    .getSystemService(Context.POWER_SERVICE);
+            if (isScreenOn()) {
+                pm.goToSleep(SystemClock.uptimeMillis());
+            }
+        } else if (on && mKeyguard != null) {
+            wm.removeView(mKeyguard);
+            mKeyguard = null;
+            // wake up screen
+            PowerManager pm = (PowerManager) mContext
+                    .getSystemService(Context.POWER_SERVICE);
+            if (!isScreenOn()) {
+                pm.wakeUp(SystemClock.uptimeMillis());
+            }
         }
     }
 }
