@@ -46,5 +46,37 @@ public abstract class AbstractResult {
 		this.deviceId = deviceId;
 	}
 
+    protected void toXMLBase(StringBuffer buf, String type) {
+        buf.append("<result xmlns=\"");
+        buf.append(this.direction);
+        buf.append("\" type=\"");
+        buf.append(type);
+        buf.append("\">");
+        if (this.id != null) {
+            buf.append("<id>");
+            buf.append(this.id);
+            buf.append("</id>");
+        }
+        if (this.deviceId != null) {
+            buf.append("<deviceid>");
+            buf.append(this.deviceId);
+            buf.append("</deviceid>");
+        }
+        if (this.issueTime != null) {
+            buf.append("<issuetime>");
+            buf.append(this.issueTime);
+            buf.append("</issuetime>");
+        }
+        if (this.status != null) {
+            buf.append("<status>");
+            buf.append(this.status);
+            buf.append("</status>");
+        }
+        if (this.errorCode != null) {
+            buf.append("<errorcode>");
+            buf.append(this.errorCode);
+            buf.append("</errorcode>");
+        }
+    }
 
 }

@@ -38,30 +38,14 @@ public class ResultDevice extends AbstractResult implements IResult{
 
 	@Override
 	public String toXML() {
-		StringBuffer buf=new StringBuffer();
-		buf.append("<result xmlns=\"");
-		buf.append(this.direction);
-		buf.append("\" type=\"");
-		buf.append(type);		
-		buf.append("\">");
-		buf.append("<deviceid>");
-		buf.append(this.deviceId);
-		buf.append("</deviceid>");
-		buf.append("<id>");
-		buf.append(this.id);
-		buf.append("</id>");
-		buf.append("<status>");
-		buf.append(this.status);
-		buf.append("</status>");
-		buf.append("<errorcode>");
-		buf.append(this.errorCode);
-		buf.append("</errorcode>");
+		StringBuffer buf = new StringBuffer();
+		toXMLBase(buf, type);
 		buf.append("<wifi>");
 		buf.append(this.device.getWifi());
 		buf.append("</wifi>");
 		buf.append("<bt>");
 		buf.append(this.device.getBt());
-		buf.append("</bt>");		
+		buf.append("</bt>");
 		buf.append("<nfc>");
 		buf.append(this.device.getNfc());
 		buf.append("</nfc>");
@@ -75,7 +59,7 @@ public class ResultDevice extends AbstractResult implements IResult{
 		buf.append(this.device.getAmode());
 		buf.append("</amode>");
 		buf.append("<mnet>");
-		buf.append(this.device.getMnet());		
+		buf.append(this.device.getMnet());
 		buf.append("</mnet>");
 		buf.append("</result>");
 		return buf.toString();

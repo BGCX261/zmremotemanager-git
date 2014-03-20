@@ -93,21 +93,7 @@ public class ResultAppUsage extends AbstractResult implements IResult {
     @Override
     public String toXML() {
         StringBuffer buf = new StringBuffer();
-        buf.append("<result xmlns=\"");
-        buf.append(this.direction);
-        buf.append("\" type=\"");
-        buf.append(type);
-        buf.append("\">");
-        if (this.id != null) {
-            buf.append("<id>");
-            buf.append(this.id);
-            buf.append("</id>");
-        }
-        if (this.deviceId != null) {
-            buf.append("<deviceid>");
-            buf.append(this.deviceId);
-            buf.append("</deviceid>");
-        }
+        toXMLBase(buf, type);
         buf.append("<start>");
         buf.append(this.start);
         buf.append("</start>");

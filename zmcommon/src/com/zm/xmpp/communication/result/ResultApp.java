@@ -44,24 +44,8 @@ public class ResultApp extends AbstractResult implements IResult{
 
 	@Override
 	public String toXML() {
-		StringBuffer buf=new StringBuffer();
-		buf.append("<result xmlns=\"");
-		buf.append(this.direction);
-		buf.append("\" type=\"");
-		buf.append(type);		
-		buf.append("\">");
-		buf.append("<deviceid>");
-		buf.append(this.deviceId);
-		buf.append("</deviceid>");
-		buf.append("<id>");
-		buf.append(this.id);
-		buf.append("</id>");
-		buf.append("<status>");
-		buf.append(this.status);
-		buf.append("</status>");
-		buf.append("<errorcode>");
-		buf.append(this.errorCode);
-		buf.append("</errorcode>");
+		StringBuffer buf = new StringBuffer();
+		toXMLBase(buf, type);
 		for(int i=0;i<this.envs.size();i++){
 			buf.append("<env id=\"");
 			Environment env=this.envs.get(i);
@@ -90,7 +74,7 @@ public class ResultApp extends AbstractResult implements IResult{
 
 	@Override
 	public String toString(){
-		StringBuffer buf=new StringBuffer();
+		StringBuffer buf = new StringBuffer();
 		buf.append(type);
 		buf.append(" Result:[");
 		buf.append("\r\n");		

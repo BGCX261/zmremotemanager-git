@@ -63,31 +63,7 @@ public class ResultDeviceReport extends AbstractResult implements IResult {
     @Override
     public String toXML() {
         StringBuffer buf = new StringBuffer();
-        buf.append("<result xmlns=\"");
-        buf.append(this.direction);
-        buf.append("\" type=\"");
-        buf.append(type);
-        buf.append("\">");
-        if (this.id != null) {
-            buf.append("<id>");
-            buf.append(this.id);
-            buf.append("</id>");
-        }
-        if (this.deviceId != null) {
-            buf.append("<deviceid>");
-            buf.append(this.deviceId);
-            buf.append("</deviceid>");
-        }
-        if (this.status != null) {
-            buf.append("<status>");
-            buf.append(this.status);
-            buf.append("</status>");
-        }
-        if (this.errorCode != null) {
-            buf.append("<errorcode>");
-            buf.append(this.errorCode);
-            buf.append("</errorcode>");
-        }
+        toXMLBase(buf, type);
         buf.append("<longitude>");
         buf.append(this.longitude);
         buf.append("</longitude>");

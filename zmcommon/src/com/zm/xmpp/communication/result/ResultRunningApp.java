@@ -71,20 +71,7 @@ public class ResultRunningApp extends AbstractResult implements IResult {
     @Override
     public String toXML() {
         StringBuffer buf = new StringBuffer();
-        buf.append("<result xmlns=\"");
-        buf.append(this.direction);
-        buf.append("\" type=\"");
-        buf.append(type);
-        buf.append("\">");
-        buf.append("<id>");
-        buf.append(this.id);
-        buf.append("</id>");
-        buf.append("<deviceid>");
-        buf.append(this.deviceId);
-        buf.append("</deviceid>");
-        buf.append("<issuetime>");
-        buf.append(this.issueTime);
-        buf.append("</issuetime>");
+        toXMLBase(buf, type);
         buf.append("<envid>");
         buf.append(this.mCurrentEnv);
         buf.append("</envid>");
