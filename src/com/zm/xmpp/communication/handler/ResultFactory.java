@@ -213,12 +213,8 @@ public class ResultFactory {
     }
 
     private static String getCurrentTime() {
-        Time t = new Time();
-        t.setToNow();
-        String ret = String.valueOf(t.year) + String.valueOf(t.month)
-                + String.valueOf(t.monthDay) + String.valueOf(t.hour)
-                + String.valueOf(t.minute) + String.valueOf(t.second);
-        return ret;
+        //return UTC
+        return String.valueOf(System.currentTimeMillis());
     }
 
     private List<IResult> ConfigResultApp() {
