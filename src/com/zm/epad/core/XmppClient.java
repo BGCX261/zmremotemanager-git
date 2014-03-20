@@ -219,7 +219,8 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                     serverName);
             config.setCompressionEnabled(true);
             config.setDebuggerEnabled(true);
-            config.setReconnectionAllowed(true);
+            // disable ReconnectionAllowed to avoid double connect
+            config.setReconnectionAllowed(false);
 
             mXmppConnection = new XMPPConnection(config);
             mXmppConnection.connect();
@@ -301,19 +302,21 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             handleLogoutCmd(false);
         } else if (networkAvailable == 1) {
             synchronized (mStatusLock) {
-                if (mCurrentStatus == XMPPCLIENT_STATUS_IDLE) {
-                    mPrevStatus = XMPPCLIENT_STATUS_IDLE;
-                    LogManager.local(TAG,
-                            "\t xmppclient not working, do nothing");
-                } else if (mPrevStatus == XMPPCLIENT_STATUS_STARTING
-                        || mPrevStatus == XMPPCLIENT_STATUS_STARTED) {
-                    LogManager.local(TAG, "\t xmppclient re-start");
-                    handleStartCmdLocked();
-                } else if (mPrevStatus == XMPPCLIENT_STATUS_LOGINING
-                        || mPrevStatus == XMPPCLIENT_STATUS_LOGINED) {
-                    LogManager.local(TAG, "\t xmppclient re-login");
-                    handleStartCmdLocked();
-                    handleLoginCmdLocked();
+                LogManager.local(TAG, "handleNetworkAvailable current status:"
+                        + mCurrentStatus);
+                if (mCurrentStatus == XMPPCLIENT_STATUS_IDLE
+                        || mCurrentStatus == XMPPCLIENT_STATUS_ERROR) {
+                    // if idle or error, reconnect
+                    if (mPrevStatus == XMPPCLIENT_STATUS_STARTING
+                            || mPrevStatus == XMPPCLIENT_STATUS_STARTED) {
+                        LogManager.local(TAG, "\t xmppclient re-start");
+                        handleStartCmdLocked();
+                    } else if (mPrevStatus == XMPPCLIENT_STATUS_LOGINING
+                            || mPrevStatus == XMPPCLIENT_STATUS_LOGINED) {
+                        LogManager.local(TAG, "\t xmppclient re-login");
+                        handleStartCmdLocked();
+                        handleLoginCmdLocked();
+                    }
                 }
             }
         }
@@ -324,7 +327,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         ConnectivityManager cm = (ConnectivityManager) mContext
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo info = cm.getActiveNetworkInfo();
-        return info.isConnected();
+        return info == null ? false: info.isConnected();
     }
 
     private void handleConnectionStatus(Message msg) {
@@ -335,22 +338,22 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 dispatchXmppClientEvent(
                         XMPPCLIENT_EVENT_CONNECTION_UPDATE_STATUS, 0, msg.obj);
 
-                // when it's not closed by error and network is on
-                if (msg.obj == null && isNetworkConnected()) {
-                    LogManager.local(TAG, "ready to reconnect");
-                    if (mCurrentStatus == XMPPCLIENT_STATUS_IDLE) {
-                        mPrevStatus = XMPPCLIENT_STATUS_IDLE;
+                // when it's closed and network is on, reconnect
+                if (isNetworkConnected()) {
+                    synchronized (mStatusLock) {
                         LogManager.local(TAG,
-                                "\t xmppclient not working, do nothing");
-                    } else if (mPrevStatus == XMPPCLIENT_STATUS_STARTING
-                            || mPrevStatus == XMPPCLIENT_STATUS_STARTED) {
-                        LogManager.local(TAG, "\t xmppclient re-start");
-                        handleStartCmdLocked();
-                    } else if (mPrevStatus == XMPPCLIENT_STATUS_LOGINING
-                            || mPrevStatus == XMPPCLIENT_STATUS_LOGINED) {
-                        LogManager.local(TAG, "\t xmppclient re-login");
-                        handleStartCmdLocked();
-                        handleLoginCmdLocked();
+                                "handleConnectionStatus current status:"
+                                        + mCurrentStatus);
+                        if (mCurrentStatus == XMPPCLIENT_STATUS_STARTING
+                                || mCurrentStatus == XMPPCLIENT_STATUS_STARTED) {
+                            LogManager.local(TAG, "\t xmppclient re-start");
+                            handleStartCmdLocked();
+                        } else if (mCurrentStatus == XMPPCLIENT_STATUS_LOGINING
+                                || mCurrentStatus == XMPPCLIENT_STATUS_LOGINED) {
+                            LogManager.local(TAG, "\t xmppclient re-login");
+                            handleStartCmdLocked();
+                            handleLoginCmdLocked();
+                        }
                     }
                 }
             } else {
