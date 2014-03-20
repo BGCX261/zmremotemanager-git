@@ -239,9 +239,15 @@ public class CommandProcessor extends CmdDispatchInfo {
                 type = zmresult.getType();
             }
 
-            LogManager.local(TAG, "send result:" + type);
-            ret = mXmppClient.sendPacketAsync((Packet) result, 0);
-            saveLog(zmresult);
+            if (mXmppClient.getStatus() == XmppClient.XMPPCLIENT_STATUS_LOGINED) {
+                // when login, send result
+                LogManager.local(TAG, "send result:" + type);
+                ret = mXmppClient.sendPacketAsync((Packet) result, 0);
+            } else {
+                // when offline, save result
+                LogManager.local(TAG, "save result:" + type);
+                saveLog(zmresult);
+            }
         }
         return ret;
     }

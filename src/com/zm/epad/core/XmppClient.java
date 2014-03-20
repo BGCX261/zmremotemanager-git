@@ -29,6 +29,13 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     public static final int XMPPCLIENT_EVENT_LOGOUT = 4;
     public static final int XMPPCLIENT_EVENT_SENDPACKET_RESULT = 5;
 
+    public static final int XMPPCLIENT_STATUS_IDLE = 0;
+    public static final int XMPPCLIENT_STATUS_STARTING = 1;
+    public static final int XMPPCLIENT_STATUS_STARTED = 2;
+    public static final int XMPPCLIENT_STATUS_LOGINING = 3;
+    public static final int XMPPCLIENT_STATUS_LOGINED = 4;
+    public static final int XMPPCLIENT_STATUS_ERROR = 5;
+
     static final int CMD_START = 0;
     static final int CMD_CONNECTION_STATUS_UPDATE = 1;
     static final int CMD_NETWORK_STATUS_UPDATE = 2;
@@ -38,12 +45,6 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     static final int CMD_SEND_PACKET_ASYNC = 6;
     static final int CMD_SEND_OBJECT_ASYNC = 7;
 
-    static final int XMPPCLIENT_STATUS_IDLE = 0;
-    static final int XMPPCLIENT_STATUS_STARTING = 1;
-    static final int XMPPCLIENT_STATUS_STARTED = 2;
-    static final int XMPPCLIENT_STATUS_LOGINING = 3;
-    static final int XMPPCLIENT_STATUS_LOGINED = 4;
-    static final int XMPPCLIENT_STATUS_ERROR = 5;
     private int mCurrentStatus = XMPPCLIENT_STATUS_IDLE;
     private int mPrevStatus = mCurrentStatus;
     static private SmackAndroid mSmackAndroid = null;
@@ -590,4 +591,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         return true;
     }
 
+    public int getStatus() {
+        return mCurrentStatus;
+    }
 }
