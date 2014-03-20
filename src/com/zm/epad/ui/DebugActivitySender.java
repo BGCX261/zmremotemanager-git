@@ -253,7 +253,7 @@ public class DebugActivitySender extends Activity {
 
             @Override
             public void onClick(View arg0) {
-                Debug.waitForDebugger();
+                //Debug.waitForDebugger();
                 // TODO Auto-generated method stub
                 try {
                     sendTestCommand4Report(Constants.XMPP_REPORT_POS,

@@ -94,6 +94,7 @@ public class ResultFactory {
             break;
         case RESULT_POSITION:
             ret = getPositionResult(obj);
+            break;
         default:
             LogManager.local(TAG, "bad type: " + type);
             ret = null;
@@ -126,7 +127,7 @@ public class ResultFactory {
     }
 
     public IResult getResult(int type, String id, Object obj) {
-        return getResult(type, null, null, obj, null);
+        return getResult(type, id, null, obj, null);
     }
 
     public List<IResult> getResults(int type, String id) {
