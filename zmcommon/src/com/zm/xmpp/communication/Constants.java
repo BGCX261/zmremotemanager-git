@@ -29,7 +29,8 @@ public class Constants {
     static public final String XMPP_QUERY_APP = "app";
     static public final String XMPP_QUERY_DEVICE = "device";
     static public final String XMPP_QUERY_ENV = "env";
-    static public final String XMPP_QUERY_CAPTURE = "capture";  
+    static public final String XMPP_QUERY_CAPTURE = "capture";
+    static public final String XMPP_QUERY_LOG = "log";
     
     static public final String XMPP_REPORT_APP = "app";
     static public final String XMPP_REPORT_POS = "pos";
