@@ -41,6 +41,8 @@ public class CommandTask4Query extends CommandTask {
             ret = handleQueryEnv(cmd);
         } else if (action.equals(Constants.XMPP_QUERY_CAPTURE)) {
             ret = handleQueryCapture(cmd);
+        } else if (action.equals(Constants.XMPP_QUERY_LOG)) {
+            ret = handleQueryLogUpload(cmd);
         } else {
             LogManager.local(TAG, "handleCommand4Query bad action");
         }
@@ -137,4 +139,13 @@ public class CommandTask4Query extends CommandTask {
         return RUNNING;
     }
 
+    private int handleQueryLogUpload(ICommand4Query cmd) {
+        LogManager logMgr = LogManager.getInstance();
+        int type = CoreConstants.CONSTANT_INT_LOGTYPE_COMMON;
+        String[] logs = logMgr.listLogFiles(type);
+        for (String filename : logs) {
+            logMgr.uploadLog(cmd.getUrl(), type, filename);
+        }
+        return SUCCESS;
+    }
 }

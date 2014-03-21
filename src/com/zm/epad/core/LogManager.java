@@ -4,7 +4,6 @@ import com.zm.epad.plugins.RemoteFileManager;
 import com.zm.epad.plugins.RemoteFileManager.FileTransferTask;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Calendar;
 import java.util.TimeZone;
@@ -147,23 +146,23 @@ public class LogManager {
     }
 
     // synchronized to avoid call from multi-thread
-    public synchronized void addLog(int type, String logLine) {
-        if (checkIfCreateLogFile(type)) {
-            // when turn to another day or other reason which cause no right log
-            // file exists, create a new log file
-            ensureLogDirExists(mDefaultLogDirs[type], getTodayDateString(null),
-                    type);
+    public void addLog(int type, String logLine) {
+        synchronized (mDefaultLogFiles) {
+            if (checkIfCreateLogFile(type)) {
+                // when turn to another day or other reason which cause no right
+                // log file exists, create a new log file
+                ensureLogDirExists(mDefaultLogDirs[type],
+                        getTodayDateString(null), type);
+            }
+            try {
+                RandomAccessFile logFile = mDefaultLogFiles[type];
+                logFile.write(logLine.getBytes(CHARSET));
+                logFile.writeBytes(LINE_END);
+            } catch (Exception e) {
+                local(TAG, "addLog failed:" + e.getMessage());
+                local(TAG, "addLog failed:" + logLine);
+            }
         }
-        try {
-            RandomAccessFile logFile = null;
-            logFile = mDefaultLogFiles[type];
-            logFile.write(logLine.getBytes(CHARSET));
-            logFile.writeBytes(LINE_END);
-        } catch (Exception e) {
-            local(TAG, "addLog failed:" + e.getMessage());
-            local(TAG, "addLog failed:" + logLine);
-        }
-
     }
 
     private class LogFileUploadCallback implements
@@ -208,11 +207,11 @@ public class LogManager {
         private void update() {
             if (mType != -1) {
                 try {
-                    // clear all logs in the file before
-                    synchronized (mDefaultLogFiles) {
-                        mDefaultLogFiles[mType].setLength(0);
-                    }
-                } catch (IOException e) {
+                    // delete the log file
+                    File logFile = new File(mTargetFile);
+                    if (logFile.exists())
+                        logFile.delete();
+                } catch (Exception e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
@@ -234,6 +233,21 @@ public class LogManager {
             return;
 
         }
+
+        public void prepareUploadFiles(int type, String fileName, boolean update) {
+            mType = type;
+            mUpdate = update;
+
+            if (type == -1) {
+                mTargetFile = mRootDir + "/" + getTodayDateString(null)
+                        + ".all.zip";
+                return;
+            } else {
+                String rootDir = mDefaultLogDirs[type];
+                mTargetFile = rootDir + "/" + fileName;
+            }
+            return;
+        }
     }
 
     // if type == -1, it means upload all log files.
@@ -241,13 +255,28 @@ public class LogManager {
     // if type != -1, then we will upload the specified log file according to
     // date
     public void uploadLog(String url, int type, Calendar date) {
-        uploadLog(url, type, date, true);
+        uploadLog(url, type, date, null, false);
     }
 
-    public void uploadLog(String url, int type, Calendar date, boolean update) {
+    public void uploadLog(String url, int type, String filename) {
+        uploadLog(url, type, null, filename, true);
+    }
+
+    public void uploadLog(String url, int type, Calendar date, String filename,
+            boolean update) {
         LogFileUploadCallback logFileUploadCB = new LogFileUploadCallback();
 
-        logFileUploadCB.prepareUploadFiles(type, date, update);
+        if (update && isTodayLog(date, filename)) {
+            // if upload today's log, update log file to avoid name duplication
+            File backup = updateLogFile(type);
+            logFileUploadCB.prepareUploadFiles(type, backup.getName(), update);
+        } else {
+            if (date != null) {
+                logFileUploadCB.prepareUploadFiles(type, date, update);
+            } else {
+                logFileUploadCB.prepareUploadFiles(type, filename, update);
+            }
+        }
 
         SubSystemFacade subSystemFacade = SubSystemFacade.getInstance();
         if (type != -1)
@@ -289,5 +318,41 @@ public class LogManager {
         File logFile = new File(mDefaultLogDirs[type],
                 getLogFileName(getTodayDateString(null)));
         return !logFile.exists();
+    }
+
+    private boolean isTodayLog(Calendar date, String filename) {
+        String today = getTodayDateString(null);
+        return date != null ? today.equals(getTodayDateString(date))
+                : getLogFileName(today).equals(filename);
+    }
+
+    private File updateLogFile(int type) {
+        synchronized (mDefaultLogFiles) {
+            try {
+                File backup = null;
+                File logfile = new File(mDefaultLogDirs[type],
+                        getLogFileName(getTodayDateString(null)));
+                if (logfile.exists()) {
+                    if (mDefaultLogFiles[type] != null) {
+                        mDefaultLogFiles[type].close();
+                        mDefaultLogFiles[type] = null;
+                    }
+                    // back up file name is:
+                    // <deviceId>.<date>.<Current UTC>.log
+                    String filename = CoreConstants.CONSTANT_DEVICEID + "."
+                            + getTodayDateString(null) + "_"
+                            + System.currentTimeMillis() + ".log";
+                    backup = new File(mDefaultLogDirs[type], filename);
+                    logfile.renameTo(backup);
+                    // create new log file
+                    ensureLogDirExists(mDefaultLogDirs[type],
+                            getTodayDateString(null), type);
+                }
+                return backup;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
     }
 }
