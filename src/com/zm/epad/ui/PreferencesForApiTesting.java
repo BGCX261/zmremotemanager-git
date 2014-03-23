@@ -3,6 +3,7 @@ package com.zm.epad.ui;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.preference.CheckBoxPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
@@ -10,6 +11,7 @@ import android.preference.PreferenceActivity;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceScreen;
 import android.preference.SwitchPreference;
+import android.preference.TwoStatePreference;
 import android.util.Log;
 
 import com.zm.epad.R;
@@ -32,7 +34,13 @@ public class PreferencesForApiTesting extends PreferenceActivity {
     private static final String KEY_BLANK_TIMEOUT = "screen_timeout_list_preference";
     private static final String KEY_BLANK_START = "blank_screen_checkbox_preference";
 
+    // members to test remote desktop
     private SwitchPreference mDesktopPref;
+    private Handler mDesktopHandler;
+    private Message mDesktopNotify;
+    private String mDesktopUrl;
+
+    // members to test blank screen
     private CheckBoxPreference mBlankSceenPref;
     private static final int TIMEOUT_TO_START_BLANK = 2;
     private int mTimeout = 5;
@@ -125,10 +133,16 @@ public class PreferencesForApiTesting extends PreferenceActivity {
             if ((preference instanceof SwitchPreference)
                     || (preference instanceof CheckBoxPreference)) {
                 boolean enable = (Boolean) value;
-                if (KEY_USB.equals(preference.getKey())) {
-                    setUsbTethering(preference, enable);
-                } else if (KEY_DESKTOP.equals(preference.getKey())) {
-                    //
+                TwoStatePreference tsp = (TwoStatePreference) preference;
+                if (enable == tsp.isChecked()) return true;
+                if (KEY_USB.equals(tsp.getKey())) {
+                    setUsbTethering(tsp, enable);
+                } else if (KEY_DESKTOP.equals(tsp.getKey())) {
+                    if (enable) {
+                        testStartRemoteDesktop();
+                    } else {
+                        testStopRemoteDesktop();
+                    }
                 } else if (KEY_BLANK_START.equals(preference.getKey())) {
                     testDisableScreen(enable);
                 }
@@ -231,5 +245,55 @@ public class PreferencesForApiTesting extends PreferenceActivity {
         } else {
             mHandler.removeCallbacks(mTestBlankScreen);
         }
+    }
+
+    private void testStartRemoteDesktop() {
+        testStopRemoteDesktop();
+        mDesktopHandler = new Handler() {
+            @Override public void handleMessage(Message msg) {
+                switch (msg.arg1) {
+                case SubSystemFacade.MSG_DESKTOP_SERVER_CREATED_OK:
+                    mDesktopUrl = (String) msg.obj;
+                    mDesktopPref.setSummary("Server Listening at: " + mDesktopUrl);
+                    break;
+                case SubSystemFacade.MSG_DESKTOP_RUNNING_OK:
+                    mDesktopPref.setSummary("Server " + mDesktopUrl + " running.");
+                    break;
+                case SubSystemFacade.MSG_DESKTOP_STOPPED:
+                    mDesktopPref.setSummary("Server " + mDesktopUrl + " stopped.");
+                    mDesktopPref.setChecked(false);
+                    break;
+                case SubSystemFacade.MSG_DESKTOP_NOT_SUPPORT:
+                    mDesktopPref.setSummary("This Android version not support this function.");
+                    mDesktopPref.setChecked(false);
+                    break;
+                case SubSystemFacade.MSG_DESKTOP_IN_USE:
+                    mDesktopPref.setSummary("Remote Desktop in used.");
+                    break;
+                case SubSystemFacade.MSG_DESKTOP_NO_NETWORK:
+                    mDesktopPref.setSummary("No network currently.");
+                    mDesktopPref.setChecked(false);
+                    break;
+                case SubSystemFacade.MSG_DESKTOP_SERVER_CREATE_FAILED:
+                    mDesktopPref.setSummary("Server starting faild in listening.");
+                    mDesktopPref.setChecked(false);
+                    break;
+                case SubSystemFacade.MSG_DESKTOP_DISPLAY_CREATE_FAILED:
+                    mDesktopPref.setSummary("Server starting faild in display creating.");
+                    mDesktopPref.setChecked(false);
+                    break;
+                }
+            }
+        };
+        mDesktopNotify = mDesktopHandler.obtainMessage(
+                SubSystemFacade.NOTIFY_DESKTOP_SHARE);
+        getInstance().startDesktopShare(mDesktopNotify);
+    }
+
+    private void testStopRemoteDesktop() {
+        getInstance().stopDesktopShare();
+        mDesktopUrl = null;
+        mDesktopNotify = null;
+        mDesktopHandler = null;
     }
 }

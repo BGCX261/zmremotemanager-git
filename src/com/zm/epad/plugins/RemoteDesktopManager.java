@@ -19,6 +19,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
@@ -218,8 +219,10 @@ public class RemoteDesktopManager {
     }
 
     public void stopRemoteDesktop() {
-        if (sRemoteDesktop == null) return;
-        release();
+        if (mRemoteDesktop != null) {
+            Log.i(TAG, "Release Rtsp Server");
+            disposeRtsp();
+        }
     }
 
     private String getUrl() {
@@ -284,7 +287,7 @@ public class RemoteDesktopManager {
                 createDisplay(surface, width, height);
             } else if (method.getName().equals("onDesktopDisconnected")) {
                 Log.i(TAG, "Rtsp Server: client disconnected");
-                release();
+                release(true);
             } else if (method.getName().equals("onDesktopError")) {
                 int error = (Integer) args[0];
                 Log.i(TAG, "Rtsp Server: client error: " + error);
@@ -329,7 +332,7 @@ public class RemoteDesktopManager {
                         DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC);
                 if (mDisplay == null) {
                     if (mListener != null) mListener.onServerError(RD_DISPLAY_CREATE_FAILED);
-                    release();
+                    release(true);
                 } else {
                     if (mListener != null) mListener.onServerStarted();
                 }
@@ -337,8 +340,9 @@ public class RemoteDesktopManager {
         });
     }
 
-    private void release() {
-        mHandler.post(new Runnable() {
+    private void release(boolean aysn) {
+        if (mRemoteDesktop == null) return;
+        Runnable r = new Runnable() {
             @Override public void run() {
                 boolean callbackstop = false;
                 if (mRemoteDesktop != null) {
@@ -353,11 +357,23 @@ public class RemoteDesktopManager {
                     mDisplay = null;
                     callbackstop = true;
                 }
-                if (callbackstop && mListener != null) mListener.onServerStopped();
+                if (callbackstop && mListener != null) {
+                    final Listener listener = mListener;
+                    mHandler.postDelayed(new Runnable() {
+                        @Override public void run() {
+                            listener.onServerStopped();
+                        }
+                    }, 200);
+                }
                 mIface = null;
                 mListener = null;
             }
-        });
+        };
+        if (aysn) {
+            mHandler.post(r);
+        } else {
+            r.run();
+        }
     }
 
     private void notityError(final int error) {

@@ -149,13 +149,6 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".ui.DebugActivityRemoteDesktop" >
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-
         <activity android:name=".ui.PreferencesForApiTesting"
                 android:label="@string/preferences_for_api_testing">
             <intent-filter>

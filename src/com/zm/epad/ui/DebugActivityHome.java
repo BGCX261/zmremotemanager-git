@@ -56,7 +56,7 @@ public class DebugActivityHome extends Activity {
         mPrompt = (TextView) findViewById(R.id.textView4);
 
         mDebugBtn = (Button) findViewById(R.id.button4);
-        mDesktopBtn = (Button) findViewById(R.id.button_remote_desktop);
+        mDesktopBtn = (Button) findViewById(R.id.button_api_testing);
         mAdvancedBtn = (Button) findViewById(R.id.button2);
 
         mConnectBtn.setOnClickListener(new OnClickListener() {

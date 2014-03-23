@@ -101,13 +101,13 @@
         android:text="@string/debug_debug" />
 
     <Button
-        android:id="@+id/button_remote_desktop"
+        android:id="@+id/button_api_testing"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_above="@+id/button4"
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="18dp"
-        android:text="@string/debug_remote_desktop" />
+        android:text="@string/debug_api_testing" />
 
     <TextView
         android:id="@+id/textView4"

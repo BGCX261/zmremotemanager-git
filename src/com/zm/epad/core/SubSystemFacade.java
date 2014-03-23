@@ -104,8 +104,8 @@ public class SubSystemFacade {
 
         mDeviceManager = new RemoteDeviceManager(mContext);
 
-        /*mSmartShare = new SmartShareManager(mContext);
-        mSmartShare.setThreadPool(mThreadPool);*/
+        mSmartShare = new SmartShareManager(mContext);
+        mSmartShare.setThreadPool(mThreadPool);
 
         mPolicyManager = new RemotePolicyManager(mContext);
         mPolicyManager.loadPolicy();
