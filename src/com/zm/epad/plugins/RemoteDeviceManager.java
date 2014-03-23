@@ -1,10 +1,13 @@
 package com.zm.epad.plugins;
 
+import android.app.ActivityManager;
+import android.app.ActivityManagerNative;
 import android.app.NotificationManager;
 import android.app.WallpaperManager;
 import android.bluetooth.BluetoothAdapter;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -21,12 +24,16 @@ import android.nfc.NfcAdapter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.PowerManager;
+import android.os.RemoteException;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.text.format.Time;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceControl;
 import android.view.SurfaceView;
@@ -44,6 +51,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.LinkedList;
+import java.util.List;
 
 public class RemoteDeviceManager{
     public static final String TAG = "RemoteDeviceManager";
@@ -55,6 +63,8 @@ public class RemoteDeviceManager{
     private RemoteLocationTrack mLocationTrack = null;
 
     private View mKeyguard = null;
+
+    private Handler mHandler;
   
     public void stop() {
          LogManager.local(TAG, "stop");
@@ -64,6 +74,7 @@ public class RemoteDeviceManager{
         mContext = context;
         mScreenshot = new Screenshot(mContext);
         mLocationTrack = new RemoteLocationTrack();
+        mHandler = new Handler(mContext.getMainLooper());
     }
 
     public boolean changeWallpaper(String wallImage) {
@@ -565,45 +576,155 @@ public class RemoteDeviceManager{
         return pm.isScreenOn();
     }
 
-    public void toggleScreen(boolean on) {
-        WindowManager wm = (WindowManager) mContext
-                .getSystemService(Context.WINDOW_SERVICE);
-        if (!on && mKeyguard == null) {
-            // show window to mask all event.
-            final WindowManager.LayoutParams attrs =
-                    new WindowManager.LayoutParams(
-                            WindowManager.LayoutParams.MATCH_PARENT,
-                            WindowManager.LayoutParams.MATCH_PARENT,
-                            WindowManager.LayoutParams.TYPE_KEYGUARD,
-                            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
-                            WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
-                            PixelFormat.TRANSLUCENT);
-            attrs.gravity = Gravity.CENTER;
-            attrs.packageName = mContext.getPackageName();
-            attrs.setTitle("zm_keyguard");
-            attrs.windowAnimations = com.android.internal.R.style.Animation_Dialog;
-            mKeyguard = View.inflate(mContext, R.layout.keyguard, null);
-            TextView prompt = (TextView) mKeyguard.findViewById(R.id.prompt_text);
-            prompt.setText("Screen Protected by ZM");
-            wm.addView(mKeyguard, attrs);
-            // ask screen to go off.
-            PowerManager pm = (PowerManager) mContext
-                    .getSystemService(Context.POWER_SERVICE);
-            if (isScreenOn()) {
-                pm.goToSleep(SystemClock.uptimeMillis());
+    public synchronized void toggleScreen(final boolean on) {
+        mHandler.post(new Runnable() {
+            @Override public void run() {
+                WindowManager wm = (WindowManager) mContext
+                        .getSystemService(Context.WINDOW_SERVICE);
+                if (!on && mKeyguard == null) {
+                    // show window to mask all event.
+                    final WindowManager.LayoutParams attrs =
+                            new WindowManager.LayoutParams(
+                                    WindowManager.LayoutParams.MATCH_PARENT,
+                                    WindowManager.LayoutParams.MATCH_PARENT,
+                                    WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG,
+                                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
+                                    WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR |
+                                    WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD |
+                                    WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
+                                    WindowManager.LayoutParams.FLAG_LOCAL_FOCUS_MODE |
+                                    WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS |
+                                    WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION |
+                                    WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+                                    PixelFormat.TRANSLUCENT);
+                    if (ActivityManager.isHighEndGfx()) {
+                        attrs.flags |= WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED;
+                        attrs.privateFlags |=
+                                WindowManager.LayoutParams.PRIVATE_FLAG_FORCE_HARDWARE_ACCELERATED;
+                    }
+                    attrs.screenOrientation = ActivityInfo.SCREEN_ORIENTATION_NOSENSOR;
+                    attrs.gravity = Gravity.CENTER;
+                    attrs.packageName = mContext.getPackageName();
+                    attrs.setTitle("zm_keyguard");
+                    attrs.windowAnimations = com.android.internal.R.style.Animation_Dialog;
+                    mKeyguard = View.inflate(mContext, R.layout.keyguard, null);
+                    TextView prompt = (TextView) mKeyguard.findViewById(R.id.prompt_text);
+                    prompt.setText("Screen Protected by ZM");
+                    attrs.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN;
+                    wm.addView(mKeyguard, attrs);
+                    setSystemUi();
+                    mKeyguard.setFocusableInTouchMode(true);
+                    mKeyguard.requestFocus();
+                    mKeyguard.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                        @Override
+                        public void onFocusChange(View v, boolean hasFocus) {
+                            Log.v(TAG, "zm_keyguad " + (hasFocus ? "gain" : "lose") +" focus");
+                            if (hasFocus) return;
+                            final ActivityManager am = (ActivityManager) mContext
+                                    .getSystemService(Context.ACTIVITY_SERVICE);
+                            final int taskId = getMyTaskId();
+                            if (taskId >= 0) {
+                                am.moveTaskToFront(taskId, 0);
+                            }
+                        }
+                    });
+                    mKeyguard.setOnTouchListener(new View.OnTouchListener() {
+                        @Override
+                        public boolean onTouch(View v, MotionEvent event) {
+                            resetSystemUi();
+                            return true;
+                        }
+                    });
+                    mKeyguard.setOnKeyListener(new View.OnKeyListener() {
+                        @Override public boolean onKey(View v, int keyCode, KeyEvent event) {
+                            Log.v(TAG, KeyEvent.keyCodeToString(keyCode)
+                                    + "(" + keyCode + ") "
+                                    + KeyEvent.actionToString(event.getAction()));
+                            resetSystemUi();
+                            if (keyCode == KeyEvent.KEYCODE_SYM) {
+                                mHandler.post(new Runnable() {
+                                    @Override public void run() {
+                                        try {
+                                            ActivityManagerNative.getDefault()
+                                                    .closeSystemDialogs(null);
+                                        } catch (RemoteException e) {
+                                        }
+                                    }
+                                });
+                            } else {
+//                                if (keyCode == KeyEvent.KEYCODE_EXPLORER ||
+//                                    keyCode == KeyEvent.KEYCODE_ENVELOPE ||
+//                                    keyCode == KeyEvent.KEYCODE_CONTACTS ||
+//                                    keyCode == KeyEvent.KEYCODE_CALENDAR ||
+//                                    keyCode == KeyEvent.KEYCODE_MUSIC ||
+//                                    keyCode == KeyEvent.KEYCODE_CALCULATOR) {}
+//                                    keyCode == KeyEvent.KEYCODE_HOME
+                                final ActivityManager am = (ActivityManager) mContext
+                                        .getSystemService(Context.ACTIVITY_SERVICE);
+                                final int taskId = getMyTaskId();
+                                if (taskId >= 0) {
+                                    am.moveTaskToFront(taskId, 0);
+                                }
+                            }
+                            return true;
+                        }
+                    });
+                    // ask screen to go off.
+                    PowerManager pm = (PowerManager) mContext
+                            .getSystemService(Context.POWER_SERVICE);
+                    if (isScreenOn()) {
+                        pm.goToSleep(SystemClock.uptimeMillis());
+                    }
+                } else if (on && mKeyguard != null) {
+                    wm.removeView(mKeyguard);
+                    mKeyguard = null;
+                    // wake up screen
+                    PowerManager pm = (PowerManager) mContext
+                            .getSystemService(Context.POWER_SERVICE);
+                    if (!isScreenOn()) {
+                        pm.wakeUp(SystemClock.uptimeMillis());
+                    }
+                }
             }
-        } else if (on && mKeyguard != null) {
-            wm.removeView(mKeyguard);
-            mKeyguard = null;
-            // wake up screen
-            PowerManager pm = (PowerManager) mContext
-                    .getSystemService(Context.POWER_SERVICE);
-            if (!isScreenOn()) {
-                pm.wakeUp(SystemClock.uptimeMillis());
+        });
+    }
+
+    private void setSystemUi() {
+        mKeyguard.setSystemUiVisibility(View.STATUS_BAR_DISABLE_HOME
+                | View.STATUS_BAR_DISABLE_BACK
+                | View.STATUS_BAR_DISABLE_RECENT
+                | View.STATUS_BAR_DISABLE_EXPAND
+                | View.STATUS_BAR_DISABLE_SEARCH
+                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_IMMERSIVE);
+    }
+
+    private Runnable mKeepFullscreen = new Runnable() {
+        @Override public void run() {
+            if (mKeyguard == null) return;
+            setSystemUi();
+        }
+    };
+
+    private void resetSystemUi() {
+        mHandler.removeCallbacks(mKeepFullscreen);
+        mHandler.postDelayed(mKeepFullscreen, 100);
+    }
+
+    private int getMyTaskId() {
+        ActivityManager am = (ActivityManager) mContext
+                .getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningTaskInfo> list = am.getRunningTasks(30);
+        for (ActivityManager.RunningTaskInfo pi : list) {
+            if (pi.baseActivity.getPackageName().equals(
+                    mContext.getPackageName())) {
+                return pi.id;
             }
         }
+        return -1;
     }
 }
+
 /*
  * private class LocationResultCallbackHandler extends ResultCallbackHandler
  * implements LocationListener{

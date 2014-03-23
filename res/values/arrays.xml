@@ -8,4 +8,20 @@
         <item>Alphanumeric</item>
         <item>Complex</item>
     </string-array>
+
+
+    <!-- Used in PreferencesForApiTesting/screen_disable -->
+    <string-array name="entries_screen_disable_timeout_preference">
+        <item>5 seconds</item>
+        <item>30 seconds</item>
+        <item>60 seconds</item>
+    </string-array>
+
+    <!-- Used in PreferencesForApiTesting/screen_disable -->
+    <string-array name="entryvalues_screen_disable_timeout_preference">
+        <item>5</item>
+        <item>30</item>
+        <item>60</item>
+    </string-array>
+
 </resources>

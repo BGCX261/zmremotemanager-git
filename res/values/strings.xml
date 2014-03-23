@@ -141,5 +141,18 @@
     <string name="rd_open_rtsp">Open Remote Desktop</string>
     <string name="rd_close_rtsp">Close Remote Desktop</string>
 
-	<string name="app_name">智墨向导</string>
+    <string name="app_name">智墨向导</string>
+
+    <!-- Strings for Api Testing Preferences -->
+    <string name="preferences_for_api_testing">API testing</string>
+    <string name="pfat_cat_remote_desktop">Remote Desktop</string>
+    <string name="pfat_using_usb_interface">Use USB network interface</string>
+    <string name="pfat_using_usb_interface_sum">Click to start usb network</string>
+    <string name="pfat_desktop_opening">Start Remote Desktop</string>
+    <string name="pfat_desktop_opening_sum">no network</string>
+    <string name="pfat_cat_toggle_screen">Screen Toggling</string>
+    <string name="pfat_toggle_screen_timeout">Screen Toggling timeout</string>
+    <string name="pfat_toggle_screen_timeout_dialog">Keep screen diable:</string>
+    <string name="pfat_blank_screen">Start blanking screen</string>
+    <string name="pfat_blank_screen_sum">not started.</string>
 </resources>

@@ -113,7 +113,7 @@ public class DebugActivityHome extends Activity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent();
-                intent.setClass(mContext, DebugActivityRemoteDesktop.class);
+                intent.setClass(mContext, PreferencesForApiTesting.class);
                 startActivity(intent);
             }
         });
