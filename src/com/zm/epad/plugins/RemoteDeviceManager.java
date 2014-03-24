@@ -14,6 +14,7 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -334,34 +335,43 @@ public class RemoteDeviceManager{
             return bSuc;
         }
         
-        public boolean startTrackLocation(int mode,long minTime,int minDistance,
-                LocationReportCallback callback){
-            if(mLocationManager == null){
-                mLocationManager = (LocationManager)mContext.getSystemService(Context.LOCATION_SERVICE);
+        public boolean startTrackLocation(int mode, long minTime,
+                int minDistance, LocationReportCallback callback) {
+            if (mLocationManager == null) {
+                mLocationManager = (LocationManager) mContext
+                        .getSystemService(Context.LOCATION_SERVICE);
             }
-            if(mRemoteLocs == null)
-                mRemoteLocs = new  LinkedList<RemoteLocation>();
-            if(setLocationTrackMode(mode) == false)
+            if (mRemoteLocs == null)
+                mRemoteLocs = new LinkedList<RemoteLocation>();
+            if (setLocationTrackMode(mode) == false)
                 return false;
             LogManager.local(TAG, "startLocationTrack using mode " + mode);
-            
+
             mCallback = callback;
             mMinTime = minTime;
             mMinDistance = minDistance;
             try {
-                mLocationManager.requestLocationUpdates(LocationManager.FUSED_PROVIDER,
-                        minTime, minDistance, this);
+
+                Criteria criteria = new Criteria();
+                criteria.setAccuracy(Criteria.ACCURACY_FINE);
+                criteria.setAltitudeRequired(false);
+                criteria.setBearingRequired(false);
+                criteria.setCostAllowed(true);
+                criteria.setPowerRequirement(Criteria.POWER_LOW);
+
+                mLocationManager.requestLocationUpdates(minTime, minDistance,
+                        criteria, this, null);
                 LogManager.local(TAG, "requestLocationUpdates succeed ");
                 return true;
             } catch (Exception e) {
-                LogManager.local(TAG, "requestLocationUpdates fail " + e.getMessage());
+                LogManager.local(TAG,
+                        "requestLocationUpdates fail " + e.getMessage());
                 return false;
             }
-            
-            
         }
-        public void stopTrackLocation(){
-            if(mLocationManager != null){
+
+        public void stopTrackLocation() {
+            if (mLocationManager != null) {
                 mLocationManager.removeUpdates(this);
             }
             setLocationTrackMode(LOCATION_TRACK_OFF);
