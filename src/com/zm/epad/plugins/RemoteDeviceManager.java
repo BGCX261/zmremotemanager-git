@@ -618,8 +618,7 @@ public class RemoteDeviceManager{
                     attrs.setTitle("zm_keyguard");
                     attrs.windowAnimations = com.android.internal.R.style.Animation_Dialog;
                     mKeyguard = View.inflate(mContext, R.layout.keyguard, null);
-                    TextView prompt = (TextView) mKeyguard.findViewById(R.id.prompt_text);
-                    prompt.setText("Screen Protected by ZM");
+
                     attrs.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN;
                     wm.addView(mKeyguard, attrs);
                     setSystemUi();
@@ -679,21 +678,9 @@ public class RemoteDeviceManager{
                             return true;
                         }
                     });
-                    // ask screen to go off.
-                    PowerManager pm = (PowerManager) mContext
-                            .getSystemService(Context.POWER_SERVICE);
-                    if (isScreenOn()) {
-                        pm.goToSleep(SystemClock.uptimeMillis());
-                    }
                 } else if (on && mKeyguard != null) {
                     wm.removeView(mKeyguard);
                     mKeyguard = null;
-                    // wake up screen
-                    PowerManager pm = (PowerManager) mContext
-                            .getSystemService(Context.POWER_SERVICE);
-                    if (!isScreenOn()) {
-                        pm.wakeUp(SystemClock.uptimeMillis());
-                    }
                 }
             }
         });

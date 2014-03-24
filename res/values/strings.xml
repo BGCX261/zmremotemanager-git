@@ -138,6 +138,7 @@
     <string name="acc_title_fmt">ZMTech Account Format</string>
     
     <string name="app_name">智墨向导</string>
+    <string name="disablescreen">请休息一会儿\n您的设备已被锁定，需要解锁请与管理员联系</string>
 
     <!-- Strings for Api Testing Preferences -->
     <string name="preferences_for_api_testing">API testing</string>
