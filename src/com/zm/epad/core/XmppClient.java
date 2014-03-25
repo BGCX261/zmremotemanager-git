@@ -298,9 +298,12 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         try {
             mStatusLock.lock();
             mXmppConnection.disconnect();
+            LogManager.local(TAG, "disconnect by handleQuitCmd");
             mPrevStatus = mCurrentStatus = XMPPCLIENT_STATUS_IDLE;
             mXmppConnection = null;
             mXmppClientHandler = null;
+            LogManager.local(TAG, "thread quit");
+            mXmppHandlerThread.quit();
         } finally {
             mStatusLock.unlock();
         }
@@ -316,19 +319,18 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 mStatusLock.lock();
                 LogManager.local(TAG, "handleNetworkAvailable current status:"
                         + mCurrentStatus);
-                if (mCurrentStatus == XMPPCLIENT_STATUS_IDLE
-                        || mCurrentStatus == XMPPCLIENT_STATUS_ERROR) {
-                    // if idle or error, reconnect
-                    if (mPrevStatus == XMPPCLIENT_STATUS_STARTING
-                            || mPrevStatus == XMPPCLIENT_STATUS_STARTED) {
+
+                if (mCurrentStatus != XMPPCLIENT_STATUS_LOGINING
+                        && mCurrentStatus != XMPPCLIENT_STATUS_LOGINED) {
+                    // if not login, force to login
+                    if (mCurrentStatus != XMPPCLIENT_STATUS_STARTING
+                            && mCurrentStatus != XMPPCLIENT_STATUS_STARTED) {
+                        // if not start, force to start
                         LogManager.local(TAG, "\t xmppclient re-start");
                         handleStartCmdLocked();
-                    } else if (mPrevStatus == XMPPCLIENT_STATUS_LOGINING
-                            || mPrevStatus == XMPPCLIENT_STATUS_LOGINED) {
-                        LogManager.local(TAG, "\t xmppclient re-login");
-                        handleStartCmdLocked();
-                        handleLoginCmdLocked();
                     }
+                    LogManager.local(TAG, "\t xmppclient re-login");
+                    handleLoginCmdLocked();
                 }
             } catch (Exception e) {
                 sendReconnectByError(e);
@@ -355,7 +357,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                         XMPPCLIENT_EVENT_CONNECTION_UPDATE_STATUS, 0, msg.obj);
 
                 if (isNetworkConnected()) {
-                    // network is on but connect closed, set status to error
+                    // network is on, but connect closed, it means error happens
                     transitionToStatusLocked(XMPPCLIENT_STATUS_ERROR);
                     if (msg.obj == null) {
                         // simply closed, reconnect directly
@@ -475,20 +477,16 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 LogManager.local(TAG, "xmppclient already stopped");
                 return;
             }
+            // thread quit will be called when receive CMD_QUIT
             mXmppClientHandler.sendEmptyMessage(CMD_QUIT);
-            try {
-                mStatusLock.wait();
-            } catch (Exception e) {
-                // TODO: handle exception
-            }
 
-            try {
-                mXmppHandlerThread.quit();
-                mXmppHandlerThread.join();
-                mXmppHandlerThread = null;
-            } catch (Exception e) {
-                LogManager.local(TAG, e.toString());
-            }
+            LogManager.local(TAG, "XmppHandlerThread join start");
+            mXmppHandlerThread.join();
+            mXmppHandlerThread = null;
+            LogManager.local(TAG, "XmppHandlerThread join end");
+
+        } catch (Exception e) {
+            e.printStackTrace();
         } finally {
         }
         destroyXMPPEnvironment();
@@ -616,7 +614,9 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     }
 
     private void reconnectByError() {
-        if (mCurrentStatus != XMPPCLIENT_STATUS_ERROR) {
+        if (mCurrentStatus != XMPPCLIENT_STATUS_ERROR || !isNetworkConnected()) {
+            // only reconnect when error and online.
+            // if offline, reconnect when network available. 
             return;
         }
         try {
