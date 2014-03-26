@@ -255,31 +255,40 @@ public class PreferencesForApiTesting extends PreferenceActivity {
                 case SubSystemFacade.MSG_DESKTOP_SERVER_CREATED_OK:
                     mDesktopUrl = (String) msg.obj;
                     mDesktopPref.setSummary("Server Listening at: " + mDesktopUrl);
+                    Log.e(TAG, "Server Listening at: " + mDesktopUrl);
                     break;
                 case SubSystemFacade.MSG_DESKTOP_RUNNING_OK:
                     mDesktopPref.setSummary("Server " + mDesktopUrl + " running.");
+                    Log.e(TAG, "Server " + mDesktopUrl + " running.");
                     break;
                 case SubSystemFacade.MSG_DESKTOP_STOPPED:
                     mDesktopPref.setSummary("Server " + mDesktopUrl + " stopped.");
+                    Log.e(TAG, "Server " + mDesktopUrl + " stopped.");
+                    mDesktopUrl = null;
                     mDesktopPref.setChecked(false);
                     break;
                 case SubSystemFacade.MSG_DESKTOP_NOT_SUPPORT:
                     mDesktopPref.setSummary("This Android version not support this function.");
+                    Log.e(TAG, "This Android version not support this function.");
                     mDesktopPref.setChecked(false);
                     break;
                 case SubSystemFacade.MSG_DESKTOP_IN_USE:
                     mDesktopPref.setSummary("Remote Desktop in used.");
+                    Log.e(TAG, "Remote Desktop in used.");
                     break;
                 case SubSystemFacade.MSG_DESKTOP_NO_NETWORK:
                     mDesktopPref.setSummary("No network currently.");
+                    Log.e(TAG, "No network currently.");
                     mDesktopPref.setChecked(false);
                     break;
                 case SubSystemFacade.MSG_DESKTOP_SERVER_CREATE_FAILED:
                     mDesktopPref.setSummary("Server starting faild in listening.");
+                    Log.e(TAG, "Server starting faild in listening.");
                     mDesktopPref.setChecked(false);
                     break;
                 case SubSystemFacade.MSG_DESKTOP_DISPLAY_CREATE_FAILED:
                     mDesktopPref.setSummary("Server starting faild in display creating.");
+                    Log.e(TAG, "Server starting faild in display creating.");
                     mDesktopPref.setChecked(false);
                     break;
                 }
@@ -292,7 +301,6 @@ public class PreferencesForApiTesting extends PreferenceActivity {
 
     private void testStopRemoteDesktop() {
         getInstance().stopDesktopShare();
-        mDesktopUrl = null;
         mDesktopNotify = null;
         mDesktopHandler = null;
     }

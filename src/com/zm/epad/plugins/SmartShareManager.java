@@ -69,23 +69,6 @@ public class SmartShareManager {
             Message notify = Message.obtain(mDesktopShareNotify);
             notify.arg1 = SubSystemFacade.MSG_DESKTOP_STOPPED;
             notify.sendToTarget();
-            if (mDesktopLooper != null) {
-                mDesktopLooper.quitSafely();
-                mDesktopLooper = null;
-                mThreadPool.execute(new Runnable() {
-                    @Override public void run() {
-                        boolean success = true;
-                        while(!success) {
-                            try {
-                                Looper.prepare();
-                                success = true;
-                            } catch (RuntimeException e) {
-                                success = false;
-                            }
-                        }
-                    }
-                });
-            }
         }
     };
 
@@ -117,6 +100,8 @@ public class SmartShareManager {
     public void stopDesktopShare() {
         if (mDesktopLooper == null) return;
         mRemoteDesktopManager.stopRemoteDesktop();
+        mDesktopLooper.quitSafely();
+        mDesktopLooper = null;
     }
 
     public void setThreadPool(ExecutorService threadPool) {

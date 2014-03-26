@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class SubSystemFacade {
@@ -90,13 +92,26 @@ public class SubSystemFacade {
         }
     }
 
-    private ExecutorService mThreadPool;
+    /**
+     * Only used for normal Runnable threads, which not use Looper.prepare()
+     * Because if a Looper applied to a thread, the thread can not re-used.
+     */
+    private ExecutorService mCachedThreadPool;
+
+    /**
+     * Used for message threads, which use Loop.prepare().
+     */
+    private ExecutorService mNonCachedThreadPool;
 
     public void start(Bundle loginBundle) {
         if (gSubSystemFacade == null)
             gSubSystemFacade = this;
 
-        mThreadPool = Executors.newCachedThreadPool();
+        mCachedThreadPool = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 180L,
+                TimeUnit.SECONDS, new SynchronousQueue<Runnable>());
+
+        mNonCachedThreadPool = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 0L,
+                TimeUnit.MILLISECONDS, new SynchronousQueue<Runnable>());
 
         startFirstPriority(loginBundle);
 
@@ -105,7 +120,7 @@ public class SubSystemFacade {
         mDeviceManager = new RemoteDeviceManager(mContext);
 
         mSmartShare = new SmartShareManager(mContext);
-        mSmartShare.setThreadPool(mThreadPool);
+        mSmartShare.setThreadPool(mNonCachedThreadPool);
 
         mPolicyManager = new RemotePolicyManager(mContext);
         mPolicyManager.loadPolicy();
@@ -135,9 +150,9 @@ public class SubSystemFacade {
     }
 
     public boolean addTaskToSubSystemThreadPool(Runnable task) {
-        if (mThreadPool == null)
+        if (mCachedThreadPool == null)
             return false;
-        mThreadPool.execute(task);
+        mCachedThreadPool.execute(task);
         return true;
     }
 
@@ -160,7 +175,8 @@ public class SubSystemFacade {
 
         shutdownAndAwaitTermination();
 
-        mThreadPool = null;
+        mCachedThreadPool = null;
+        mNonCachedThreadPool = null;
 
         gSubSystemFacade = null;
     }
@@ -170,7 +186,7 @@ public class SubSystemFacade {
 
         mFileManager = new RemoteFileManager(mContext);
         mFileManager.setXmppLoginResource(loginBundle);
-        mFileManager.setThreadPool(mThreadPool);
+        mFileManager.setThreadPool(mCachedThreadPool);
     }
 
     private void stopFirstPriority() {
@@ -182,18 +198,33 @@ public class SubSystemFacade {
     }
 
     void shutdownAndAwaitTermination() {
-        mThreadPool.shutdown(); // Disable new tasks from being submitted
+        mCachedThreadPool.shutdown(); // Disable new tasks from being submitted
         try {
             // Wait a while for existing tasks to terminate
-            if (!mThreadPool.awaitTermination(60, TimeUnit.SECONDS))
-                mThreadPool.shutdownNow(); // Cancel currently executing tasks
+            if (!mCachedThreadPool.awaitTermination(60, TimeUnit.SECONDS))
+                mCachedThreadPool.shutdownNow(); // Cancel currently executing tasks
             // Wait a while for tasks to respond to being cancelled
-            if (!mThreadPool.awaitTermination(60, TimeUnit.SECONDS))
+            if (!mCachedThreadPool.awaitTermination(60, TimeUnit.SECONDS))
                 LogManager.local(TAG, "Pool did not terminate");
 
         } catch (InterruptedException ie) {
             // (Re-)Cancel if current thread also interrupted
-            mThreadPool.shutdownNow();
+            mCachedThreadPool.shutdownNow();
+            // Preserve interrupt status
+            // Thread.currentThread().interrupt();
+        }
+        mNonCachedThreadPool.shutdown(); // Disable new tasks from being submitted
+        try {
+            // Wait a while for existing tasks to terminate
+            if (!mNonCachedThreadPool.awaitTermination(60, TimeUnit.SECONDS))
+                mNonCachedThreadPool.shutdownNow(); // Cancel currently executing tasks
+            // Wait a while for tasks to respond to being cancelled
+            if (!mNonCachedThreadPool.awaitTermination(60, TimeUnit.SECONDS))
+                LogManager.local(TAG, "Pool did not terminate");
+
+        } catch (InterruptedException ie) {
+            // (Re-)Cancel if current thread also interrupted
+            mNonCachedThreadPool.shutdownNow();
             // Preserve interrupt status
             // Thread.currentThread().interrupt();
         }
@@ -374,7 +405,7 @@ public class SubSystemFacade {
             synchronized (this) {
                 notifyAll();
             }
-            retLooper.loop();
+            Looper.loop();
         }
 
         public synchronized Looper getLooper() {
@@ -384,7 +415,6 @@ public class SubSystemFacade {
                 } catch (Exception e) {
                     // TODO: handle exception
                 }
-
             }
             return retLooper;
         }
@@ -392,7 +422,7 @@ public class SubSystemFacade {
 
     public Looper getAThreadLooper() {
         ThreadRunnable looperHelper = new ThreadRunnable();
-        mThreadPool.execute(looperHelper);
+        mNonCachedThreadPool.execute(looperHelper);
         return looperHelper.getLooper();
     }
 
