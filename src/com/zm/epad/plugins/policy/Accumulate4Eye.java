@@ -74,6 +74,7 @@ public class Accumulate4Eye implements AccumulatePolicy.Callback {
     public void stop() {
         if (mDisabled) {
             SubSystemFacade.getInstance().disableScreen(false);
+            SubSystemFacade.getInstance().cancelAlarm(mAlarmId);
             mDisabled = false;
         }
         mContext.unregisterReceiver(mReceiver);

@@ -42,6 +42,7 @@ public class AccumulatePolicy extends Policy {
     void cancel() {
         interrupt();
         if (mCallback != null) {
+            mCallback.stop();
             mCallback.setHandler(null);
             mCallback = null;
         }
