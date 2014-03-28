@@ -93,8 +93,8 @@ public class CommandTask4App extends CommandTask {
         postResult(r);
     }
 
-    private String getResultStr(Object bOK) {
-        return bOK != null ? CoreConstants.CONSTANT_RESULT_OK
+    private String getResultStr(boolean bOK) {
+        return bOK == true ? CoreConstants.CONSTANT_RESULT_OK
                 : CoreConstants.CONSTANT_RESULT_NG;
     }
 }

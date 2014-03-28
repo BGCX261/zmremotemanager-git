@@ -6,6 +6,7 @@ import android.app.ActivityManager.RunningAppProcessInfo;
 import android.os.Handler;
 import android.provider.Settings;
 
+import com.zm.epad.core.CoreConstants;
 import com.zm.epad.core.SubSystemFacade;
 import com.zm.epad.plugins.RemoteDeviceManager;
 import com.zm.epad.plugins.RemoteDeviceManager.RemoteLocation;
@@ -151,7 +152,28 @@ public class CommandTask4Report extends PairCommandTask {
         } else {
             ret = end(command);
         }
+        postResult(ret);
         return ret;
+    }
+
+    private void postResult(int status) {
+        IResult r = null;
+        switch (status) {
+        case SUCCESS:
+            r = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
+                    getCommandId(), CoreConstants.CONSTANT_RESULT_OK);
+            break;
+        case FAILED:
+            r = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
+                    getCommandId(), CoreConstants.CONSTANT_RESULT_NG);
+            break;
+        default:
+            break;
+        }
+
+        if (r != null) {
+            postResult(r);
+        }
     }
 
 }
