@@ -68,6 +68,14 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
             LogManager.local(TAG, "accept: " + namespace);
             LogManager.local(TAG, "pakcet info " + packet.toXML());
 
+            if (packet instanceof IQ
+                    && ((IQ) packet).getType().toString().equals("error")) {
+                LogManager.local(TAG, "save the error IQ");
+                LogManager.getInstance().addLog(
+                        CoreConstants.CONSTANT_INT_LOGTYPE_COMMON,
+                        packet.toXML());
+            }
+
             if (namespace == null)
                 return false;
             synchronized (mCmdDispacherHashMap) {
