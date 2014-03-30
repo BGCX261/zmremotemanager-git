@@ -602,7 +602,6 @@ public class RemoteDeviceManager{
                                     WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR |
                                     WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD |
                                     WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
-                                    WindowManager.LayoutParams.FLAG_LOCAL_FOCUS_MODE |
                                     WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS |
                                     WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION |
                                     WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
