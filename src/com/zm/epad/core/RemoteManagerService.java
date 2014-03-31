@@ -14,6 +14,7 @@ public class RemoteManagerService extends Service {
     private final static String TAG = "RemoteManagerService";
     private boolean mbInitialized = false;
     private Bundle mLoginBundle = new Bundle();
+    private Config mConfig = null;
 
     // following are core system components
     private XmppClient mXmppClient = null;
@@ -39,6 +40,7 @@ public class RemoteManagerService extends Service {
         super.onDestroy();
         coreSystemStop();
         subsystemsStop();
+        Config.closeAndSaveConfig();
         mbInitialized = false;
     }
 
@@ -51,15 +53,29 @@ public class RemoteManagerService extends Service {
     }
 
     void prepareLoginData(Intent intent) {
+        mConfig = Config.loadConfig(this);
         Bundle data = intent.getExtras();
-        mLoginBundle.putString(CoreConstants.CONSTANT_SERVER,
-                data.getString(CoreConstants.CONSTANT_SERVER));
-        mLoginBundle.putString(CoreConstants.CONSTANT_USRNAME,
-                data.getString(CoreConstants.CONSTANT_USRNAME));
-        mLoginBundle.putString(CoreConstants.CONSTANT_PASSWORD,
-                data.getString(CoreConstants.CONSTANT_PASSWORD));
-        mLoginBundle.putString(CoreConstants.CONSTANT_RESOURCE,
-                data.getString(CoreConstants.CONSTANT_RESOURCE));
+        if (data != null) {
+            // if intent with login info, use this info
+            mLoginBundle.putString(CoreConstants.CONSTANT_SERVER,
+                    data.getString(CoreConstants.CONSTANT_SERVER));
+            mLoginBundle.putString(CoreConstants.CONSTANT_USRNAME,
+                    data.getString(CoreConstants.CONSTANT_USRNAME));
+            mLoginBundle.putString(CoreConstants.CONSTANT_PASSWORD,
+                    data.getString(CoreConstants.CONSTANT_PASSWORD));
+            mLoginBundle.putString(CoreConstants.CONSTANT_RESOURCE,
+                    CoreConstants.CONSTANT_DEVICEID);
+        } else {
+            // if no info, use the info in config
+            mLoginBundle.putString(CoreConstants.CONSTANT_SERVER,
+                    mConfig.getConfig(Config.SERVER_ADDRESS));
+            mLoginBundle.putString(CoreConstants.CONSTANT_USRNAME,
+                    mConfig.getConfig(Config.USERNAME));
+            mLoginBundle.putString(CoreConstants.CONSTANT_PASSWORD,
+                    mConfig.getConfig(Config.PASSWORD));
+            mLoginBundle.putString(CoreConstants.CONSTANT_RESOURCE,
+                    mConfig.getConfig(Config.RESOURCE));
+        }
     }
 
     private void init(Intent intent) {
@@ -109,7 +125,7 @@ public class RemoteManagerService extends Service {
         mXmppClient.login(
                 mLoginBundle.getString(CoreConstants.CONSTANT_USRNAME),
                 mLoginBundle.getString(CoreConstants.CONSTANT_PASSWORD),
-                CoreConstants.CONSTANT_DEVICEID);
+                mLoginBundle.getString(CoreConstants.CONSTANT_RESOURCE));
     }
 
     void coreSystemStop() {

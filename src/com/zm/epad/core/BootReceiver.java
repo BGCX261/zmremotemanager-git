@@ -18,7 +18,7 @@ public class BootReceiver extends BroadcastReceiver {
             serviceIntent.setComponent(new ComponentName(PKG_PREFIX,
                     RMS_CLASSNAME));
 
-            // context.startService(serviceIntent);
+            context.startService(serviceIntent);
         }
 
     }
