@@ -368,7 +368,7 @@ public class DebugActivitySender extends Activity {
 
         Command4App Command = new Command4App(Constants.XMPP_NAMESPACE_CENTER,
                 "9527", action, "time2014", name, "ver1.1.1",
-                "/sdcard/testinstall/" + name, IntUid, null);
+                name, IntUid, null);
         LogManager.local(TAG, "##Command4App##\n" + Command.toXML());
 
         ZMIQCommand cmdIQ = new ZMIQCommand();

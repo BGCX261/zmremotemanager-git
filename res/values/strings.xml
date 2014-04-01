@@ -109,7 +109,7 @@
     <string name="debug_password">Please Input Your Password</string>
     <string name="debug_connectbtn">Connect</string>
     <string name="debug_disconnectbtn">Disconnect</string>
-    <string name="debug_connectstatus">Server Connected</string>
+    <string name="debug_connectstatus">Service Started</string>
     <string name="debug_debug">Debug Console</string>
     <string name="debug_api_testing">SubSystemFacade API testing</string>
     <string name="debug_advancedbtn">Advanced</string>

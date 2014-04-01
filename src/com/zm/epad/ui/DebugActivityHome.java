@@ -2,6 +2,7 @@ package com.zm.epad.ui;
 
 import com.zm.epad.core.CoreConstants;
 import com.zm.epad.core.LogManager;
+import com.zm.epad.core.SubSystemFacade;
 
 import org.jivesoftware.smack.Connection;
 
@@ -104,7 +105,7 @@ public class DebugActivityHome extends Activity {
             public void onClick(View v) {
                 Intent intent = new Intent();
                 intent.setClass(mContext, DebugActivitySender.class);
-                intent.putExtra("ServerIP", ip);
+                intent.putExtra("ServerIP", mIpText.getText().toString());
                 startActivity(intent);
             }
         });
@@ -192,6 +193,17 @@ public class DebugActivityHome extends Activity {
 
         } catch (Exception e) {
             LogManager.local(TAG, "stop service failed " + e.getMessage());
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        // TODO Auto-generated method stub
+        super.onResume();
+        if(SubSystemFacade.getInstance() != null) {
+            mPrompt.setVisibility(View.VISIBLE);
+        } else {
+            mPrompt.setVisibility(View.INVISIBLE);
         }
     }
 }
