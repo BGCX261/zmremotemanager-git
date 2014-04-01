@@ -309,6 +309,7 @@ public class RemotePackageManager {
                                     // TODO Auto-generated method stub
                                     if(success == false) {
                                         LogManager.local(TAG, "fail to download apk");
+                                        mCallback.callback(false);
                                         return;
                                     }
                                     File result = (File) task.getResult();
