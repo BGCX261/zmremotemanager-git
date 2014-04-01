@@ -35,6 +35,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
 import android.os.UserHandle;
+import android.os.FileUtils;
 
 import android.os.ServiceManager;
 
@@ -300,32 +301,35 @@ public class RemotePackageManager {
         LogManager.local(TAG, "installPkgForUser: " + userId);
         if (needDownload(apkLocation)) {
             SubSystemFacade.getInstance().downloadFile(apkLocation,
-                              new FileTransferCallback() {
-                                int mUserId = userId;
-                                installCallback mCallback = cb;
+                    new FileTransferCallback() {
+                        int mUserId = userId;
+                        installCallback mCallback = cb;
 
-                                @Override
-                                public void onDone(boolean success, FileTransferTask task) {
-                                    // TODO Auto-generated method stub
-                                    if(success == false) {
-                                        LogManager.local(TAG, "fail to download apk");
-                                        mCallback.callback(false);
-                                        return;
-                                    }
-                                    File result = (File) task.getResult();
-                                    boolean ret = installPkgForUser(
-                                            result.getAbsolutePath(), mUserId);
-                                    mCallback.callback(ret);
-                                    result.delete();
-                                }
+                        @Override
+                        public void onDone(boolean success,
+                                FileTransferTask task) {
+                            // TODO Auto-generated method stub
+                            if (success == false) {
+                                LogManager.local(TAG, "fail to download apk");
+                                mCallback.callback(false);
+                                return;
+                            }
+                            File result = (File) task.getResult();
+                            FileUtils.setPermissions(result.getAbsolutePath(),
+                                    0666, -1, -1);
+                            boolean ret = installPkgForUser(
+                                    result.getAbsolutePath(), mUserId);
+                            mCallback.callback(ret);
+                            result.delete();
+                        }
 
-                                @Override
-                                public void onCancel(FileTransferTask task) {
-                                    // TODO Auto-generated method stub
-                                    mCallback.callback(false);
-                                }
+                        @Override
+                        public void onCancel(FileTransferTask task) {
+                            // TODO Auto-generated method stub
+                            mCallback.callback(false);
+                        }
 
-                            });
+                    });
             return -1;
         } else {
             return installPkgForUser(apkLocation, userId) ? 0 : 1;
