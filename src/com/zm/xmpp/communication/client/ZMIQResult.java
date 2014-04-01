@@ -28,6 +28,7 @@ public class ZMIQResult extends IQ {
     public ZMIQResult(IQ requestIQ) {
         this();
         if (requestIQ != null){
+            setPacketID(requestIQ.getPacketID());
             setFrom(requestIQ.getTo());
             setTo(requestIQ.getFrom());
         }

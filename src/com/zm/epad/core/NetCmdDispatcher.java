@@ -12,6 +12,7 @@ import org.xmlpull.v1.XmlPullParser;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Set;
 
 public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
     public static final String TAG = "NetCmdDispatcher";
@@ -31,6 +32,10 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
         public String getKey() {
             return mStrNameSpace /* + ":" + mStrElementName */; // can not use
                                                                 // element
+        }
+
+        public void handleError(IQ iq) {
+            return;
         }
 
         public void destroy() {
@@ -70,10 +75,11 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
 
             if (packet instanceof IQ
                     && ((IQ) packet).getType().toString().equals("error")) {
-                LogManager.local(TAG, "save the error IQ");
-                LogManager.getInstance().addLog(
-                        CoreConstants.CONSTANT_INT_LOGTYPE_COMMON,
-                        packet.toXML());
+                LogManager.local(TAG, "notify the error IQ");
+                Set<String> keys = mCmdDispacherHashMap.keySet();
+                for(String k : keys) {
+                    mCmdDispacherHashMap.get(k).handleError((IQ)packet);
+                }
             }
 
             if (namespace == null)
@@ -81,7 +87,6 @@ public class NetCmdDispatcher implements XmppClient.XmppClientCallback {
             synchronized (mCmdDispacherHashMap) {
                 return mCmdDispacherHashMap.containsKey(namespace);
             }
-
         }
 
         @Override

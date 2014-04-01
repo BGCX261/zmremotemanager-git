@@ -30,6 +30,7 @@ import java.util.List;
 public class CommandProcessor extends CmdDispatchInfo {
     private static final String TAG = "CommandProcessor";
 
+    private final int EVT_CHECK_RESULT_ERROR = 1;
     private Context mContext;
     private XmppClient mXmppClient;
     private ZMIQCommandProvider mZMIQProvider;
@@ -39,6 +40,7 @@ public class CommandProcessor extends CmdDispatchInfo {
     private HandlerThread mThread;
     private Handler mHandler;
     private SystemNotifyTask mSystemTask = null;
+    private List<IQ> mErrorList = new ArrayList<IQ>();
     private List<CommandTask> mRunningTaskList = new ArrayList<CommandTask>() {
     };
     private List<PairCommandTask> mToPairTaskList = new ArrayList<PairCommandTask>() {
@@ -53,6 +55,13 @@ public class CommandProcessor extends CmdDispatchInfo {
             put(Constants.XMPP_COMMAND_POLICY, CommandTask4Policy.class);
         }
     };
+
+    @Override
+    public void handleError(IQ iq) {
+        synchronized(mErrorList){
+            mErrorList.add(iq);
+        }
+    }
 
     @Override
     public void destroy() {
@@ -117,6 +126,9 @@ public class CommandProcessor extends CmdDispatchInfo {
                 break;
             case CommandTask.EVT_TASK_END:
                 ret = handleTaskEnd((CommandTask) msg.obj);
+                break;
+            case EVT_CHECK_RESULT_ERROR:
+                CheckResultError((IQ) msg.obj);
                 break;
             default:
                 break;
@@ -243,6 +255,11 @@ public class CommandProcessor extends CmdDispatchInfo {
                 // when login, send result
                 LogManager.local(TAG, "send result:" + type);
                 ret = mXmppClient.sendPacketAsync((Packet) result, 0);
+                // check if error after 2 seconds because error could return
+                // asynchronously
+                Message msg = mHandler.obtainMessage(EVT_CHECK_RESULT_ERROR,
+                        result);
+                mHandler.sendMessageDelayed(msg, 2000);
             } else {
                 // when offline, save result
                 LogManager.local(TAG, "save result:" + type);
@@ -258,6 +275,24 @@ public class CommandProcessor extends CmdDispatchInfo {
             mRunningTaskList.remove(task);
         }
         return true;
+    }
+
+    private void CheckResultError(IQ resultIQ) {
+        String resultIqID = resultIQ.getPacketID();
+        LogManager.local(TAG, "CheckResultError:" + resultIqID);
+        synchronized (mErrorList) {
+            for (IQ e : mErrorList) {
+                if (e.getPacketID().equals(resultIqID)) {
+                    // if error for the result, save to log file
+                    if (resultIQ instanceof ZMIQResult) {
+                        LogManager.local(TAG, "save error:" + resultIqID);
+                        saveLog(((ZMIQResult) resultIQ).getResult());
+                    }
+                    mErrorList.remove(e);
+                    break;
+                }
+            }
+        }
     }
 
     private void saveLog(IResult result) {
