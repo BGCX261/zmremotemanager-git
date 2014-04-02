@@ -30,7 +30,7 @@ public class CommandTask4FileTransfer extends CommandTask {
         Command4FileTransfer cmd = (Command4FileTransfer) command.getCommand();
         LogManager.local(TAG, "handleCommand4FileTransfer:" + cmd.getAction());
 
-        if (cmd.getAction().equals(Constants.XMPP_FILE_TRANSFER_WALLPAPER)) {
+        if (cmd.getAction().equals(Constants.XMPP_PUSH_WALLPAPER)) {
             ret = handleSetWallpaper(cmd);
         } else {
             LogManager.local(TAG, "handleCommand4FileTransfer bad action");
@@ -57,21 +57,19 @@ public class CommandTask4FileTransfer extends CommandTask {
                             file.delete();
                         }
 
-                        IResult result = mResultFactory.getResult(
-                                ResultFactory.RESULT_NORMAL, getCommandId(),
-                                getResultStr(ret));
-                        postResult(result);
+                        if (success == false) {
+                            postResult(false, "download failed");
+                        } else {
+                            postResult(ret, "set wallpaper failed");
+                        }
+
                         endTask();
                     }
 
                     @Override
                     public void onCancel(FileTransferTask task) {
-                        // when cancel, send NG
-                        IResult result = mResultFactory.getResult(
-                                ResultFactory.RESULT_NORMAL, getCommandId(),
-                                CoreConstants.CONSTANT_RESULT_NG);
-
-                        postResult(result);
+                        // when cancel, send err
+                        postResult(false, "download canceled");
                         endTask();
                     }
                 });
@@ -79,8 +77,10 @@ public class CommandTask4FileTransfer extends CommandTask {
         return RUNNING;
     }
 
-    private String getResultStr(boolean bOK) {
-        return bOK == true ? CoreConstants.CONSTANT_RESULT_OK
-                : CoreConstants.CONSTANT_RESULT_NG;
+    private void postResult(boolean bOK, String failError) {
+        IResult r = mResultFactory.getNormalResult(mIQCommand.getCommand(),
+                bOK, bOK == true ? null : failError);
+        postResult(r);
     }
+
 }

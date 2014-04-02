@@ -7,7 +7,9 @@ import com.zm.epad.core.CoreConstants;
 import com.zm.epad.core.SubSystemFacade;
 import com.zm.xmpp.communication.client.ZMIQCommand;
 import com.zm.xmpp.communication.client.ZMIQResult;
+import com.zm.xmpp.communication.command.ICommand;
 import com.zm.xmpp.communication.result.IResult;
+import com.zm.xmpp.communication.Constants;
 
 public abstract class PairCommandTask extends CommandTask {
     protected boolean mStarted = false;
@@ -30,4 +32,11 @@ public abstract class PairCommandTask extends CommandTask {
 
     abstract protected void closeWithoutPair();
 
+    public void invalidate() {
+        // in normal case, only send done result
+        IResult result = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
+                mIQCommand.getCommand().getId(), Constants.RESULT_DONE, null, null);
+        result.setAction(mIQCommand.getCommand().getAction());
+        postResult(result);
+    }
 }

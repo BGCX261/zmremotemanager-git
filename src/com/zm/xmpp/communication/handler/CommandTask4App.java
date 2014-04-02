@@ -33,7 +33,6 @@ public class CommandTask4App extends CommandTask {
         }
 
         result = handleCommand4App(cmd);
-        postResult(result);
 
         return ret;
     }
@@ -60,8 +59,7 @@ public class CommandTask4App extends CommandTask {
             LogManager.local(TAG, "bad action");
         }
 
-        result = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
-                cmd.getId(), getResultStr(ret));
+        postResult(ret, "API error");
 
         LogManager.local(TAG, "handleCommand4App return:" + ret);
         return result;
@@ -75,26 +73,22 @@ public class CommandTask4App extends CommandTask {
 
                     @Override
                     public void callback(boolean result) {
-                        postResult(result);
+                        postResult(result, "download failed");
                         endTask();
                     }
                 });
         if (install < 0) {
             return RUNNING;
         } else {
-            postResult(install == 0 ? true : false);
+            postResult(install == 0 ? true : false, "API failed");
         }
         return install == 0 ? SUCCESS : FAILED;
     }
 
-    private void postResult(boolean bOK) {
-        IResult r = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
-                mIQCommand.getCommand().getId(), getResultStr(bOK));
+    private void postResult(boolean bOK, String failError) {
+        IResult r = mResultFactory.getNormalResult(mIQCommand.getCommand(),
+                bOK, bOK == true ? null : failError);
         postResult(r);
     }
 
-    private String getResultStr(boolean bOK) {
-        return bOK == true ? CoreConstants.CONSTANT_RESULT_OK
-                : CoreConstants.CONSTANT_RESULT_NG;
-    }
 }

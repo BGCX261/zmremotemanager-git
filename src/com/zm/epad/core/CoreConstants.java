@@ -19,14 +19,11 @@ public interface CoreConstants {
     final static String CONSTANT_DEVICEID = Build.SERIAL;
     final static String CONSTANT_IMG_PNG = "image/png";
     final static String CONSTANT_POLICY = "policy";
-    final static String CONSTANT_RESULT_OK = "OK";
-    final static String CONSTANT_RESULT_NG = "NG";
-    final static String CONSTANT_RESULT_DONE = "done";
-    final static String CONSTANT_RESULT_DONE_ = "done:";
-    final static String CONSTANT_RESULT_DONE_0 = "done:0";
-    
-    
-    
+
+    final static String CONSTANT_RESULT_DONE = "complete";
+    final static String CONSTANT_RESULT_DONE_ = "complete:";
+    final static String CONSTANT_RESULT_DONE_0 = "complete:0";
+
     final static int    CONSTANT_INT_LOGTYPE_COMMON = 0;
     final static int    CONSTANT_INT_LOGTYPE_LOCATION = 1;
     final static int    CONSTANT_INT_LOGTYPE_APPRUNTIME = 2;

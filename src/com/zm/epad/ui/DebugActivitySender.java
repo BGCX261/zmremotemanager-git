@@ -47,10 +47,9 @@ public class DebugActivitySender extends Activity {
     private Button mPosTraceBtn = null;
     private Button mPosUntraceBtn = null;
 
-    
     private Button mPolicyBtn = null;
     private Button mLogsBtn = null;
-    
+
     private Button mDeviceAdmin = null;
 
     private EditText mNameText = null;
@@ -83,7 +82,6 @@ public class DebugActivitySender extends Activity {
         mUserInfoBtn = (Button) findViewById(R.id.button7);
 
         mAppTraceBtn = (Button) findViewById(R.id.button8);
-        mAppUntraceBtn = (Button) findViewById(R.id.button9);
         mPosTraceBtn = (Button) findViewById(R.id.button11);
         mPosUntraceBtn = (Button) findViewById(R.id.button12);
 
@@ -91,9 +89,9 @@ public class DebugActivitySender extends Activity {
 
         mNameText = (EditText) findViewById(R.id.editText1);
         mUserIdText = (EditText) findViewById(R.id.editText2);
-        
+
         mLogsBtn = (Button) findViewById(R.id.button13);
-        
+
         mDeviceAdmin.setOnClickListener(new OnClickListener() {
 
             @Override
@@ -225,23 +223,7 @@ public class DebugActivitySender extends Activity {
             public void onClick(View arg0) {
                 // TODO Auto-generated method stub
                 try {
-                    sendTestCommand4Report(Constants.XMPP_REPORT_APP,
-                            Constants.XMPP_REPORT_ACT_TRACE);
-                } catch (Exception e) {
-                    LogManager.local(TAG, e.getMessage());
-                }
-            }
-
-        });
-
-        mAppUntraceBtn.setOnClickListener(new OnClickListener() {
-
-            @Override
-            public void onClick(View arg0) {
-                // TODO Auto-generated method stub
-                try {
-                    sendTestCommand4Report(Constants.XMPP_REPORT_APP,
-                            Constants.XMPP_REPORT_ACT_UNTRACE);
+                    sendTestCommand4Query(Constants.XMPP_QUERY_RUNNING);
                 } catch (Exception e) {
                     LogManager.local(TAG, e.getMessage());
                 }
@@ -253,11 +235,10 @@ public class DebugActivitySender extends Activity {
 
             @Override
             public void onClick(View arg0) {
-                //Debug.waitForDebugger();
+                // Debug.waitForDebugger();
                 // TODO Auto-generated method stub
                 try {
-                    sendTestCommand4Report(Constants.XMPP_REPORT_POS,
-                            Constants.XMPP_REPORT_ACT_TRACE);
+                    sendTestCommand4Report(null, Constants.XMPP_REPORT_LOCATE);
                 } catch (Exception e) {
                     LogManager.local(TAG, e.getMessage());
                 }
@@ -271,8 +252,7 @@ public class DebugActivitySender extends Activity {
             public void onClick(View arg0) {
                 // TODO Auto-generated method stub
                 try {
-                    sendTestCommand4Report(Constants.XMPP_REPORT_POS,
-                            Constants.XMPP_REPORT_ACT_UNTRACE);
+                    sendTestCommand4Report(null, Constants.XMPP_REPORT_UNLOCATE);
                 } catch (Exception e) {
                     LogManager.local(TAG, e.getMessage());
                 }
@@ -299,8 +279,9 @@ public class DebugActivitySender extends Activity {
             public void onClick(View arg0) {
                 // TODO Auto-generated method stub
                 try {
-                    LogManager.getInstance().uploadLog(LOG_UPLOAD_ADDRESS, 
-                            CoreConstants.CONSTANT_INT_LOGTYPE_COMMON, Calendar.getInstance());
+                    LogManager.getInstance().uploadLog(LOG_UPLOAD_ADDRESS,
+                            CoreConstants.CONSTANT_INT_LOGTYPE_COMMON,
+                            Calendar.getInstance());
                 } catch (Exception e) {
                     LogManager.local(TAG, e.getMessage());
                 }
@@ -367,8 +348,8 @@ public class DebugActivitySender extends Activity {
         }
 
         Command4App Command = new Command4App(Constants.XMPP_NAMESPACE_CENTER,
-                "9527", action, "time2014", name, "ver1.1.1",
-                name, IntUid, null);
+                "9527", action, "time2014", name, "ver1.1.1", name, IntUid,
+                null);
         LogManager.local(TAG, "##Command4App##\n" + Command.toXML());
 
         ZMIQCommand cmdIQ = new ZMIQCommand();

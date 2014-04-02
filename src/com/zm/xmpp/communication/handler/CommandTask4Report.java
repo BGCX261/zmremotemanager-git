@@ -7,6 +7,7 @@ import android.os.Handler;
 import android.provider.Settings;
 
 import com.zm.epad.core.CoreConstants;
+import com.zm.epad.core.LogManager;
 import com.zm.epad.core.SubSystemFacade;
 import com.zm.epad.plugins.RemoteDeviceManager;
 import com.zm.epad.plugins.RemoteDeviceManager.RemoteLocation;
@@ -18,7 +19,23 @@ import com.zm.xmpp.communication.Constants;
 
 public class CommandTask4Report extends PairCommandTask {
     private static final String TAG = "CommandTask4Report";
-    private String mReport;
+
+    private static final PairAction[] pairActions = { new PairAction(
+            Constants.XMPP_REPORT_LOCATE, Constants.XMPP_REPORT_UNLOCATE) };
+
+    private static class PairAction {
+        public String start;
+        public String end;
+
+        public PairAction(String start, String end) {
+            this.start = start;
+            this.end = end;
+        }
+    }
+
+    private final String mAction;
+    private final String mPair;
+    private final boolean mIsStart;
 
     private long APP_DEFAULT_INTERVAL = 5 * 1000;
     private long POSITION_DEFAULT_INTERVAL = 5 * 1000;
@@ -26,7 +43,21 @@ public class CommandTask4Report extends PairCommandTask {
     public CommandTask4Report(SubSystemFacade subSystemFacade, Handler handler,
             ResultFactory factory, ZMIQCommand command) {
         super(subSystemFacade, handler, factory, command);
-        mReport = getCommandReport();
+        mAction = command.getCommand().getAction();
+        for (PairAction pa : pairActions) {
+            if (mAction.equals(pa.start)) {
+                mPair = pa.end;
+                mIsStart = true;
+                return;
+            } else if (mAction.equals(pa.end)) {
+                mPair = pa.start;
+                mIsStart = false;
+                return;
+            }
+        }
+        LogManager.local(TAG, "bad action:" + mAction);
+        mPair = null;
+        mIsStart = false;
     }
 
     private int startMonitorAppRunningInfo(long interval) {
@@ -83,36 +114,15 @@ public class CommandTask4Report extends PairCommandTask {
 
     }
 
-    private int start(ZMIQCommand start) {
-        int ret = FAILED;
-        if (mReport.equals(Constants.XMPP_REPORT_APP)) {
-            ret = startMonitorAppRunningInfo(APP_DEFAULT_INTERVAL);
-        } else if (mReport.equals(Constants.XMPP_REPORT_POS)) {
-            ret = startTrackLocation();
-        }
-        return ret;
-    }
-
-    private int end(ZMIQCommand end) {
-        int ret = FAILED;
-        if (mReport.equals(Constants.XMPP_REPORT_APP)) {
-            ret = stopMonitorAppRunningInfo();
-        } else if (mReport.equals(Constants.XMPP_REPORT_POS)) {
-            ret = stopTrackLocation();
-        }
-        return ret;
-    }
-
-    public String getCommandReport() {
-        return ((Command4Report) mIQCommand.getCommand()).getReport();
+    public String getCommandAction() {
+        return mAction;
     }
 
     @Override
     public boolean isDuplicated(PairCommandTask task) {
         if (task instanceof CommandTask4Report) {
-            return mReport.equals(((CommandTask4Report) task)
-                    .getCommandReport())
-                    && task.isStartCommand() == isStartCommand();
+            return ((CommandTask4Report) task).getCommandAction().equals(
+                    mAction);
         }
         return false;
     }
@@ -120,26 +130,19 @@ public class CommandTask4Report extends PairCommandTask {
     @Override
     public boolean isPaired(PairCommandTask task) {
         if (task instanceof CommandTask4Report) {
-            return mReport.equals(((CommandTask4Report) task)
-                    .getCommandReport())
-                    && task.isStartCommand() != isStartCommand();
+            return ((CommandTask4Report) task).getCommandAction().equals(mPair);
         }
         return false;
     }
 
     @Override
     public boolean isStartCommand() {
-        Command4Report cmd = (Command4Report) mIQCommand.getCommand();
-
-        return cmd.getAction().equals(Constants.XMPP_REPORT_ACT_TRACE) ? true
-                : false;
+        return mIsStart;
     }
 
     @Override
     protected void closeWithoutPair() {
-        if (mReport.equals(Constants.XMPP_REPORT_APP)) {
-            stopMonitorAppRunningInfo();
-        } else if (mReport.equals(Constants.XMPP_REPORT_POS)) {
+        if (mAction.equals(Constants.XMPP_REPORT_LOCATE)) {
             stopTrackLocation();
         }
     }
@@ -147,10 +150,10 @@ public class CommandTask4Report extends PairCommandTask {
     @Override
     protected int handleCommand(ZMIQCommand command) {
         int ret = FAILED;
-        if (isStartCommand()) {
-            ret = start(command);
-        } else {
-            ret = end(command);
+        if (mAction.equals(Constants.XMPP_REPORT_LOCATE)) {
+            ret = startTrackLocation();
+        } else if (mAction.equals(Constants.XMPP_REPORT_UNLOCATE)) {
+            ret = stopTrackLocation();
         }
         postResult(ret);
         return ret;
@@ -160,12 +163,12 @@ public class CommandTask4Report extends PairCommandTask {
         IResult r = null;
         switch (status) {
         case SUCCESS:
-            r = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
-                    getCommandId(), CoreConstants.CONSTANT_RESULT_OK);
+            r = mResultFactory.getNormalResult(mIQCommand.getCommand(), true,
+                    null);
             break;
         case FAILED:
-            r = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
-                    getCommandId(), CoreConstants.CONSTANT_RESULT_NG);
+            r = mResultFactory.getNormalResult(mIQCommand.getCommand(), false,
+                    "API failed");
             break;
         default:
             break;

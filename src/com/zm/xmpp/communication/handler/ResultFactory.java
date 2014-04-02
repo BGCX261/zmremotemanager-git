@@ -21,6 +21,7 @@ import com.zm.epad.structure.Configuration;
 import com.zm.epad.structure.Device;
 import com.zm.epad.structure.Environment;
 import com.zm.xmpp.communication.Constants;
+import com.zm.xmpp.communication.command.ICommand;
 import com.zm.xmpp.communication.result.*;
 
 import android.app.ActivityManager.RunningAppProcessInfo;
@@ -170,6 +171,16 @@ public class ResultFactory {
         return resultList;
     }
 
+    public IResult getNormalResult(ICommand command, boolean success,
+            String errorCode) {
+        IResult result = getResult(RESULT_NORMAL, command.getId(),
+                success == true ? Constants.RESULT_OK : Constants.RESULT_ERR,
+                null, null);
+        result.setAction(command.getAction());
+        result.setErrorCode(errorCode);
+        return result;
+    }
+
     public IResult getEmptyResult(int type, String id) {
         IResult ret = null;
 
@@ -213,7 +224,7 @@ public class ResultFactory {
     }
 
     private static String getCurrentTime() {
-        //return UTC
+        // return UTC
         return String.valueOf(System.currentTimeMillis());
     }
 

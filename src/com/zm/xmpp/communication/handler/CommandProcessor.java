@@ -50,15 +50,14 @@ public class CommandProcessor extends CmdDispatchInfo {
             put(Constants.XMPP_COMMAND_APP, CommandTask4App.class);
             put(Constants.XMPP_COMMAND_QUERY, CommandTask4Query.class);
             put(Constants.XMPP_COMMAND_REPORT, CommandTask4Report.class);
-            put(Constants.XMPP_COMMAND_FILE_TRANSFER,
-                    CommandTask4FileTransfer.class);
+            put(Constants.XMPP_COMMAND_PUSH, CommandTask4FileTransfer.class);
             put(Constants.XMPP_COMMAND_POLICY, CommandTask4Policy.class);
         }
     };
 
     @Override
     public void handleError(IQ iq) {
-        synchronized(mErrorList){
+        synchronized (mErrorList) {
             mErrorList.add(iq);
         }
     }
@@ -214,6 +213,7 @@ public class CommandProcessor extends CmdDispatchInfo {
                     if (pc.isDuplicated(task)) {
                         LogManager.local(TAG,
                                 "Dulplicated task:" + task.getCommandType());
+                        task.invalidate();
                         return CommandTask.NOT_IMPLEMENTED;
                     }
                 }
@@ -232,8 +232,11 @@ public class CommandProcessor extends CmdDispatchInfo {
                         }
                         break;
                     }
+                }
+                if (ret == CommandTask.NOT_IMPLEMENTED) {
                     LogManager.local(TAG,
                             "Task not paired:" + task.getCommandType());
+                    task.invalidate();
                 }
             }
         }

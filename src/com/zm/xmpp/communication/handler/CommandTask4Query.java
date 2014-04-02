@@ -2,6 +2,7 @@ package com.zm.xmpp.communication.handler;
 
 import java.util.List;
 
+import android.app.ActivityManager.RunningAppProcessInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -43,21 +44,13 @@ public class CommandTask4Query extends CommandTask {
             ret = handleQueryCapture(cmd);
         } else if (action.equals(Constants.XMPP_QUERY_LOG)) {
             ret = handleQueryLogUpload(cmd);
+        } else if (action.equals(Constants.XMPP_QUERY_RUNNING)) {
+            ret = handleQueryRunningApp(cmd);
         } else {
             LogManager.local(TAG, "handleCommand4Query bad action");
         }
 
         return ret;
-    }
-
-    private String getResultStr(boolean bOK) {
-        return bOK == true ? CoreConstants.CONSTANT_RESULT_OK
-                : CoreConstants.CONSTANT_RESULT_NG;
-    }
-
-    private String getResultStr(Object bOK) {
-        return bOK != null ? CoreConstants.CONSTANT_RESULT_OK
-                : CoreConstants.CONSTANT_RESULT_NG;
     }
 
     private int handleQueryApp(ICommand4Query cmd) {
@@ -117,9 +110,9 @@ public class CommandTask4Query extends CommandTask {
                     @Override
                     public void onDone(boolean success, FileTransferTask task) {
                         String fileName = (String) task.getResult();
-                        IResult result = mResultFactory.getResult(
-                                ResultFactory.RESULT_NORMAL, getCommandId(),
-                                getResultStr(fileName));
+                        IResult result = mResultFactory.getNormalResult(
+                                mIQCommand.getCommand(), success,
+                                success == true ? null : "download failed");
 
                         postResult(result);
                         endTask();
@@ -128,9 +121,9 @@ public class CommandTask4Query extends CommandTask {
                     @Override
                     public void onCancel(FileTransferTask task) {
                         // when cancel, send NG
-                        IResult result = mResultFactory.getResult(
-                                ResultFactory.RESULT_NORMAL, getCommandId(),
-                                CoreConstants.CONSTANT_RESULT_NG);
+                        IResult result = mResultFactory.getNormalResult(
+                                mIQCommand.getCommand(), false,
+                                "download canceled");
 
                         postResult(result);
                         endTask();
@@ -146,6 +139,17 @@ public class CommandTask4Query extends CommandTask {
         for (String filename : logs) {
             logMgr.uploadLog(cmd.getUrl(), type, filename);
         }
+        return SUCCESS;
+    }
+
+    private int handleQueryRunningApp(ICommand4Query cmd) {
+        List<RunningAppProcessInfo> infos = SubSystemFacade.getInstance()
+                .getRunningAppProcesses();
+        if (infos == null) {
+            return FAILED;
+        }
+        IResult iResult = mResultFactory.getRunningAppResult(infos);
+        postResult(iResult);
         return SUCCESS;
     }
 }

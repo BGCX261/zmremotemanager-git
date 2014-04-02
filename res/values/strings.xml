@@ -123,7 +123,7 @@
     <string name="debug_appinfo">App</string>
     <string name="debug_deviceinfo">Device</string>
     <string name="debug_userinfo">User</string>
-    <string name="debug_apptrace">App Trace</string>
+    <string name="debug_apptrace">Running App</string>
     <string name="debug_appuntrace">App Untrace</string>
     <string name="debug_postrace">Pos Trace</string>
     <string name="debug_posuntrace">Pos Untrace</string>

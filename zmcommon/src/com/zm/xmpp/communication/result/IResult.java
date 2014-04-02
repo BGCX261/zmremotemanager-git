@@ -5,6 +5,8 @@ public interface IResult {
 	public String getType();
 	public String getId();
 	public void setId(String id);
+	public String getAction();
+	public void setAction(String action);
 	public String getStatus();
 	public void setStatus(String status);
 	public String getErrorCode();

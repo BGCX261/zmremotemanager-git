@@ -25,13 +25,13 @@ public class CommandTask4Policy extends CommandTask {
         IResult result = null;
         try {
             mSubSystemFacade.updatePolicy(cmd.toXML());
-            result = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
-                    cmd.getId(), CoreConstants.CONSTANT_RESULT_OK);
+            result = mResultFactory.getNormalResult(mIQCommand.getCommand(),
+                    true, null);
         } catch (Exception e) {
             LogManager.local(TAG, "Fail to update policy");
             e.printStackTrace();
-            result = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
-                    cmd.getId(), CoreConstants.CONSTANT_RESULT_NG);
+            result = mResultFactory.getNormalResult(mIQCommand.getCommand(),
+                    false, e.toString());
         }
 
         postResult(result);
