@@ -25,6 +25,7 @@ public class Config {
     private static Config sInstance = null;
 
     private HashMap<String, String> ConfigMap = new HashMap<String, String>();
+    private String[] mChangableConfigs = { USERNAME, PASSWORD };
 
     public static Config getConfig() {
         return sInstance;
@@ -60,10 +61,21 @@ public class Config {
         return ConfigMap.put(key, value);
     }
 
+    public void saveConfig() {
+        writeConfigInfo();
+    }
+
+    public boolean isAccountInitiated() {
+        return getConfig(Config.USERNAME) == null ? false : true;
+    }
+
     private boolean isChangeable(String key) {
-        if(key.equals(PASSWORD)){
-            return true;
+        for (String s : mChangableConfigs) {
+            if (key.equals(s)) {
+                return true;
+            }
         }
+
         return false;
     }
 
@@ -72,23 +84,29 @@ public class Config {
         readConfigInfo();
     }
 
-    private void readConfigInfo() throws Exception {
-
-        File file = new File(CONFIG_PATH, CONFIG);
-        if (!file.exists()) {
-            throw new Exception("no config file");
-        }
+    private void readConfigInfo() {
 
         // At first, set default config
         setDefaultConfig();
 
+        File file = new File(CONFIG_PATH, CONFIG);
+        if (!file.exists()) {
+            // no config file, only use default config
+            return;
+        }
+
         // If there is config in config.xml, the config will
         // overwrite the default one
-        FileInputStream in = new FileInputStream(file);
-        byte[] config = new byte[(int) file.length()];
-        in.read(config);
-        in.close();
-        parseConfig(new String(config, CHARSET));
+        try {
+            FileInputStream in = new FileInputStream(file);
+            byte[] config = new byte[(int) file.length()];
+            in.read(config);
+            in.close();
+            parseConfig(new String(config, CHARSET));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
     private void writeConfigInfo() {

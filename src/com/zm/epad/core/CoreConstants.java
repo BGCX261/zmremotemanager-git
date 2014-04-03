@@ -35,7 +35,7 @@ public interface CoreConstants {
         CONSTANT_INT_LOGTYPE_RUNTIME
     };
     
-    final static String CONSTANT_LOGTAG_HEADER = "com.zm.epad:";
+    final static String CONSTANT_LOGTAG_HEADER = "com.zm.epad.";
     
     final static String CONSTANT_LOGTYPE_COMMON = "common-log";
     final static String CONSTANT_LOGTYPE_LOCATION = "location-log";

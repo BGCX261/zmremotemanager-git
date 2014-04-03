@@ -5,10 +5,9 @@ LOCAL_MODULE_TAGS := optional
 
 LOCAL_SRC_FILES := $(call all-java-files-under, src) 
 
-
 #LOCAL_JAVA_LIBRARIES := services telephony-common
 
-LOCAL_STATIC_JAVA_LIBRARIES := smackxmpp zmcommon
+LOCAL_STATIC_JAVA_LIBRARIES := smackxmpp zmcommon IRemoteManager
 
 LOCAL_PACKAGE_NAME := RemoteManager
 LOCAL_CERTIFICATE := platform
