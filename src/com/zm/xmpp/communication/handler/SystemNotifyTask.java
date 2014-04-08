@@ -3,6 +3,8 @@ package com.zm.xmpp.communication.handler;
 import android.os.Handler;
 import android.os.Message;
 
+import com.zm.epad.core.CoreConstants;
+import com.zm.epad.core.LogManager;
 import com.zm.epad.core.SubSystemFacade;
 import com.zm.epad.core.SubSystemFacade.NotifyListener;
 import com.zm.xmpp.communication.client.ZMIQCommand;
@@ -65,9 +67,19 @@ public class SystemNotifyTask extends CommandTask implements NotifyListener {
         mHandler.sendMessage(msg);
     }
 
+    private void saveResult(IResult result) {
+        if (result == null) {
+            return;
+        }
+        LogManager.getInstance().addLog(
+                CoreConstants.CONSTANT_INT_LOGTYPE_COMMON, result.toXML());
+    }
+
     private void handleAppUsage(Object obj) {
         IResult result = mResultFactory.getResult(
                 ResultFactory.RESULT_APPUSAGE, null, obj);
-        postResult(result);
+        // AppUsage info is always saved in log.
+        // No need to send result even when network is available
+        saveResult(result);
     }
 }
