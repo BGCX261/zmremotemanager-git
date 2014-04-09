@@ -51,10 +51,12 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
-public class RemoteDeviceManager{
+public class RemoteDeviceManager {
     public static final String TAG = "RemoteDeviceManager";
 
     private Context mContext = null;
@@ -65,16 +67,20 @@ public class RemoteDeviceManager{
 
     private View mKeyguard = null;
 
+    private RemotePowerManager mPowerMgr = null;
+
     private Handler mHandler;
-  
+
     public void stop() {
-         LogManager.local(TAG, "stop");
+        LogManager.local(TAG, "stop");
+        mPowerMgr.stop();
     }
 
     public RemoteDeviceManager(Context context) {
         mContext = context;
         mScreenshot = new Screenshot(mContext);
         mLocationTrack = new RemoteLocationTrack();
+        mPowerMgr = new RemotePowerManager();
         mHandler = new Handler(mContext.getMainLooper());
     }
 
@@ -247,94 +253,104 @@ public class RemoteDeviceManager{
             }
         }
     }
+
     public static final int LOCATION_TRACK_OFF = 0;
     public static final int LOCATION_TRACK_SENSORS_ONLY = 1;
     public static final int LOCATION_TRACK_BATTERY_SAVING = 2;
-    public static final int LOCATION_TRACK_HIGH_ACCURACY = 3; 
-    
-    public interface LocationReportCallback{
+    public static final int LOCATION_TRACK_HIGH_ACCURACY = 3;
+
+    public interface LocationReportCallback {
         public void reportLocation(RemoteLocation loc);
+
         public void reportLocationTrackStatus(boolean bRunning);
     }
-    public class RemoteLocation{
+
+    public class RemoteLocation {
         public double mLatitude;
         public double mLongitude;
         public long mTime;
         public float mSpeed;
-        public RemoteLocation(Location loc){
+
+        public RemoteLocation(Location loc) {
             mLatitude = loc.getLatitude();
             mLongitude = loc.getLongitude();
             mTime = loc.getTime();
             mSpeed = loc.getSpeed();
         }
-        
-        public String toString(){
+
+        public String toString() {
             StringBuffer sb = new StringBuffer();
             sb.append("<location>\n");
             sb.append("<longitude>\n");
             sb.append("" + mLatitude);
             sb.append("\n<longitude/>\n");
-            
+
             sb.append("<longitude>\n");
             sb.append("" + mLongitude);
             sb.append("\n<longitude/>\n");
-            
+
             sb.append("<latitude>\n");
             sb.append("" + mLatitude);
             sb.append("\n<latitude/>\n");
-            
+
             sb.append("<time>\n");
             sb.append("" + mTime);
             sb.append("\n<time/>\n");
-            
+
             sb.append("<speed>\n");
             sb.append("" + mSpeed);
             sb.append("\n<speed/>\n");
-            
+
             sb.append("<location/>\n");
-            
+
             return sb.toString();
         }
     }
-    
-    public boolean startTrackLocation(int mode,long minTime,int minDistance,
-            LocationReportCallback callback){
-        return mLocationTrack.startTrackLocation(mode, minTime, minDistance, callback);
+
+    public boolean startTrackLocation(int mode, long minTime, int minDistance,
+            LocationReportCallback callback) {
+        return mLocationTrack.startTrackLocation(mode, minTime, minDistance,
+                callback);
     }
-    public void stopTrackLocation(){
+
+    public void stopTrackLocation() {
         mLocationTrack.stopTrackLocation();
     }
-    public  RemoteLocation[] getHistoryLocations(){
+
+    public RemoteLocation[] getHistoryLocations() {
         return mLocationTrack.getHistoryLocs();
     }
-    //@todo: 4.4 has changed a lot. 
-    public void start(){
+
+    // @todo: 4.4 has changed a lot.
+    public void start() {
     }
-    
-    private class RemoteLocationTrack implements LocationListener{
-        int   mMode;
-        long  mMinTime;
-        int   mMinDistance;
+
+    private class RemoteLocationTrack implements LocationListener {
+        int mMode;
+        long mMinTime;
+        int mMinDistance;
         LocationReportCallback mCallback;
         LocationManager mLocationManager = null;
-        
+
         private final static int LOC_HISTORYSIZE = 10000;
-   
-        private  LinkedList<RemoteLocation> mRemoteLocs;
-        private boolean setLocationTrackMode(int mode){
+
+        private LinkedList<RemoteLocation> mRemoteLocs;
+
+        private boolean setLocationTrackMode(int mode) {
             int defMode = Settings.Secure.LOCATION_MODE_OFF;
             ContentResolver resolver = mContext.getContentResolver();
-            mMode = Settings.Secure.getInt(resolver, Settings.Secure.LOCATION_MODE, defMode);
-            if(defMode == mode)
+            mMode = Settings.Secure.getInt(resolver,
+                    Settings.Secure.LOCATION_MODE, defMode);
+            if (defMode == mode)
                 return true;
             boolean bSuc = Settings.Secure.putInt(resolver,
                     Settings.Secure.LOCATION_MODE, mode);
             LogManager.local(TAG, "set location mode to " + mode + " " + bSuc);
-            if(bSuc)
+            if (bSuc)
                 mMode = mode;
             return bSuc;
         }
-        
+
         public boolean startTrackLocation(int mode, long minTime,
                 int minDistance, LocationReportCallback callback) {
             if (mLocationManager == null) {
@@ -378,53 +394,56 @@ public class RemoteDeviceManager{
             LogManager.local(TAG, "stopLocationTrack");
             mLocationManager = null;
         }
-        //each Object is a RemoteLocation
-        public  RemoteLocation[] getHistoryLocs(){
+
+        // each Object is a RemoteLocation
+        public RemoteLocation[] getHistoryLocs() {
             synchronized (this) {
-                if(mRemoteLocs == null || mRemoteLocs.size() == 0)
+                if (mRemoteLocs == null || mRemoteLocs.size() == 0)
                     return null;
                 RemoteLocation[] ret = new RemoteLocation[mRemoteLocs.size()];
                 mRemoteLocs.toArray(ret);
                 return ret;
             }
-            
+
         }
-        private void addHistoryLoc(RemoteLocation newLoc){
-            synchronized(this){
-                if(mRemoteLocs.size() >= LOC_HISTORYSIZE){
+
+        private void addHistoryLoc(RemoteLocation newLoc) {
+            synchronized (this) {
+                if (mRemoteLocs.size() >= LOC_HISTORYSIZE) {
                     mRemoteLocs.pollFirst();
                 }
                 mRemoteLocs.addLast(newLoc);
             }
         }
-    @Override
+
+        @Override
         public void onLocationChanged(Location location) {
             RemoteLocation remoteLoc = new RemoteLocation(location);
             addHistoryLoc(remoteLoc);
-            if(mCallback != null)
+            if (mCallback != null)
                 mCallback.reportLocation(remoteLoc);
         }
 
         @Override
         public void onStatusChanged(String provider, int status, Bundle extras) {
             // TODO Auto-generated method stub
-            
+
         }
 
         @Override
         public void onProviderEnabled(String provider) {
             // TODO Auto-generated method stub
-            
+
         }
 
         @Override
         public void onProviderDisabled(String provider) {
             // TODO Auto-generated method stub
-            
+
         }
 
     }
-    
+
     public byte[] takeScreenshot(final Handler handler) {
         LogManager.local(TAG, "takeScreenshot");
         return mScreenshot.takeScreenshot();
@@ -588,28 +607,27 @@ public class RemoteDeviceManager{
 
     public synchronized void toggleScreen(final boolean on) {
         mHandler.post(new Runnable() {
-            @Override public void run() {
+            @Override
+            public void run() {
                 WindowManager wm = (WindowManager) mContext
                         .getSystemService(Context.WINDOW_SERVICE);
                 if (!on && mKeyguard == null) {
                     // show window to mask all event.
-                    final WindowManager.LayoutParams attrs =
-                            new WindowManager.LayoutParams(
-                                    WindowManager.LayoutParams.MATCH_PARENT,
-                                    WindowManager.LayoutParams.MATCH_PARENT,
-                                    WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG,
-                                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
-                                    WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR |
-                                    WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD |
-                                    WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
-                                    WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS |
-                                    WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION |
-                                    WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
-                                    PixelFormat.TRANSLUCENT);
+                    final WindowManager.LayoutParams attrs = new WindowManager.LayoutParams(
+                            WindowManager.LayoutParams.MATCH_PARENT,
+                            WindowManager.LayoutParams.MATCH_PARENT,
+                            WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG,
+                            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                                    | WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR
+                                    | WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
+                                    | WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+                                    | WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
+                                    | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION
+                                    | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+                            PixelFormat.TRANSLUCENT);
                     if (ActivityManager.isHighEndGfx()) {
                         attrs.flags |= WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED;
-                        attrs.privateFlags |=
-                                WindowManager.LayoutParams.PRIVATE_FLAG_FORCE_HARDWARE_ACCELERATED;
+                        attrs.privateFlags |= WindowManager.LayoutParams.PRIVATE_FLAG_FORCE_HARDWARE_ACCELERATED;
                     }
                     attrs.screenOrientation = ActivityInfo.SCREEN_ORIENTATION_NOSENSOR;
                     attrs.gravity = Gravity.CENTER;
@@ -623,19 +641,24 @@ public class RemoteDeviceManager{
                     setSystemUi();
                     mKeyguard.setFocusableInTouchMode(true);
                     mKeyguard.requestFocus();
-                    mKeyguard.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                        @Override
-                        public void onFocusChange(View v, boolean hasFocus) {
-                            Log.v(TAG, "zm_keyguad " + (hasFocus ? "gain" : "lose") +" focus");
-                            if (hasFocus) return;
-                            final ActivityManager am = (ActivityManager) mContext
-                                    .getSystemService(Context.ACTIVITY_SERVICE);
-                            final int taskId = getMyTaskId();
-                            if (taskId >= 0) {
-                                am.moveTaskToFront(taskId, 0);
-                            }
-                        }
-                    });
+                    mKeyguard
+                            .setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                                @Override
+                                public void onFocusChange(View v,
+                                        boolean hasFocus) {
+                                    Log.v(TAG, "zm_keyguad "
+                                            + (hasFocus ? "gain" : "lose")
+                                            + " focus");
+                                    if (hasFocus)
+                                        return;
+                                    final ActivityManager am = (ActivityManager) mContext
+                                            .getSystemService(Context.ACTIVITY_SERVICE);
+                                    final int taskId = getMyTaskId();
+                                    if (taskId >= 0) {
+                                        am.moveTaskToFront(taskId, 0);
+                                    }
+                                }
+                            });
                     mKeyguard.setOnTouchListener(new View.OnTouchListener() {
                         @Override
                         public boolean onTouch(View v, MotionEvent event) {
@@ -644,14 +667,20 @@ public class RemoteDeviceManager{
                         }
                     });
                     mKeyguard.setOnKeyListener(new View.OnKeyListener() {
-                        @Override public boolean onKey(View v, int keyCode, KeyEvent event) {
-                            Log.v(TAG, KeyEvent.keyCodeToString(keyCode)
-                                    + "(" + keyCode + ") "
-                                    + KeyEvent.actionToString(event.getAction()));
+                        @Override
+                        public boolean onKey(View v, int keyCode, KeyEvent event) {
+                            Log.v(TAG,
+                                    KeyEvent.keyCodeToString(keyCode)
+                                            + "("
+                                            + keyCode
+                                            + ") "
+                                            + KeyEvent.actionToString(event
+                                                    .getAction()));
                             resetSystemUi();
                             if (keyCode == KeyEvent.KEYCODE_SYM) {
                                 mHandler.post(new Runnable() {
-                                    @Override public void run() {
+                                    @Override
+                                    public void run() {
                                         try {
                                             ActivityManagerNative.getDefault()
                                                     .closeSystemDialogs(null);
@@ -660,13 +689,13 @@ public class RemoteDeviceManager{
                                     }
                                 });
                             } else {
-//                                if (keyCode == KeyEvent.KEYCODE_EXPLORER ||
-//                                    keyCode == KeyEvent.KEYCODE_ENVELOPE ||
-//                                    keyCode == KeyEvent.KEYCODE_CONTACTS ||
-//                                    keyCode == KeyEvent.KEYCODE_CALENDAR ||
-//                                    keyCode == KeyEvent.KEYCODE_MUSIC ||
-//                                    keyCode == KeyEvent.KEYCODE_CALCULATOR) {}
-//                                    keyCode == KeyEvent.KEYCODE_HOME
+                                // if (keyCode == KeyEvent.KEYCODE_EXPLORER ||
+                                // keyCode == KeyEvent.KEYCODE_ENVELOPE ||
+                                // keyCode == KeyEvent.KEYCODE_CONTACTS ||
+                                // keyCode == KeyEvent.KEYCODE_CALENDAR ||
+                                // keyCode == KeyEvent.KEYCODE_MUSIC ||
+                                // keyCode == KeyEvent.KEYCODE_CALCULATOR) {}
+                                // keyCode == KeyEvent.KEYCODE_HOME
                                 final ActivityManager am = (ActivityManager) mContext
                                         .getSystemService(Context.ACTIVITY_SERVICE);
                                 final int taskId = getMyTaskId();
@@ -687,8 +716,7 @@ public class RemoteDeviceManager{
 
     private void setSystemUi() {
         mKeyguard.setSystemUiVisibility(View.STATUS_BAR_DISABLE_HOME
-                | View.STATUS_BAR_DISABLE_BACK
-                | View.STATUS_BAR_DISABLE_RECENT
+                | View.STATUS_BAR_DISABLE_BACK | View.STATUS_BAR_DISABLE_RECENT
                 | View.STATUS_BAR_DISABLE_EXPAND
                 | View.STATUS_BAR_DISABLE_SEARCH
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
@@ -696,8 +724,10 @@ public class RemoteDeviceManager{
     }
 
     private Runnable mKeepFullscreen = new Runnable() {
-        @Override public void run() {
-            if (mKeyguard == null) return;
+        @Override
+        public void run() {
+            if (mKeyguard == null)
+                return;
             setSystemUi();
         }
     };
@@ -718,6 +748,51 @@ public class RemoteDeviceManager{
             }
         }
         return -1;
+    }
+
+    public void acquireWakeLock(int levelAndFlags, String tag) {
+        mPowerMgr.acquireWakeLock(levelAndFlags, tag);
+    }
+
+    public void releaseWakeLock(String tag) {
+        mPowerMgr.releaseWakeLock(tag);
+    }
+
+    private class RemotePowerManager {
+        PowerManager mPm;
+        HashMap<String, PowerManager.WakeLock> mWakeLockMap = new HashMap<String, PowerManager.WakeLock>();
+
+        public RemotePowerManager() {
+            mPm = (PowerManager) mContext
+                    .getSystemService(Context.POWER_SERVICE);
+        }
+
+        public void acquireWakeLock(int levelAndFlags, String tag) {
+            PowerManager.WakeLock wl = mWakeLockMap.get(tag);
+            if (wl == null) {
+                wl = mPm.newWakeLock(levelAndFlags, tag);
+                wl.setReferenceCounted(false);
+                mWakeLockMap.put(tag, wl);
+            }
+            wl.acquire();
+        }
+
+        public void releaseWakeLock(String tag) {
+            PowerManager.WakeLock wl = mWakeLockMap.get(tag);
+            if (wl != null) {
+                wl.release();
+                mWakeLockMap.remove(tag);
+            }
+        }
+
+        public void stop() {
+            Set<String> keys = mWakeLockMap.keySet();
+            for (String k : keys) {
+                PowerManager.WakeLock wl = mWakeLockMap.get(k);
+                wl.release();
+            }
+            mWakeLockMap.clear();
+        }
     }
 }
 

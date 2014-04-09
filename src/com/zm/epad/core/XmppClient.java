@@ -676,6 +676,9 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         }
         try {
             mStatusLock.lock();
+            // avoid to sleep
+            SubSystemFacade.getInstance().acquireWakeLock(TAG);
+
             String serverName = mConnectionInfo
                     .getString(CoreConstants.CONSTANT_SERVER);
             LogManager.local(TAG, "connect to server:" + serverName);
@@ -715,6 +718,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             transitionToStatusLocked(XMPPCLIENT_STATUS_ERROR);
             sendReconnectByError(e);
         } finally {
+            SubSystemFacade.getInstance().releaseWakeLock(TAG);
             mStatusLock.unlock();
         }
     }

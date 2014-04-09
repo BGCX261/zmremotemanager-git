@@ -8,6 +8,7 @@ import android.content.pm.UserInfo;
 import android.os.Bundle;
 import android.os.Looper;
 import android.os.Message;
+import android.os.PowerManager;
 import android.os.UserManager;
 
 import com.android.internal.os.PkgUsageStats;
@@ -563,5 +564,14 @@ public class SubSystemFacade {
 
     public TimeZone getDefaultTimeZone() {
         return TimeZone.getTimeZone(CoreConstants.CONSTANT_TIMEZOME_DEFAULT);
+    }
+
+    public void acquireWakeLock(String tag) {
+        // Allow screen to go off as default
+        mDeviceManager.acquireWakeLock(PowerManager.PARTIAL_WAKE_LOCK, tag);
+    }
+
+    public void releaseWakeLock(String tag) {
+        mDeviceManager.releaseWakeLock(tag);
     }
 }
