@@ -8,6 +8,8 @@ import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.packet.Packet;
 import org.jivesoftware.smack.provider.ProviderManager;
 
+import com.zm.epad.plugins.RemoteAlarmManager;
+
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -642,12 +644,25 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     }
 
     private void sendReconnectByError(Exception e) {
-        if(Config.getConfig().isAccountInitiated()) {
+        if (Config.getConfig().isAccountInitiated()) {
             LogManager.local(TAG, "sendReconnectByError:" + e.toString());
-            Message msg = mXmppClientHandler.obtainMessage(CMD_RECONNECT_BY_ERROR,
-                    null);
-            // if failed, reconnect after 10 seconds.
-            mXmppClientHandler.sendMessageDelayed(msg, 10000);
+            // if failed by error, reconnect after 10 seconds.
+            try {
+                SubSystemFacade.getInstance().setAlarm(
+                        System.currentTimeMillis() + 10000,
+                        new RemoteAlarmManager.AlarmCallback() {
+
+                            @Override
+                            public void wakeUp() {
+                                Message msg = mXmppClientHandler.obtainMessage(
+                                        CMD_RECONNECT_BY_ERROR, null);
+                                mXmppClientHandler.sendMessage(msg);
+                            }
+                        });
+            } catch (Exception e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
         }
     }
 
