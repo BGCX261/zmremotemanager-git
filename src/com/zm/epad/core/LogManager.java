@@ -5,7 +5,9 @@ import com.zm.epad.plugins.RemoteFileManager.FileTransferTask;
 
 import java.io.File;
 import java.io.RandomAccessFile;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.TimeZone;
 
 import android.content.Context;
@@ -45,7 +47,8 @@ public class LogManager {
 
     public static String local(String tag, String msg) {
         String tagWrapper = CoreConstants.CONSTANT_LOGTAG_HEADER + tag;
-        android.util.Log.e(tagWrapper, msg);
+        String content = getCurrentTimeAsFormat() + " : " +msg;
+        android.util.Log.e(tagWrapper, content);
         tagWrapper = "<" + tagWrapper + ">  ";
         return tagWrapper;
     }
@@ -53,8 +56,9 @@ public class LogManager {
     public static void server(String tag, String msg) {
         String tagWrapper = local(tag, msg);
         // right now, do nothing here.
+        String content = getCurrentTimeAsFormat() + " : " +msg;
         gLogManager.addLog(CoreConstants.CONSTANT_INT_LOGTYPE_RUNTIME,
-                tagWrapper + msg);
+                tagWrapper + content);
     }
 
     private LogManager(Context context) {
@@ -354,5 +358,10 @@ public class LogManager {
             }
         }
         return null;
+    }
+
+    private static String getCurrentTimeAsFormat() {
+        long time = System.currentTimeMillis();
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ").format(new Date(time));
     }
 }
