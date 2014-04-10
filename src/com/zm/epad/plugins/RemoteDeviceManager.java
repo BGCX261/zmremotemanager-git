@@ -768,16 +768,18 @@ public class RemoteDeviceManager {
         }
 
         public void acquireWakeLock(int levelAndFlags, String tag) {
+            LogManager.local(TAG, "acquireWakeLock:" + tag);
             PowerManager.WakeLock wl = mWakeLockMap.get(tag);
             if (wl == null) {
                 wl = mPm.newWakeLock(levelAndFlags, tag);
-                wl.setReferenceCounted(false);
+                wl.setReferenceCounted(true);
                 mWakeLockMap.put(tag, wl);
             }
             wl.acquire();
         }
 
         public void releaseWakeLock(String tag) {
+            LogManager.local(TAG, "releaseWakeLock:" + tag);
             PowerManager.WakeLock wl = mWakeLockMap.get(tag);
             if (wl != null) {
                 wl.release();
@@ -789,7 +791,9 @@ public class RemoteDeviceManager {
             Set<String> keys = mWakeLockMap.keySet();
             for (String k : keys) {
                 PowerManager.WakeLock wl = mWakeLockMap.get(k);
-                wl.release();
+                while (wl.isHeld()) {
+                    wl.release();
+                }
             }
             mWakeLockMap.clear();
         }

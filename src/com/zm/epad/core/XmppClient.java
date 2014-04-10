@@ -113,6 +113,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 mStatusLock.lock();
                 if (mXmppClientHandler == null)
                     return;
+                SubSystemFacade.getInstance().acquireWakeLock(TAG);
                 LogManager.local(TAG, "connectionClosed ");
                 Message msg = mXmppClientHandler
                         .obtainMessage(CMD_CONNECTION_STATUS_UPDATE);
@@ -129,6 +130,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 mStatusLock.lock();
                 if (mXmppClientHandler == null)
                     return;
+                SubSystemFacade.getInstance().acquireWakeLock(TAG);
                 LogManager.local(TAG,
                         "connectionClosedOnError " + e.getMessage());
                 Message msg = mXmppClientHandler
@@ -371,12 +373,14 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         try {
             mStatusLock.lock();
             int connected = msg.arg1;
+            LogManager.local(TAG, "handleConnectionStatus:" + connected);
             if (connected == 0) {
                 dispatchXmppClientEvent(
                         XMPPCLIENT_EVENT_CONNECTION_UPDATE_STATUS, 0, msg.obj);
 
                 if (isNetworkConnected()) {
                     // network is on, but connect closed, it means error happens
+                    LogManager.local(TAG, "network is on");
                     transitionToStatusLocked(XMPPCLIENT_STATUS_ERROR);
                     if (msg.obj == null) {
                         // simply closed, reconnect directly
@@ -385,6 +389,8 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                         // closed by error, reconnect after a few seconds
                         sendReconnectByError((Exception) msg.obj);
                     }
+                } else {
+                    LogManager.local(TAG, "network is off");
                 }
             } else {
                 dispatchXmppClientEvent(
@@ -392,6 +398,8 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             }
         } finally {
             mStatusLock.unlock();
+            SubSystemFacade.getInstance().releaseWakeLock(TAG);
+            LogManager.local(TAG, "handleConnectionStatus return");
         }
     }
 
@@ -654,6 +662,8 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
 
                             @Override
                             public void wakeUp() {
+                                LogManager.local(TAG,
+                                        "sendReconnectByError send event");
                                 Message msg = mXmppClientHandler.obtainMessage(
                                         CMD_RECONNECT_BY_ERROR, null);
                                 mXmppClientHandler.sendMessage(msg);
