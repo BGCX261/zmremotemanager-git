@@ -295,12 +295,11 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         } catch (Exception e) {
             LogManager.local(TAG, "handleLoginCmd ERR: " + e.toString());
             e.printStackTrace();
-            transitionToStatusLocked(XMPPCLIENT_STATUS_ERROR);
 
             // disconnect so that user can retry. If doesn't disconnect,
             // authentication will always failed even if login with right info
             // when retry
-            mXmppConnection.disconnect();
+            handleLogoutCmd(false);
 
             dispatchXmppClientEvent(XMPPCLIENT_EVENT_LOGIN, false);
             throw e;
@@ -379,14 +378,19 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             mStatusLock.lock();
             int connected = msg.arg1;
             LogManager.local(TAG, "handleConnectionStatus:" + connected);
+            if (!Config.getConfig().isAccountInitiated()) {
+                LogManager.local(TAG, "No user");
+                return;
+            }
             if (connected == 0) {
                 dispatchXmppClientEvent(
                         XMPPCLIENT_EVENT_CONNECTION_UPDATE_STATUS, 0, msg.obj);
+                // logout for reconnect
+                handleLogoutCmd(false);
 
                 if (isNetworkConnected()) {
                     // network is on, but connect closed, it means error happens
                     LogManager.local(TAG, "network is on");
-                    transitionToStatusLocked(XMPPCLIENT_STATUS_ERROR);
                     if (msg.obj == null) {
                         // simply closed, reconnect directly
                         reconnectByError();
