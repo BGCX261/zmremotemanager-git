@@ -7,6 +7,7 @@ import org.jivesoftware.smack.SmackAndroid;
 import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.packet.Packet;
 import org.jivesoftware.smack.provider.ProviderManager;
+import org.jivesoftware.smackx.ping.PingManager;
 
 import com.zm.epad.plugins.RemoteAlarmManager;
 
@@ -64,6 +65,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     private Connection mXmppConnection = null;
     private Bundle mConnectionInfo = null;
     private XMPPConnectionListener mXmppConnectionListener = null;
+    private PingManager mPingManager = null;
 
     public interface XmppClientCallback {
         public Object reportXMPPClientEvent(int xmppClientEvent, Object... args);
@@ -241,6 +243,9 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
 
             mXmppConnectionListener = new XMPPConnectionListener();
             mXmppConnection.addConnectionListener(mXmppConnectionListener);
+
+            // use ping manager to handle ping
+            mPingManager = PingManager.getInstanceFor(mXmppConnection);
 
             transitionToStatusLocked(XMPPCLIENT_STATUS_STARTED);
 
@@ -700,11 +705,14 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             // disable ReconnectionAllowed to avoid double connect
             config.setReconnectionAllowed(false);
 
-            mXmppConnection = new XMPPConnection(config);
+            if (mXmppConnection == null) {
+                LogManager.local(TAG, "new XMPPConnection");
+                mXmppConnection = new XMPPConnection(config);
+                mXmppConnectionListener = new XMPPConnectionListener();
+                mXmppConnection.addConnectionListener(mXmppConnectionListener);
+                mPingManager = PingManager.getInstanceFor(mXmppConnection);
+            }
             mXmppConnection.connect();
-
-            mXmppConnectionListener = new XMPPConnectionListener();
-            mXmppConnection.addConnectionListener(mXmppConnectionListener);
             dispatchXmppClientEvent(XMPPCLIENT_EVENT_CONNECT, 1,
                     mXmppConnection, ProviderManager.getInstance());
 
