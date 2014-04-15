@@ -159,5 +159,6 @@ public class Config {
 
     private void setDefaultConfig() {
         ConfigMap.put(RESOURCE, CoreConstants.CONSTANT_DEVICEID);
+        ConfigMap.put(SERVER_ADDRESS, CoreConstants.CONSTANT_SERVER_ADDRESS);
     }
 }

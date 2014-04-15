@@ -4,6 +4,7 @@ import android.os.Build;
 
 public interface CoreConstants {
     final static String CONSTANT_SERVER = "server";
+    final static String CONSTANT_SERVER_ADDRESS = "114.215.110.230";
     final static String CONSTANT_USRNAME = "username";
     final static String CONSTANT_PASSWORD = "password";
     final static String CONSTANT_RESOURCE = "resource";
