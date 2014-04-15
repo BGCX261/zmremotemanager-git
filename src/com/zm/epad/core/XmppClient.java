@@ -734,10 +734,11 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 transitionToStatusLocked(XMPPCLIENT_STATUS_STARTED);
             }
         } catch (Exception e) {
-            if (mXmppConnection == null)
-                return;
-            // clear the status;
-            transitionToStatusLocked(XMPPCLIENT_STATUS_ERROR);
+            if (mXmppConnection == null) {
+                transitionToStatusLocked(XMPPCLIENT_STATUS_ERROR);
+            } else {
+                handleLogoutCmd(false);
+            }
             sendReconnectByError(e);
         } finally {
             SubSystemFacade.getInstance().releaseWakeLock(TAG);
