@@ -116,6 +116,7 @@ public class RemoteDeviceManager {
     }
 
     private class Screenshot {
+        final float REMOTE_LONG_EDGE_F = 640f;
         WindowManager mWindowManager;
         Display mDisplay;
         DisplayMetrics mDisplayMetrics;
@@ -175,14 +176,35 @@ public class RemoteDeviceManager {
                 screenBitmap = ss;
             }
 
-            // Optimizations
-            screenBitmap.setHasAlpha(false);
-            screenBitmap.prepareToDraw();
+            // resize screen bitmap to make it small to upload
+            Matrix matrix = new Matrix();
+            int longEdge = mDisplayMetrics.widthPixels > mDisplayMetrics.heightPixels ? mDisplayMetrics.widthPixels
+                    : mDisplayMetrics.heightPixels;
+
+            float scale = REMOTE_LONG_EDGE_F / longEdge;
+            LogManager.local(TAG, "resize scale:" + scale);
+            matrix.postScale(scale, scale);
+            Bitmap resize = Bitmap.createBitmap(screenBitmap, 0, 0,
+                    screenBitmap.getWidth(), screenBitmap.getHeight(), matrix,
+                    true);
+
+            // change color depth rgb565 to reduce bitmap size
+            Bitmap bm565 = Bitmap.createBitmap(resize.getWidth(),
+                    resize.getHeight(), Bitmap.Config.RGB_565);
+            Canvas c = new Canvas(bm565);
+            c.drawBitmap(resize, 0, 0, null);
+            c.setBitmap(null);
+
+            // recycle useless bitmaps
+            resize.recycle();
+            screenBitmap.recycle();
+            screenBitmap = bm565;
+
             byte[] res = null;
             try {
                 ByteArrayOutputStream out = new ByteArrayOutputStream(
                         screenBitmap.getByteCount());
-                screenBitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+                screenBitmap.compress(Bitmap.CompressFormat.PNG, 0, out);
                 res = out.toByteArray();
                 out.close();
             } catch (Exception e) {

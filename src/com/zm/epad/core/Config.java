@@ -150,6 +150,8 @@ public class Config {
                     ConfigMap.put(USERNAME, parser.nextText());
                 } else if (parser.getName().equals(PASSWORD)) {
                     ConfigMap.put(PASSWORD, parser.nextText());
+                } else if (parser.getName().equals(RESOURCE)) {
+                    ConfigMap.put(RESOURCE, parser.nextText());
                 }
             } else if (eventType == XmlPullParser.END_DOCUMENT) {
                 done = true;

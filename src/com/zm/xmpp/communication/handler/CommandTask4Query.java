@@ -104,6 +104,15 @@ public class CommandTask4Query extends CommandTask {
         Bundle info = new Bundle();
         setCaptureBundleInfo(info, cmd);
 
+        if(!mSubSystemFacade.isScreenOn()) {
+            LogManager.local(TAG, "screen is off, only send sleep result");
+            IResult result = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
+                    mIQCommand.getCommand().getId(), Constants.RESULT_SLEEP, null, null);
+            result.setAction(mIQCommand.getCommand().getAction());
+            postResult(result);
+            return SUCCESS;
+        }
+
         mSubSystemFacade.uploadScreenshot(cmd.getUrl(), info,
                 new RemoteFileManager.FileTransferCallback() {
 
@@ -112,7 +121,7 @@ public class CommandTask4Query extends CommandTask {
                         String fileName = (String) task.getResult();
                         IResult result = mResultFactory.getNormalResult(
                                 mIQCommand.getCommand(), success,
-                                success == true ? null : "download failed");
+                                success == true ? null : "upload failed");
 
                         postResult(result);
                         endTask();
