@@ -243,12 +243,21 @@ public class SubSystemFacade {
         return mPackageManager.disablePkgForUser(pkgName, userId);
     }
 
-    public boolean installPkgForUser(String url, int userId) {
-        return mPackageManager.installPkgForUser(url, userId);
+    public boolean isNewPackage(String packageName, String version) {
+        return mPackageManager.isNewPackage(packageName, version);
     }
 
     public int installPkgForUser(String url, int userId, installCallback cb) {
-        return mPackageManager.installPkgForUser(url, userId, cb);
+        return mPackageManager.installPkgForUser(url, userId, true, cb);
+    }
+
+    public int installPkgForUser(String url, int userId, installCallback cb,
+            boolean update) {
+        return mPackageManager.installPkgForUser(url, userId, update, cb);
+    }
+
+    public boolean InstallExsitedPackage(String packageName, int userId) {
+        return mPackageManager.InstallExsitedPackage(packageName, userId);
     }
 
     public boolean uninstallPkgForUser(String name, int userId) {
@@ -297,6 +306,10 @@ public class SubSystemFacade {
 
     public List<PackageInfo> getInstalledPackages(int flags, int userid) {
         return mPackageManager.getInstalledPackages(0, userid);
+    }
+
+    public PackageInfo getPackageInfo(String pkgName, int flags, int userId) {
+        return mPackageManager.getPackageInfo(pkgName, flags, userId);
     }
 
     public Application getZMApplicationInfo(PackageInfo pi) {

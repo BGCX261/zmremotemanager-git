@@ -22,6 +22,7 @@ import com.zm.epad.structure.Device;
 import com.zm.epad.structure.Environment;
 import com.zm.xmpp.communication.Constants;
 import com.zm.xmpp.communication.command.ICommand;
+import com.zm.xmpp.communication.command.ICommand4App;
 import com.zm.xmpp.communication.result.*;
 
 import android.app.ActivityManager.RunningAppProcessInfo;
@@ -177,7 +178,46 @@ public class ResultFactory {
                 success == true ? Constants.RESULT_OK : Constants.RESULT_ERR,
                 null, null);
         result.setAction(command.getAction());
-        result.setErrorCode(errorCode);
+        result.setErrorCode(success ? null : errorCode);
+        return result;
+    }
+
+    public IResult getAppResult(ICommand4App command, boolean success,
+            String errorCode) {
+        ResultApp result = (ResultApp) getEmptyResult(RESULT_APP,
+                command.getId());
+        result.setAction(command.getAction());
+
+        Environment env = new Environment();
+        env.setId(String.valueOf(command.getUserId()));
+        PackageInfo pkgInfo = mSubSystemFacade.getPackageInfo(
+                command.getAppName(), 0, command.getUserId());
+
+        Application app = null;
+        if (pkgInfo != null) {
+            app = mSubSystemFacade.getZMApplicationInfo(pkgInfo);
+        } else {
+            app = new Application();
+        }
+
+        LogManager.local(TAG, "apk request: " + command.getAppName()
+                + "vs actual: " + app.getAppName());
+        LogManager.local(TAG, "ver request: " + command.getAppVersion()
+                + " vs actual: " + app.getVersion());
+        // use the request name and version to let server match info
+        app.setAppName(command.getAppName());
+        app.setVersion(command.getAppVersion());
+
+        env.addApp(app);
+        result.addEnv(env);
+
+        if (success) {
+            result.setStatus(Constants.RESULT_OK);
+            result.setErrorCode(null);
+        } else {
+            result.setStatus(Constants.RESULT_ERR);
+            result.setErrorCode(errorCode);
+        }
         return result;
     }
 

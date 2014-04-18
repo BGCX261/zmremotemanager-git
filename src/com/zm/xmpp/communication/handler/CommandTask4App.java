@@ -68,27 +68,68 @@ public class CommandTask4App extends CommandTask {
 
     private int handleCommand4AppInstall(ICommand4App cmd) {
 
-        int install = mSubSystemFacade.installPkgForUser(cmd.getAppUrl(),
-                cmd.getUserId(), new RemotePackageManager.installCallback() {
+        mSubSystemFacade.acquireWakeLock(TAG);
+        if (mSubSystemFacade
+                .isNewPackage(cmd.getAppName(), cmd.getAppVersion())) {
+            LogManager.local(TAG, "download new APK");
+            int install = mSubSystemFacade.installPkgForUser(cmd.getAppUrl(),
+                    cmd.getUserId(),
+                    new RemotePackageManager.installCallback() {
 
-                    @Override
-                    public void callback(boolean result) {
-                        postResult(result, "download failed");
-                        endTask();
-                    }
-                });
-        if (install < 0) {
-            return RUNNING;
+                        @Override
+                        public void callback(int result) {
+                            postResult(result, getInstallErrorCode(result));
+                            endTask();
+                            mSubSystemFacade.releaseWakeLock(TAG);
+                        }
+                    });
+            if (install == RemotePackageManager.INSTALL_DOWNLOADING) {
+                return RUNNING;
+            } else {
+                postResult(install, getInstallErrorCode(install));
+            }
+            mSubSystemFacade.releaseWakeLock(TAG);
+            return install == RemotePackageManager.INSTALL_SUCCESS ? SUCCESS
+                    : FAILED;
         } else {
-            postResult(install == 0 ? true : false, "API failed");
+            LogManager.local(TAG, "Install Exsited Package");
+            boolean ret = mSubSystemFacade.InstallExsitedPackage(
+                    cmd.getAppName(), cmd.getUserId());
+            postResult(
+                    ret,
+                    getInstallErrorCode(RemotePackageManager.INSTALL_ALREADY_EXISTED));
+            return ret == true ? SUCCESS : FAILED;
         }
-        return install == 0 ? SUCCESS : FAILED;
+
     }
 
-    private void postResult(boolean bOK, String failError) {
-        IResult r = mResultFactory.getNormalResult(mIQCommand.getCommand(),
-                bOK, bOK == true ? null : failError);
+    private void postResult(int install, String failError) {
+        IResult r = mResultFactory.getAppResult(
+                (ICommand4App) mIQCommand.getCommand(),
+                install == RemotePackageManager.INSTALL_SUCCESS ? true : false,
+                failError);
         postResult(r);
     }
 
+    private void postResult(boolean bOK, String failError) {
+        IResult r = mResultFactory.getAppResult(
+                (ICommand4App) mIQCommand.getCommand(), bOK, failError);
+        postResult(r);
+    }
+
+    private String getInstallErrorCode(int status) {
+        String ret = null;
+        switch (status) {
+        case RemotePackageManager.INSTALL_DOWNLOAD_FAIL:
+            ret = "download failed";
+            break;
+        case RemotePackageManager.INSTALL_ALREADY_EXISTED:
+            ret = "already existed";
+            break;
+        default:
+            ret = "API error:" + status;
+            break;
+        }
+        return ret;
+    }
 }

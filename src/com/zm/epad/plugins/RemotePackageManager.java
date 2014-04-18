@@ -46,6 +46,11 @@ import java.util.List;
 public class RemotePackageManager {
     public static final String TAG = "RemotePkgsManager";
 
+    public static final int INSTALL_DOWNLOADING = 100;
+    public static final int INSTALL_DOWNLOAD_FAIL = 101;
+    public static final int INSTALL_SUCCESS = PackageManager.INSTALL_SUCCEEDED;
+    public static final int INSTALL_ALREADY_EXISTED = PackageManager.INSTALL_FAILED_ALREADY_EXISTS;
+
     private IPackageManager mPm;
     private IUserManager mUm;
     private PackageManager mPackageManager;
@@ -55,11 +60,10 @@ public class RemotePackageManager {
     // lock used to protect white and black list. if debug, can re-name it.
     private static Object mLock = new Object();
     private RunningAppMonitorHandler mRunningAppMonitorHandler;
- 
+
     public void stop() {
         LogManager.local(TAG, "stop");
     }
-
 
     // TODO: I cannot define the item info exactly right now.
     private static class PackageVerificationItem {
@@ -78,6 +82,7 @@ public class RemotePackageManager {
         public void packageDeleted(String packageName, int returnCode) {
             synchronized (this) {
                 finished = true;
+                LogManager.local(TAG, "packageDeleted:" + returnCode);
                 result = returnCode == PackageManager.DELETE_SUCCEEDED;
                 pkgName = packageName;
                 notifyAll();
@@ -286,7 +291,7 @@ public class RemotePackageManager {
     }
 
     public interface installCallback {
-        void callback(boolean result);
+        void callback(int status);
     }
 
     private boolean needDownload(String where) {
@@ -297,13 +302,14 @@ public class RemotePackageManager {
     }
 
     public int installPkgForUser(String apkLocation, final int userId,
-            final installCallback cb) {
+            final boolean update, final installCallback cb) {
         LogManager.local(TAG, "installPkgForUser: " + userId);
         if (needDownload(apkLocation)) {
             SubSystemFacade.getInstance().downloadFile(apkLocation,
                     new FileTransferCallback() {
                         int mUserId = userId;
                         installCallback mCallback = cb;
+                        boolean mUpdate = update;
 
                         @Override
                         public void onDone(boolean success,
@@ -311,14 +317,14 @@ public class RemotePackageManager {
                             // TODO Auto-generated method stub
                             if (success == false) {
                                 LogManager.local(TAG, "fail to download apk");
-                                mCallback.callback(false);
+                                mCallback.callback(INSTALL_DOWNLOAD_FAIL);
                                 return;
                             }
                             File result = (File) task.getResult();
                             FileUtils.setPermissions(result.getAbsolutePath(),
                                     0666, -1, -1);
-                            boolean ret = installPkgForUser(
-                                    result.getAbsolutePath(), mUserId);
+                            int ret = installPkgForUser(
+                                    result.getAbsolutePath(), mUserId, mUpdate);
                             mCallback.callback(ret);
                             result.delete();
                         }
@@ -326,13 +332,13 @@ public class RemotePackageManager {
                         @Override
                         public void onCancel(FileTransferTask task) {
                             // TODO Auto-generated method stub
-                            mCallback.callback(false);
+                            mCallback.callback(INSTALL_DOWNLOAD_FAIL);
                         }
 
                     });
-            return -1;
+            return INSTALL_DOWNLOADING;
         } else {
-            return installPkgForUser(apkLocation, userId) ? 0 : 1;
+            return installPkgForUser(apkLocation, userId, update);
         }
     }
 
@@ -352,17 +358,21 @@ public class RemotePackageManager {
             return apkLocation;
     }
 
-    public boolean installPkgForUser(String apkLocation, int userId) {
+    public int installPkgForUser(String apkLocation, int userId, boolean update) {
         LogManager.local(TAG, "installPkgForUser: " + userId);
         apkLocation = getRealPath(apkLocation);
         if (apkLocation == null)
-            return false;
+            return PackageManager.INSTALL_FAILED_INVALID_APK;
 
         PackageInstallObserver obs = new PackageInstallObserver();
         try {
             Uri apkURI = Uri.parse(apkLocation);
-            mPm.installPackage(apkURI, obs, PackageManager.INSTALL_ALL_USERS,
-                    null);
+            int installFlag = PackageManager.INSTALL_ALL_USERS;
+            if (update) {
+                installFlag = installFlag
+                        | PackageManager.INSTALL_REPLACE_EXISTING;
+            }
+            mPm.installPackage(apkURI, obs, installFlag, null);
             synchronized (obs) {
                 while (!obs.finished) {
                     try {
@@ -379,22 +389,37 @@ public class RemotePackageManager {
                                     true, u.id);
                         }
                     }
-                    return true;
+                    return PackageManager.INSTALL_SUCCEEDED;
                 } else if (obs.result == PackageManager.INSTALL_FAILED_ALREADY_EXISTS) {
                     // if already installed
-                    return InstallExsitedPackage(obs.pkgName, userId);
+                    return InstallExsitedPackage(obs.pkgName, userId) ? PackageManager.INSTALL_SUCCEEDED
+                            : PackageManager.INSTALL_FAILED_ALREADY_EXISTS;
                 } else {
                     /*
                      * System.err.println("Failure [" +
                      * installFailureToString(obs.result) + "]");
                      */
-                    return false;
+                    return obs.result;
                 }
             }
         } catch (RemoteException e) {
             LogManager.local(TAG, "installPkgForUser:" + e.toString());
-            return false;
+            return PackageManager.INSTALL_FAILED_INVALID_APK;
         }
+    }
+
+    public boolean isNewPackage(String packageName, String version) {
+        List<PackageInfo> infoList = getInstalledPackages(0);
+        LogManager.local(TAG, "new pkg " + packageName + " : " + version);
+        for (PackageInfo pi : infoList) {
+            if (pi.packageName.equals(packageName)) {
+                LogManager.local(TAG, "old pkg " + pi.packageName + " : "
+                        + pi.versionName);
+                return !pi.versionName.equals(version);
+            }
+        }
+        LogManager.local(TAG, "No old package");
+        return true;
     }
 
     /*
@@ -425,6 +450,14 @@ public class RemotePackageManager {
             PackageInfo pi = mPm.getPackageInfo(pkgName, flags, userId);
             return getApplicationName(pi);
 
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public PackageInfo getPackageInfo(String pkgName, int flags, int userId) {
+        try {
+            return mPm.getPackageInfo(pkgName, flags, userId);
         } catch (Exception e) {
             return null;
         }
@@ -471,7 +504,7 @@ public class RemotePackageManager {
         return userRestrictionInfo;
     }
 
-    private boolean InstallExsitedPackage(String packageName, int userId) {
+    public boolean InstallExsitedPackage(String packageName, int userId) {
 
         boolean ret = false;
         try {
@@ -539,40 +572,47 @@ public class RemotePackageManager {
         }
         return ret;
     }
-    public interface ReportRunningAppInfo{
+
+    public interface ReportRunningAppInfo {
         void reportRunningAppProcessInfos(List<RunningAppProcessInfo> infos);
     }
-    public void startMonitorRunningApp(long interval,ReportRunningAppInfo callback){
-       if(mRunningAppMonitorHandler == null){
-           Looper aTheadLooper = SubSystemFacade.getInstance().getAThreadLooper();
-           mRunningAppMonitorHandler = new RunningAppMonitorHandler(aTheadLooper);
-       }
-       mRunningAppMonitorHandler.start(interval, callback);
+
+    public void startMonitorRunningApp(long interval,
+            ReportRunningAppInfo callback) {
+        if (mRunningAppMonitorHandler == null) {
+            Looper aTheadLooper = SubSystemFacade.getInstance()
+                    .getAThreadLooper();
+            mRunningAppMonitorHandler = new RunningAppMonitorHandler(
+                    aTheadLooper);
+        }
+        mRunningAppMonitorHandler.start(interval, callback);
     }
-    public void stopMonitorRunningApp(){
-        if(mRunningAppMonitorHandler == null){
+
+    public void stopMonitorRunningApp() {
+        if (mRunningAppMonitorHandler == null) {
             return;
         }
         mRunningAppMonitorHandler.stop();
         mRunningAppMonitorHandler = null;
     }
-    private class RunningAppMonitorHandler extends Handler{
+
+    private class RunningAppMonitorHandler extends Handler {
         public static final String DEFAULT_SERVER = Constants.XMPP_NAMESPACE_CENTER;
         public static final int EVT_SCHEDULE_START = 100;
         public static final int EVT_SCHEDULE = 101;
         public static final int EVT_SCHEDULE_STOP = 102;
-        
+
         protected boolean mRunning;
- 
-   
+
         protected boolean mImmediateResult = true;
         protected long mInterval = 60 * 60 * 1000; /* default is 1 hour */
 
-        
         protected ReportRunningAppInfo mCallbackAppInfo;
-        public RunningAppMonitorHandler(Looper looper){
+
+        public RunningAppMonitorHandler(Looper looper) {
             super(looper);
         }
+
         public void stop() {
             removeMessages(EVT_SCHEDULE_START);
             removeMessages(EVT_SCHEDULE);
@@ -580,8 +620,6 @@ public class RemotePackageManager {
             sendMessage(msg);
             mRunning = false;
         }
-
-       
 
         public void setInterval(long interval) {
             mInterval = interval;
@@ -599,6 +637,7 @@ public class RemotePackageManager {
             Message schedule = obtainMessage(EVT_SCHEDULE);
             sendMessageDelayed(schedule, mInterval);
         }
+
         public boolean start(long interval, ReportRunningAppInfo callback) {
             boolean bRet = false;
             LogManager.local(TAG, "start interval:" + mInterval + " running:"
@@ -621,6 +660,7 @@ public class RemotePackageManager {
             }
             return start(mInterval, mCallbackAppInfo);
         }
+
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
@@ -628,16 +668,18 @@ public class RemotePackageManager {
                 mRunning = true;
                 if (mImmediateResult) {
                     List<RunningAppProcessInfo> runningList = getRunningAppProcesses();
-                    if(mCallbackAppInfo != null)
-                        mCallbackAppInfo.reportRunningAppProcessInfos(runningList);
+                    if (mCallbackAppInfo != null)
+                        mCallbackAppInfo
+                                .reportRunningAppProcessInfos(runningList);
                 }
                 scheduleMessage();
                 break;
             case EVT_SCHEDULE:
                 if (mRunning == true) {
                     List<RunningAppProcessInfo> runningList = getRunningAppProcesses();
-                    if(mCallbackAppInfo != null)
-                        mCallbackAppInfo.reportRunningAppProcessInfos(runningList);
+                    if (mCallbackAppInfo != null)
+                        mCallbackAppInfo
+                                .reportRunningAppProcessInfos(runningList);
                     scheduleMessage();
                 }
                 break;
@@ -648,7 +690,7 @@ public class RemotePackageManager {
                 break;
             }
         }
-        
+
     }
 
     public List<ComponentName> getPackageComponent(String action, String pkgName) {
