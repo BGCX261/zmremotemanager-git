@@ -70,10 +70,14 @@ public class CommandProcessor extends CmdDispatchInfo {
         }
         for (CommandTask t : mRunningTaskList) {
             t.forceClose();
+            mSubSystemFacade.releaseWakeLock(t.getCommandId());
         }
         for (PairCommandTask t : mToPairTaskList) {
             t.forceClose();
+            mSubSystemFacade.releaseWakeLock(t.getCommandId());
         }
+        mRunningTaskList.clear();
+        mToPairTaskList.clear();
         super.destroy();
     }
 
@@ -173,6 +177,7 @@ public class CommandProcessor extends CmdDispatchInfo {
                     ZMIQCommand.class);
             CommandTask task = (CommandTask) constructor.newInstance(
                     mSubSystemFacade, mHandler, mResultFactory, iq);
+            mSubSystemFacade.acquireWakeLock(task.getCommandId());
             task.postCommand();
         } catch (Exception e) {
             e.printStackTrace();
@@ -195,6 +200,8 @@ public class CommandProcessor extends CmdDispatchInfo {
             synchronized (mRunningTaskList) {
                 mRunningTaskList.add(task);
             }
+        } else {
+            mSubSystemFacade.releaseWakeLock(task.getCommandId());
         }
         LogManager.local(TAG, "handleCommandTask(" + task.getCommandType()
                 + "):" + ret);
@@ -219,6 +226,7 @@ public class CommandProcessor extends CmdDispatchInfo {
                 }
                 ret = task.handleCommand();
                 if (ret == CommandTask.SUCCESS) {
+                    mSubSystemFacade.acquireWakeLock(task.getCommandId());
                     mToPairTaskList.add(task);
                 }
             }
@@ -229,6 +237,8 @@ public class CommandProcessor extends CmdDispatchInfo {
                         ret = task.handleCommand();
                         if (ret == CommandTask.SUCCESS) {
                             mToPairTaskList.remove(pc);
+                            mSubSystemFacade.releaseWakeLock(task
+                                    .getCommandId());
                         }
                         break;
                     }
@@ -276,6 +286,7 @@ public class CommandProcessor extends CmdDispatchInfo {
         LogManager.local(TAG, "Task End:" + task.getCommandType());
         synchronized (mRunningTaskList) {
             mRunningTaskList.remove(task);
+            mSubSystemFacade.releaseWakeLock(task.getCommandId());
         }
         return true;
     }

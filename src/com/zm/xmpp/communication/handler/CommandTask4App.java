@@ -68,7 +68,6 @@ public class CommandTask4App extends CommandTask {
 
     private int handleCommand4AppInstall(ICommand4App cmd) {
 
-        mSubSystemFacade.acquireWakeLock(TAG);
         if (mSubSystemFacade
                 .isNewPackage(cmd.getAppName(), cmd.getAppVersion())) {
             LogManager.local(TAG, "download new APK");
@@ -80,7 +79,6 @@ public class CommandTask4App extends CommandTask {
                         public void callback(int result) {
                             postResult(result, getInstallErrorCode(result));
                             endTask();
-                            mSubSystemFacade.releaseWakeLock(TAG);
                         }
                     });
             if (install == RemotePackageManager.INSTALL_DOWNLOADING) {
@@ -88,7 +86,6 @@ public class CommandTask4App extends CommandTask {
             } else {
                 postResult(install, getInstallErrorCode(install));
             }
-            mSubSystemFacade.releaseWakeLock(TAG);
             return install == RemotePackageManager.INSTALL_SUCCESS ? SUCCESS
                     : FAILED;
         } else {
