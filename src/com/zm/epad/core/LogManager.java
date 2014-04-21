@@ -312,7 +312,7 @@ public class LogManager {
     private String getLogFileName(String date) {
         // defined with server team
         // log file name is: logTypeDir/<deviceId>.<date>.log
-        return CoreConstants.CONSTANT_DEVICEID + "." + date + ".log";
+        return Config.getDeviceId() + "." + date + ".log";
     }
 
     private boolean checkIfCreateLogFile(int type) {
@@ -343,7 +343,7 @@ public class LogManager {
                     }
                     // back up file name is:
                     // <deviceId>.<date>.<Current UTC>.log
-                    String filename = CoreConstants.CONSTANT_DEVICEID + "."
+                    String filename = Config.getDeviceId() + "."
                             + getTodayDateString(null) + "_"
                             + System.currentTimeMillis() + ".log";
                     backup = new File(mDefaultLogDirs[type], filename);

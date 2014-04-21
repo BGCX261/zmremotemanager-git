@@ -71,7 +71,7 @@ public class RemoteManagerService extends Service {
             mLoginBundle.putString(CoreConstants.CONSTANT_PASSWORD,
                     data.getString(CoreConstants.CONSTANT_PASSWORD));
             mLoginBundle.putString(CoreConstants.CONSTANT_RESOURCE,
-                    CoreConstants.CONSTANT_DEVICEID);
+                    Config.getDeviceId());
             mDebugMode = true;
         } else {
             // if no info, use the info in config

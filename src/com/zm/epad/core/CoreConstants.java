@@ -18,7 +18,7 @@ public interface CoreConstants {
     final static String CONSTANT_UPLOAD = "upload";
     final static String CONSTANT_MIME = "mime";
     final static String CONSTANT_MIME_DEFAULT = "text/plain";
-    final static String CONSTANT_DEVICEID = Build.SERIAL;
+    final static String CONSTANT_BUILDID = Build.SERIAL;
     final static String CONSTANT_IMG_PNG = "image/png";
     final static String CONSTANT_POLICY = "policy";
 

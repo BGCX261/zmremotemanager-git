@@ -26,12 +26,21 @@ public class Config {
     private final String CONFIG_PATH;
     private static Config sInstance = null;
     private Context mContext = null;
+    private String mDeviceId = null;
 
     private HashMap<String, String> ConfigMap = new HashMap<String, String>();
     private String[] mUnchangableConfigs = { SERVER_ADDRESS, USERNAME };
 
     public static Config getConfig() {
         return sInstance;
+    }
+
+    public static String getDeviceId() {
+        if (sInstance != null) {
+            return sInstance.mDeviceId;
+        } else {
+            return CoreConstants.CONSTANT_BUILDID;
+        }
     }
 
     public static Config loadConfig(Context context) {
@@ -86,6 +95,7 @@ public class Config {
         mContext = context;
         CONFIG_PATH = context.getFilesDir().getAbsolutePath();
         readConfigInfo();
+        mDeviceId = getConfig(USERNAME);
     }
 
     private void readConfigInfo() {

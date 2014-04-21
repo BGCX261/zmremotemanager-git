@@ -10,6 +10,7 @@ import android.text.format.Time;
 
 import com.android.internal.os.PkgUsageStats;
 
+import com.zm.epad.core.Config;
 import com.zm.epad.core.CoreConstants;
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.SubSystemFacade;
@@ -112,7 +113,7 @@ public class ResultFactory {
 
             ret.setId(id);
             ret.setStatus(status);
-            ret.setDeviceId(CoreConstants.CONSTANT_DEVICEID/* Build.SERIAL */);
+            ret.setDeviceId(Config.getDeviceId());
             ret.setIssueTime(getCurrentTime());
             ret.setDirection(Constants.XMPP_NAMESPACE_PAD);
         }
@@ -165,7 +166,7 @@ public class ResultFactory {
 
         for (IResult r : resultList) {
             r.setId(id);
-            r.setDeviceId(CoreConstants.CONSTANT_DEVICEID/* Build.SERIAL */);
+            r.setDeviceId(Config.getDeviceId());
             r.setIssueTime(getCurrentTime());
             r.setDirection(Constants.XMPP_NAMESPACE_PAD);
         }
@@ -255,7 +256,7 @@ public class ResultFactory {
 
         if (ret != null) {
             ret.setId(id);
-            ret.setDeviceId(CoreConstants.CONSTANT_DEVICEID/* Build.SERIAL */);
+            ret.setDeviceId(Config.getDeviceId());
             ret.setIssueTime(getCurrentTime());
             ret.setDirection(Constants.XMPP_NAMESPACE_PAD);
         }
@@ -380,7 +381,7 @@ public class ResultFactory {
         public void sendResult(IResult result) {
             if (mCallback != null) {
                 result.setId(mId);
-                result.setDeviceId(CoreConstants.CONSTANT_DEVICEID);
+                result.setDeviceId(Config.getDeviceId());
                 result.setIssueTime(getCurrentTime());
                 result.setDirection(Constants.XMPP_NAMESPACE_PAD);
 

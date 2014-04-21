@@ -547,21 +547,11 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     }
 
     public boolean login(String usrName, String password, String resource) {
-        if (usrName == null || password == null) {
-            LogManager
-                    .local(TAG,
-                            "xmppclient login failed,either username or password is null");
+        if (usrName == null || password == null || resource == null) {
+            LogManager.local(TAG, "xmppclient login failed due to null info");
             return false;
         }
-        if (resource == null && CoreConstants.CONSTANT_DEVICEID == null) {
-            if (CoreConstants.CONSTANT_DEVICEID == null) {
-                LogManager.local(TAG,
-                        "xmppclient login failed due to resource is null");
-                return false;
-            }
-            resource = CoreConstants.CONSTANT_DEVICEID;
 
-        }
         boolean bRet = true;
         try {
             mStatusLock.lock();
