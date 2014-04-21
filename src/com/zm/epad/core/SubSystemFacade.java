@@ -23,6 +23,7 @@ import com.zm.epad.plugins.RemoteFileManager.FileTransferCallback;
 import com.zm.epad.plugins.RemotePackageManager;
 import com.zm.epad.plugins.RemotePackageManager.installCallback;
 import com.zm.epad.plugins.RemoteStatsManager;
+import com.zm.epad.plugins.RemoteWebManager;
 import com.zm.epad.plugins.SmartShareManager;
 import com.zm.epad.plugins.policy.RemotePolicyManager;
 import com.zm.epad.structure.Application;
@@ -50,6 +51,7 @@ public class SubSystemFacade {
     private RemoteStatsManager mStatsManager;
     private RemoteAlarmManager mAlarmManager;
     private SmartShareManager mSmartShare;
+    private RemoteWebManager mWebManager;
 
     private Context mContext;
     private static SubSystemFacade gSubSystemFacade = null;
@@ -128,6 +130,8 @@ public class SubSystemFacade {
 
         mStatsManager = new RemoteStatsManager(mContext);
         mStatsManager.start();
+
+        mWebManager = new RemoteWebManager(mContext);
     }
 
     public RemotePackageManager getRemotePackageManager() {
@@ -586,5 +590,9 @@ public class SubSystemFacade {
 
     public void releaseWakeLock(String tag) {
         mDeviceManager.releaseWakeLock(tag);
+    }
+
+    public List<RemoteWebManager.WebVisitInfo> getBrowserHistory() {
+        return mWebManager.getBrowerHistory();
     }
 }
