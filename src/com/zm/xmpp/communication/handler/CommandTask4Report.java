@@ -4,6 +4,7 @@ import java.util.List;
 
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.os.Handler;
+import android.os.Message;
 import android.provider.Settings;
 
 import com.zm.epad.core.CoreConstants;
@@ -13,6 +14,7 @@ import com.zm.epad.plugins.RemoteDeviceManager;
 import com.zm.epad.plugins.RemoteDeviceManager.RemoteLocation;
 import com.zm.epad.plugins.RemotePackageManager;
 import com.zm.xmpp.communication.client.ZMIQCommand;
+import com.zm.xmpp.communication.client.ZMIQResult;
 import com.zm.xmpp.communication.command.Command4Report;
 import com.zm.xmpp.communication.result.IResult;
 import com.zm.xmpp.communication.Constants;
@@ -36,6 +38,8 @@ public class CommandTask4Report extends PairCommandTask {
     private final String mAction;
     private final String mPair;
     private final boolean mIsStart;
+    private final int NORMAL_RESULT_COUNT = 1;
+    private int mResultCount;
 
     private long APP_DEFAULT_INTERVAL = 5 * 1000;
     private long POSITION_DEFAULT_INTERVAL = 5 * 1000;
@@ -118,6 +122,29 @@ public class CommandTask4Report extends PairCommandTask {
         return mAction;
     }
 
+    private String getNameWithoutResource(String wholeName) {
+        int slash = wholeName.indexOf("/");
+        return wholeName.substring(0, slash);
+    }
+
+    @Override
+    protected void postResult(IResult result) {
+        ZMIQResult IQResult = new ZMIQResult(mIQCommand);
+        if (++mResultCount > NORMAL_RESULT_COUNT + 1) {
+            // As the request of server team, send result without
+            // resource if it's not the 1st feature result
+            String to = getNameWithoutResource(IQResult.getTo());
+            IQResult.setTo(to);
+        }
+
+        LogManager.local(TAG, "result count:" + mResultCount + "; to:"
+                + IQResult.getTo());
+
+        IQResult.setResult(result);
+        Message msg = mHandler.obtainMessage(EVT_RESULT, IQResult);
+        mHandler.sendMessage(msg);
+    }
+
     @Override
     public boolean isDuplicated(PairCommandTask task) {
         if (task instanceof CommandTask4Report) {
@@ -143,6 +170,7 @@ public class CommandTask4Report extends PairCommandTask {
     @Override
     protected void closeWithoutPair() {
         if (mAction.equals(Constants.XMPP_REPORT_LOCATE)) {
+            mResultCount = 0;
             stopTrackLocation();
         }
     }
@@ -151,6 +179,7 @@ public class CommandTask4Report extends PairCommandTask {
     protected int handleCommand(ZMIQCommand command) {
         int ret = FAILED;
         if (mAction.equals(Constants.XMPP_REPORT_LOCATE)) {
+            mResultCount = 0;
             ret = startTrackLocation();
         } else if (mAction.equals(Constants.XMPP_REPORT_UNLOCATE)) {
             ret = stopTrackLocation();
