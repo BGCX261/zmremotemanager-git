@@ -12,6 +12,8 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
 import android.content.Context;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 
 public class Config {
     public static final String SERVER_ADDRESS = "server_address";
@@ -23,9 +25,10 @@ public class Config {
     private final String CHARSET = "utf-8";
     private final String CONFIG_PATH;
     private static Config sInstance = null;
+    private Context mContext = null;
 
     private HashMap<String, String> ConfigMap = new HashMap<String, String>();
-    private String[] mChangableConfigs = { USERNAME, PASSWORD };
+    private String[] mUnchangableConfigs = { SERVER_ADDRESS, USERNAME };
 
     public static Config getConfig() {
         return sInstance;
@@ -66,20 +69,21 @@ public class Config {
     }
 
     public boolean isAccountInitiated() {
-        return getConfig(Config.USERNAME) == null ? false : true;
+        return getConfig(Config.PASSWORD) == null ? false : true;
     }
 
     private boolean isChangeable(String key) {
-        for (String s : mChangableConfigs) {
+        for (String s : mUnchangableConfigs) {
             if (key.equals(s)) {
-                return true;
+                return false;
             }
         }
 
-        return false;
+        return true;
     }
 
     private Config(Context context) throws Exception {
+        mContext = context;
         CONFIG_PATH = context.getFilesDir().getAbsolutePath();
         readConfigInfo();
     }
@@ -160,7 +164,17 @@ public class Config {
     }
 
     private void setDefaultConfig() {
-        ConfigMap.put(RESOURCE, CoreConstants.CONSTANT_DEVICEID);
         ConfigMap.put(SERVER_ADDRESS, CoreConstants.CONSTANT_SERVER_ADDRESS);
+
+        // This function may be called before sub-system start
+        // So use WifiManager directly instead of RemoteDeviceManager
+        WifiManager wifi = (WifiManager) mContext
+                .getSystemService(Context.WIFI_SERVICE);
+        WifiInfo info = wifi.getConnectionInfo();
+        String mac = info.getMacAddress();
+        String userName = mac.replace(":", "-");
+        ConfigMap.put(USERNAME, userName);
+
+        ConfigMap.put(RESOURCE, CoreConstants.CONSTANT_DEFALT_RESOURCE);
     }
 }

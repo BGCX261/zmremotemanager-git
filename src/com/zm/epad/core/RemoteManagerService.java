@@ -30,6 +30,7 @@ public class RemoteManagerService extends Service {
     private SubSystemFacade mSubSystem = null;
     private RemoteManagerStub mInterfaceStub = null;
     private final String REMOTE_SERVICE_NAME = "com.zm.epad.IRemoteManager";
+    private boolean mDebugMode = false;
 
     @Override
     public void onCreate() {
@@ -71,6 +72,7 @@ public class RemoteManagerService extends Service {
                     data.getString(CoreConstants.CONSTANT_PASSWORD));
             mLoginBundle.putString(CoreConstants.CONSTANT_RESOURCE,
                     CoreConstants.CONSTANT_DEVICEID);
+            mDebugMode = true;
         } else {
             // if no info, use the info in config
             mLoginBundle.putString(CoreConstants.CONSTANT_SERVER,
@@ -81,6 +83,7 @@ public class RemoteManagerService extends Service {
                     mConfig.getConfig(Config.PASSWORD));
             mLoginBundle.putString(CoreConstants.CONSTANT_RESOURCE,
                     mConfig.getConfig(Config.RESOURCE));
+            mDebugMode = false;
         }
     }
 
@@ -131,7 +134,7 @@ public class RemoteManagerService extends Service {
          */
         mXmppClient.start();
         // if (mLoginBundle.getString(CoreConstants.CONSTANT_USRNAME) != null) {
-        if (mConfig.isAccountInitiated()) {
+        if (mConfig.isAccountInitiated() || mDebugMode == true) {
             mXmppClient.connect(mLoginBundle
                     .getString(CoreConstants.CONSTANT_SERVER));
             mXmppClient.login(
@@ -156,8 +159,8 @@ public class RemoteManagerService extends Service {
     private class RemoteManagerStub extends IRemoteManager.Stub implements
             XmppClient.XmppClientCallback {
 
-        private Object mSyncLock = new Object();
-        private String mLoginStatus = null;
+        private Object mSyncLock = null;
+        private boolean mLoginStatus = false;
 
         @Override
         public boolean login(String userName, String password)
@@ -165,36 +168,38 @@ public class RemoteManagerService extends Service {
             LogManager.local(TAG, "login:" + userName + ";" + password);
             boolean bRet = false;
             try {
-                String resource = mLoginBundle
-                        .getString(CoreConstants.CONSTANT_RESOURCE);
                 int status = mXmppClient.getStatus();
                 if (mConfig.isAccountInitiated()) {
                     LogManager.local(TAG, "Already initiated:" + status);
                     return false;
                 }
 
+                String defaultUser = mLoginBundle
+                        .getString(CoreConstants.CONSTANT_USRNAME);
+                String resource = mLoginBundle
+                        .getString(CoreConstants.CONSTANT_RESOURCE);
+                LogManager.local(TAG, "XMPP user:" + defaultUser);
+
                 mXmppClient.connect(mLoginBundle
                         .getString(CoreConstants.CONSTANT_SERVER));
-                bRet = mXmppClient.login(userName, password, resource);
+                bRet = mXmppClient.login(defaultUser, password, resource);
                 if (bRet == false) {
                     return false;
                 }
-                mLoginStatus = new String("false");
+
+                mSyncLock = new Object();
                 synchronized (mSyncLock) {
                     mSyncLock.wait(5000);
                     bRet = Boolean.valueOf(mLoginStatus);
                     LogManager.local(TAG, "Login Done:" + mLoginStatus);
-                    mLoginStatus = null;
+                    mSyncLock = null;
                 }
 
                 if (bRet) {
-                    // if success, save username and password
-                    mConfig.setConfig(Config.USERNAME, userName);
+                    // if success, save password
                     mConfig.setConfig(Config.PASSWORD, password);
                     mConfig.saveConfig();
 
-                    mLoginBundle.putString(CoreConstants.CONSTANT_USRNAME,
-                            mConfig.getConfig(Config.USERNAME));
                     mLoginBundle.putString(CoreConstants.CONSTANT_PASSWORD,
                             mConfig.getConfig(Config.PASSWORD));
                 }
@@ -211,11 +216,10 @@ public class RemoteManagerService extends Service {
             LogManager.local(TAG, "XMPPClientEvent:" + xmppClientEvent);
             switch (xmppClientEvent) {
             case XmppClient.XMPPCLIENT_EVENT_LOGIN:
-                if (args.length > 0 && mLoginStatus != null) {
+                if (args.length > 0 && mSyncLock != null) {
                     synchronized (mSyncLock) {
-                        boolean login = (Boolean) args[0];
-                        LogManager.local(TAG, "login event:" + login);
-                        mLoginStatus = String.valueOf(login);
+                        mLoginStatus = (Boolean) args[0];
+                        LogManager.local(TAG, "login event:" + mLoginStatus);
                         mSyncLock.notifyAll();
                     }
                 }

@@ -8,6 +8,7 @@ public interface CoreConstants {
     final static String CONSTANT_USRNAME = "username";
     final static String CONSTANT_PASSWORD = "password";
     final static String CONSTANT_RESOURCE = "resource";
+    final static String CONSTANT_DEFALT_RESOURCE = "default";
     final static String CONSTANT_COMMANDID = "commandid";
     final static String CONSTANT_DEFAULTSET = "defaultset";
     final static String CONSTANT_CRC = "crc";
