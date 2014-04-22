@@ -38,6 +38,7 @@ public class Constants {
     static public final String XMPP_QUERY_CAPTURE = "capture";
     static public final String XMPP_QUERY_LOG = "log";
     static public final String XMPP_QUERY_RUNNING = "runing";
+    static public final String XMPP_QUERY_WEBHISTORY = "webhistory";
 
     static public final String XMPP_REPORT_LOCATE = "locate";
     static public final String XMPP_REPORT_UNLOCATE = "unlocate";
