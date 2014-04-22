@@ -35,8 +35,8 @@ public abstract class PairCommandTask extends CommandTask {
     public void invalidate() {
         // in normal case, only send done result
         IResult result = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
-                mIQCommand.getCommand().getId(), Constants.RESULT_DONE, null, null);
-        result.setAction(mIQCommand.getCommand().getAction());
+                mIQCommand.getCommand().getId(), Constants.RESULT_DONE,
+                mIQCommand.getCommand().getAction(), null, null);
         postResult(result);
     }
 }

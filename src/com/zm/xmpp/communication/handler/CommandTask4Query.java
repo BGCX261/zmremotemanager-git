@@ -5,7 +5,6 @@ import java.util.List;
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
 
 import com.zm.epad.core.CoreConstants;
 import com.zm.epad.core.LogManager;
@@ -13,9 +12,7 @@ import com.zm.epad.core.SubSystemFacade;
 import com.zm.epad.plugins.RemoteFileManager;
 import com.zm.epad.plugins.RemoteFileManager.FileTransferTask;
 import com.zm.xmpp.communication.client.ZMIQCommand;
-import com.zm.xmpp.communication.client.ZMIQResult;
 import com.zm.xmpp.communication.result.IResult;
-import com.zm.xmpp.communication.command.ICommand;
 import com.zm.xmpp.communication.command.ICommand4Query;
 import com.zm.xmpp.communication.Constants;
 
@@ -46,6 +43,8 @@ public class CommandTask4Query extends CommandTask {
             ret = handleQueryLogUpload(cmd);
         } else if (action.equals(Constants.XMPP_QUERY_RUNNING)) {
             ret = handleQueryRunningApp(cmd);
+        } else if (action.equals(Constants.XMPP_QUERY_WEBHISTORY)) {
+            ret = handleQueryWebHistory(cmd);
         } else {
             LogManager.local(TAG, "handleCommand4Query bad action");
         }
@@ -104,11 +103,12 @@ public class CommandTask4Query extends CommandTask {
         Bundle info = new Bundle();
         setCaptureBundleInfo(info, cmd);
 
-        if(!mSubSystemFacade.isScreenOn()) {
+        if (!mSubSystemFacade.isScreenOn()) {
             LogManager.local(TAG, "screen is off, only send sleep result");
-            IResult result = mResultFactory.getResult(ResultFactory.RESULT_NORMAL,
-                    mIQCommand.getCommand().getId(), Constants.RESULT_SLEEP, null, null);
-            result.setAction(mIQCommand.getCommand().getAction());
+            IResult result = mResultFactory.getResult(
+                    ResultFactory.RESULT_NORMAL, mIQCommand.getCommand()
+                            .getId(), Constants.RESULT_SLEEP, mIQCommand
+                            .getCommand().getAction(), null, null);
             postResult(result);
             return SUCCESS;
         }
@@ -158,6 +158,13 @@ public class CommandTask4Query extends CommandTask {
             return FAILED;
         }
         IResult iResult = mResultFactory.getRunningAppResult(infos);
+        postResult(iResult);
+        return SUCCESS;
+    }
+
+    private int handleQueryWebHistory(ICommand4Query cmd) {
+        IResult iResult = mResultFactory.getResult(
+                ResultFactory.RESULT_WEB_HISTORY, cmd.getId(), cmd.getAction());
         postResult(iResult);
         return SUCCESS;
     }

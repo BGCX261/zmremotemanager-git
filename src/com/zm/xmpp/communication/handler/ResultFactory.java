@@ -15,6 +15,7 @@ import com.zm.epad.core.CoreConstants;
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.SubSystemFacade;
 import com.zm.epad.plugins.RemoteDeviceManager;
+import com.zm.epad.plugins.RemoteWebManager;
 import com.zm.epad.plugins.RemoteDeviceManager.RemoteLocation;
 import com.zm.epad.plugins.RemotePackageManager;
 import com.zm.epad.structure.Application;
@@ -44,6 +45,7 @@ public class ResultFactory {
     public static final int RESULT_RUNNINGAPP = 5;
     public static final int RESULT_APPUSAGE = 6;
     public static final int RESULT_POSITION = 7;
+    public static final int RESULT_WEB_HISTORY = 8;
 
     private static final int RESULT_APPINFO_LENGTH_MAX = 120;
     private static final int RESULT_APPINFO_LENGTH_TAG = 80;
@@ -73,8 +75,8 @@ public class ResultFactory {
         public void handleResult(IResult result);
     }
 
-    public IResult getResult(int type, String id, String status, Object obj,
-            ResultCallback callback) {
+    public IResult getResult(int type, String id, String status, String action,
+            Object obj, ResultCallback callback) {
         IResult ret = null;
 
         switch (type) {
@@ -98,6 +100,9 @@ public class ResultFactory {
         case RESULT_POSITION:
             ret = getPositionResult(obj);
             break;
+        case RESULT_WEB_HISTORY:
+            ret = getWebHistoryResult();
+            break;
         default:
             LogManager.local(TAG, "bad type: " + type);
             ret = null;
@@ -113,6 +118,7 @@ public class ResultFactory {
 
             ret.setId(id);
             ret.setStatus(status);
+            ret.setAction(action);
             ret.setDeviceId(Config.getDeviceId());
             ret.setIssueTime(getCurrentTime());
             ret.setDirection(Constants.XMPP_NAMESPACE_PAD);
@@ -122,15 +128,15 @@ public class ResultFactory {
     }
 
     public IResult getResult(int type, String id) {
-        return getResult(type, id, null, null, null);
+        return getResult(type, id, null, null, null, null);
     }
 
-    public IResult getResult(int type, String id, String status) {
-        return getResult(type, id, status, null, null);
+    public IResult getResult(int type, String id, String action) {
+        return getResult(type, id, null, action, null, null);
     }
 
     public IResult getResult(int type, String id, Object obj) {
-        return getResult(type, id, null, obj, null);
+        return getResult(type, id, null, null, obj, null);
     }
 
     public List<IResult> getResults(int type, String id) {
@@ -146,7 +152,7 @@ public class ResultFactory {
         List<IResult> resultList = null;
 
         IResult ret = getResult(type, id, CoreConstants.CONSTANT_RESULT_DONE_0,
-                null, callback);
+                null, null, callback);
         if (ret != null) {
             resultList = new ArrayList<IResult>();
             resultList.add(ret);
@@ -177,8 +183,7 @@ public class ResultFactory {
             String errorCode) {
         IResult result = getResult(RESULT_NORMAL, command.getId(),
                 success == true ? Constants.RESULT_OK : Constants.RESULT_ERR,
-                null, null);
-        result.setAction(command.getAction());
+                command.getAction(), null, null);
         result.setErrorCode(success ? null : errorCode);
         return result;
     }
@@ -248,6 +253,9 @@ public class ResultFactory {
             break;
         case RESULT_POSITION:
             ret = new ResultDeviceReport();
+            break;
+        case RESULT_WEB_HISTORY:
+            ret = new ResultWebVisit();
             break;
         default:
             LogManager.local(TAG, "bad type: " + type);
@@ -474,6 +482,16 @@ public class ResultFactory {
         result.setLatitude(String.valueOf(location.mLatitude));
         result.setLoctime(location.mTime);
 
+        return result;
+    }
+
+    private IResult getWebHistoryResult() {
+        ResultWebVisit result = new ResultWebVisit();
+        List<RemoteWebManager.WebVisitInfo> infos = mSubSystemFacade
+                .getBrowserHistory();
+        for (RemoteWebManager.WebVisitInfo vi : infos) {
+            result.setVisitInfo(vi.url, vi.title, vi.lastDate, vi.visits);
+        }
         return result;
     }
 }
