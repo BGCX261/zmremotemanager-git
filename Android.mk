@@ -3,7 +3,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_TAGS := optional
 
-LOCAL_SRC_FILES := $(call all-java-files-under, src) 
+LOCAL_SRC_FILES := $(call all-java-files-under, src)
+LOCAL_SRC_FILES += src/com/zm/epad/plugins/backup/IZmObserver.aidl
+LOCAL_SRC_FILES += src/com/zm/epad/plugins/backup/IZmBackupManager.aidl
 
 #LOCAL_JAVA_LIBRARIES := services telephony-common
 

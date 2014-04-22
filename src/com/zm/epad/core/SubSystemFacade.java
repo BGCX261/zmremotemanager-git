@@ -12,6 +12,7 @@ import android.os.PowerManager;
 import android.os.UserManager;
 
 import com.android.internal.os.PkgUsageStats;
+import com.zm.epad.plugins.BackupManager;
 import com.zm.epad.plugins.RemoteAlarmManager;
 import com.zm.epad.plugins.RemoteAlarmManager.AlarmCallback;
 import com.zm.epad.plugins.RemoteDesktopManager;
@@ -25,6 +26,7 @@ import com.zm.epad.plugins.RemotePackageManager.installCallback;
 import com.zm.epad.plugins.RemoteStatsManager;
 import com.zm.epad.plugins.RemoteWebManager;
 import com.zm.epad.plugins.SmartShareManager;
+import com.zm.epad.plugins.backup.IZmObserver;
 import com.zm.epad.plugins.policy.RemotePolicyManager;
 import com.zm.epad.structure.Application;
 import com.zm.epad.structure.Configuration;
@@ -52,6 +54,7 @@ public class SubSystemFacade {
     private RemoteAlarmManager mAlarmManager;
     private SmartShareManager mSmartShare;
     private RemoteWebManager mWebManager;
+    private BackupManager mBackupManager;
 
     private Context mContext;
     private static SubSystemFacade gSubSystemFacade = null;
@@ -132,6 +135,8 @@ public class SubSystemFacade {
         mStatsManager.start();
 
         mWebManager = new RemoteWebManager(mContext);
+
+        mBackupManager = new BackupManager(mContext);
     }
 
     public RemotePackageManager getRemotePackageManager() {
@@ -594,5 +599,29 @@ public class SubSystemFacade {
 
     public List<RemoteWebManager.WebVisitInfo> getBrowserHistory() {
         return mWebManager.getBrowerHistory();
+    }
+
+    public boolean supportBackupOrRestore() {
+        return mBackupManager.supportBackupOrRestore();
+    }
+
+    public boolean backingUp() {
+        return mBackupManager.backingUp();
+    }
+
+    public void backup(IZmObserver observer) {
+        mBackupManager.backup(observer);
+    }
+
+    public boolean restoring() {
+        return mBackupManager.restoring();
+    }
+
+    public void restore(IZmObserver observer) {
+        mBackupManager.restore(observer);
+    }
+
+    public boolean running() {
+        return mBackupManager.running();
     }
 }

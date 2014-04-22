@@ -4,6 +4,7 @@ import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.RemoteException;
 import android.preference.CheckBoxPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
@@ -16,6 +17,7 @@ import android.util.Log;
 
 import com.zm.epad.R;
 import com.zm.epad.core.SubSystemFacade;
+import com.zm.epad.plugins.backup.IZmObserver;
 
 import org.apache.http.conn.util.InetAddressUtils;
 
@@ -33,6 +35,8 @@ public class PreferencesForApiTesting extends PreferenceActivity {
     private static final String KEY_DESKTOP = "switch_desktop_preference";
     private static final String KEY_BLANK_TIMEOUT = "screen_timeout_list_preference";
     private static final String KEY_BLANK_START = "blank_screen_checkbox_preference";
+    private static final String KEY_BACKUP = "backup_preference";
+    private static final String KEY_RESTORE = "restore_preference";
 
     // members to test remote desktop
     private SwitchPreference mDesktopPref;
@@ -44,6 +48,10 @@ public class PreferencesForApiTesting extends PreferenceActivity {
     private CheckBoxPreference mBlankSceenPref;
     private static final int TIMEOUT_TO_START_BLANK = 2;
     private int mTimeout = 5;
+
+    // members to test backup function
+    private SwitchPreference mBackupPref;
+    private SwitchPreference mRestorePref;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -122,6 +130,31 @@ public class PreferencesForApiTesting extends PreferenceActivity {
         mTimeout = Integer.parseInt((String)timeoutPref.getValue());
         mBlankSceenPref.setChecked(false);
 
+        // Testing
+        PreferenceCategory backupPrefCat = new PreferenceCategory(this);
+        backupPrefCat.setTitle(R.string.pfat_cat_backup);
+        root.addPreference(backupPrefCat);
+
+        // backup preference
+        mBackupPref = new SwitchPreference(this);
+        mBackupPref.setKey(KEY_BACKUP);
+        mBackupPref.setTitle(R.string.pfat_backup);
+        mBackupPref.setSummary("idle");
+        mBackupPref.setOnPreferenceChangeListener(mOnPreferenceChangeListener);
+        backupPrefCat.addPreference(mBackupPref);
+
+        // Restore preference
+        mRestorePref = new SwitchPreference(this);
+        mRestorePref.setKey(KEY_RESTORE);
+        mRestorePref.setTitle(R.string.pfat_restore);
+        mRestorePref.setSummary("idle");
+        mRestorePref.setOnPreferenceChangeListener(mOnPreferenceChangeListener);
+        backupPrefCat.addPreference(mRestorePref);
+
+        if (!getInstance().supportBackupOrRestore()) {
+            backupPrefCat.setEnabled(false);
+        }
+
         return root;
     }
 
@@ -145,6 +178,10 @@ public class PreferencesForApiTesting extends PreferenceActivity {
                     }
                 } else if (KEY_BLANK_START.equals(preference.getKey())) {
                     testDisableScreen(enable);
+                } else if (KEY_BACKUP.equals(preference.getKey())) {
+                    testBackup(enable);
+                } else if (KEY_RESTORE.equals(preference.getKey())) {
+                    testRestore(enable);
                 }
                 return true;
             } else if (preference instanceof ListPreference) {
@@ -304,4 +341,114 @@ public class PreferencesForApiTesting extends PreferenceActivity {
         mDesktopNotify = null;
         mDesktopHandler = null;
     }
+
+    private int mBackupOrRestoreCount;
+
+    private IZmObserver.Stub mBackupObserver = new IZmObserver.Stub() {
+
+        @Override
+        public void onRecordStart(String name) throws RemoteException {
+            mBackupOrRestoreCount ++;
+            note("backup [" + mBackupOrRestoreCount + "] " + name + "    .");
+        }
+
+        @Override
+        public void onRecordProgress(String name) throws RemoteException {
+            note("backup [" + mBackupOrRestoreCount + "] " + name + "    ..");
+
+        }
+
+        @Override
+        public void onRecordEnd(String name) throws RemoteException {
+            note("backup [" + mBackupOrRestoreCount + "] " + name + "    ...");
+
+        }
+
+        @Override
+        public void onRecordTimeout(String name) throws RemoteException {
+            note("backup [" + mBackupOrRestoreCount + "] " + name + "    timeout");
+        }
+
+		@Override
+		public void onStart(String path) throws RemoteException {
+			note("start backup at " + path);
+		}
+
+		@Override
+		public void onEnd(String path, int system, int installed, int file)
+				throws RemoteException {
+			note("backup finished: " + system + " system apps, " + installed +
+					" installed, " + file + " files, at " + path);
+		}
+
+        private void note(final String i) {
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mBackupPref.setSummary(i);
+                }
+            });
+        }
+    };
+
+    private void testBackup(boolean enable) {
+        if (enable && !getInstance().running()) {
+            mBackupOrRestoreCount = 0;
+            getInstance().backup(mBackupObserver);
+        }
+    }
+
+    private IZmObserver.Stub mRestoreObserver = new IZmObserver.Stub() {
+
+        @Override
+        public void onRecordStart(String name) throws RemoteException {
+            mBackupOrRestoreCount ++;
+            note("restore [" + mBackupOrRestoreCount + "] " + name + "    .");
+        }
+
+        @Override
+        public void onRecordProgress(String name) throws RemoteException {
+            note("restore [" + mBackupOrRestoreCount + "] " + name + "    ..");
+
+        }
+
+        @Override
+        public void onRecordEnd(String name) throws RemoteException {
+            note("restore [" + mBackupOrRestoreCount + "] " + name + "    ...");
+
+        }
+
+        @Override
+        public void onRecordTimeout(String name) throws RemoteException {
+            note("restore [" + mBackupOrRestoreCount + "] " + name + "    timeout");
+        }
+
+		@Override
+		public void onStart(String path) throws RemoteException {
+			note("start restore at " + path);
+		}
+
+		@Override
+		public void onEnd(String path, int system, int installed, int file)
+				throws RemoteException {
+			note("restore finished: " + system + " system apps, " + installed +
+					" installed, " + file + " files, at " + path);
+		}
+
+        private void note(final String i) {
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mRestorePref.setSummary(i);
+                }
+            });
+        }
+    };
+
+	private void testRestore(boolean enable) {
+        if (enable && !getInstance().running()) {
+            mBackupOrRestoreCount = 0;
+            getInstance().backup(mRestoreObserver);
+        }
+	}
 }

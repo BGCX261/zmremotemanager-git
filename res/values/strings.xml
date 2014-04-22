@@ -152,4 +152,7 @@
     <string name="pfat_toggle_screen_timeout_dialog">Keep screen diable:</string>
     <string name="pfat_blank_screen">Start blanking screen</string>
     <string name="pfat_blank_screen_sum">not started.</string>
+    <string name="pfat_cat_backup">Backup &amp; Restore</string>
+    <string name="pfat_backup">Backup your phone</string>
+    <string name="pfat_restore">Restore your phone</string>
 </resources>
