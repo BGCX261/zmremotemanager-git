@@ -182,8 +182,10 @@ public class Config {
                 .getSystemService(Context.WIFI_SERVICE);
         WifiInfo info = wifi.getConnectionInfo();
         String mac = info.getMacAddress();
-        String userName = mac.replace(":", "-");
-        ConfigMap.put(USERNAME, userName);
+        if (mac != null) {
+            String userName = mac.replace(":", "-");
+            ConfigMap.put(USERNAME, userName);
+        }
 
         ConfigMap.put(RESOURCE, CoreConstants.CONSTANT_DEFALT_RESOURCE);
     }
