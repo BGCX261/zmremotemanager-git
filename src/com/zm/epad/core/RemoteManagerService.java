@@ -61,7 +61,7 @@ public class RemoteManagerService extends Service {
 
     void prepareLoginData(Intent intent) {
         mConfig = Config.loadConfig(this);
-        Bundle data = intent.getExtras();
+        Bundle data = intent == null? null: intent.getExtras();
         if (data != null) {
             // if intent with login info, use this info
             mLoginBundle.putString(CoreConstants.CONSTANT_SERVER,
