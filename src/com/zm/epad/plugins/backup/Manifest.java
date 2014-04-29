@@ -114,7 +114,6 @@ class Manifest {
         recordElmnt.setAttribute(ATTR_RECORD_SIZE, String.valueOf(r.mSize));
         recordElmnt.setAttribute(ATTR_RECORD_ORDER, String.valueOf(r.mOrder));
 
-
         if (r instanceof AppRecord) {
             AppRecord ar = (AppRecord) r;
             recordElmnt.setAttribute(ATTR_RECORD_ID, ar.mPackageName);
@@ -188,8 +187,8 @@ class Manifest {
     }
 
     void close() {
-	if (mRoot != null) mRoot = null;
-	if (mDoc != null) mDoc = null;
+        if (mRoot != null) mRoot = null;
+        if (mDoc != null) mDoc = null;
     }
 
     String path() {
@@ -204,7 +203,7 @@ class Manifest {
         return simpleDateFormat.format(calendar.getTime());
     }
 
-	void readFromFile() {
+    void readFromFile() {
         if (mRoot != null) return;
         TransformerFactory transformerFactory = TransformerFactory.newInstance();
         Transformer transformer = null;
@@ -228,67 +227,67 @@ class Manifest {
         } catch (TransformerException e) {
             Log.e(TAG, e.getMessage(), e);
         } catch (ParserConfigurationException e) {
-		Log.e(TAG, e.getMessage(), e);
-		} finally {
+            Log.e(TAG, e.getMessage(), e);
+        } finally {
             transformer = null;
             transformerFactory = null;
             try {
                 if (fileInStream != null)
-			fileInStream.close();
+            fileInStream.close();
             } catch (IOException e) {
                 Log.e(TAG, e.getMessage(), e);
             }
         }
-	}
+    }
 
-	void readRoot() {
-		Element e = mDoc.getDocumentElement();
-		if (e.getNodeName().equals(ELMNT_RECORDSET)) {
-			String val;
-			val = e.getAttribute(ATTR_RECORDSET_VERSION);
-			if (val == null || Integer.parseInt(val) != RECORD_MANIFEST_VERSION_1) {
-				Log.e(TAG, "parse manifest error: version=" + val);
-			}
-			val = e.getAttribute(ATTR_RECORDSET_TIMESTAMP);
-			mDateInMillis = val == null ? 0 : Long.parseLong(val);
-			mSystemVersion = e.getAttribute(ATTR_SYSTEM_VERSION);
-		}
-	}
+    void readRoot() {
+        Element e = mDoc.getDocumentElement();
+        if (e.getNodeName().equals(ELMNT_RECORDSET)) {
+            String val;
+            val = e.getAttribute(ATTR_RECORDSET_VERSION);
+            if (val == null || Integer.parseInt(val) != RECORD_MANIFEST_VERSION_1) {
+                Log.e(TAG, "parse manifest error: version=" + val);
+            }
+            val = e.getAttribute(ATTR_RECORDSET_TIMESTAMP);
+            mDateInMillis = val == null ? 0 : Long.parseLong(val);
+            mSystemVersion = e.getAttribute(ATTR_SYSTEM_VERSION);
+        }
+    }
 
-	void readRecords(RecordSet recordSet) {
-		NodeList nl = mDoc.getElementsByTagName(ELMNT_RECORD);
-		for (int i = 0; i < nl.getLength(); i++) {
-			Element e = (Element)nl.item(i);
-			String val;
-			val = e.getAttribute(ATTR_RECORD_TYPE);
-			if (val == null) continue;
-			int type = Integer.parseInt(val);
-			Record r;
-			if (type == Record.TYPE_SYSTEM || type == Record.TYPE_INSTALLED) {
-				r = new AppRecord(recordSet, type == Record.TYPE_INSTALLED);
-			} else if (type == Record.TYPE_FILE) {
-				r = new FileRecord(recordSet);
-			} else {
-				continue;
-			}
-			r.mDisplayName = e.getAttribute(ATTR_RECORD_NAME);
-			val = e.getAttribute(ATTR_RECORD_SIZE);
-			r.mSize = (val == null) ? 0 : Long.parseLong(val);
-			val = e.getAttribute(ATTR_RECORD_ORDER);
-			r.mOrder = (val == null) ? 0 : Integer.parseInt(val);
-	        if (type == Record.TYPE_SYSTEM || type == Record.TYPE_INSTALLED) {
-	            AppRecord ar = (AppRecord) r;
-	            ar.mPackageName = e.getAttribute(ATTR_RECORD_ID);
-	            NodeList pl = e.getElementsByTagName(ELMNT_PACKAGE);
-	            ar.mAllPackages = new String[pl.getLength()];
-	            for (int j = 0; j < pl.getLength(); j++) {
-			Element p = (Element)pl.item(j);
-			ar.mAllPackages[j] = p.getNodeValue();
-	            }
-	        } else {
-	            //FileRecord fr = (FileRecord) r;
-	        }
-	        recordSet.addRecord(r);
-		}
-	}
+    void readRecords(RecordSet recordSet) {
+        NodeList nl = mDoc.getElementsByTagName(ELMNT_RECORD);
+        for (int i = 0; i < nl.getLength(); i++) {
+            Element e = (Element)nl.item(i);
+            String val;
+            val = e.getAttribute(ATTR_RECORD_TYPE);
+            if (val == null) continue;
+            int type = Integer.parseInt(val);
+            Record r;
+            if (type == Record.TYPE_SYSTEM || type == Record.TYPE_INSTALLED) {
+                r = new AppRecord(recordSet, type == Record.TYPE_INSTALLED);
+            } else if (type == Record.TYPE_FILE) {
+                r = new FileRecord(recordSet);
+            } else {
+                continue;
+            }
+            r.mDisplayName = e.getAttribute(ATTR_RECORD_NAME);
+            val = e.getAttribute(ATTR_RECORD_SIZE);
+            r.mSize = (val == null) ? 0 : Long.parseLong(val);
+            val = e.getAttribute(ATTR_RECORD_ORDER);
+            r.mOrder = (val == null) ? 0 : Integer.parseInt(val);
+            if (type == Record.TYPE_SYSTEM || type == Record.TYPE_INSTALLED) {
+                AppRecord ar = (AppRecord) r;
+                ar.mPackageName = e.getAttribute(ATTR_RECORD_ID);
+                NodeList pl = e.getElementsByTagName(ELMNT_PACKAGE);
+                ar.mAllPackages = new String[pl.getLength()];
+                for (int j = 0; j < pl.getLength(); j++) {
+                    Element p = (Element)pl.item(j);
+                    ar.mAllPackages[j] = p.getNodeValue();
+                }
+            } else {
+                //FileRecord fr = (FileRecord) r;
+            }
+            recordSet.addRecord(r);
+        }
+    }
 }

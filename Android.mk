@@ -10,6 +10,7 @@ LOCAL_SRC_FILES += src/com/zm/epad/plugins/backup/IZmBackupManager.aidl
 #LOCAL_JAVA_LIBRARIES := services telephony-common
 
 LOCAL_STATIC_JAVA_LIBRARIES := smackxmpp zmcommon IRemoteManager
+LOCAL_JAVA_LIBRARIES += telephony-common
 
 LOCAL_PACKAGE_NAME := RemoteManager
 LOCAL_CERTIFICATE := platform

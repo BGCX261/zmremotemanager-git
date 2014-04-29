@@ -155,4 +155,6 @@
     <string name="pfat_cat_backup">Backup &amp; Restore</string>
     <string name="pfat_backup">Backup your phone</string>
     <string name="pfat_restore">Restore your phone</string>
+    <string name="pfat_backup_special">Backup Contacts, CallLog, SMS</string>
+    <string name="pfat_restore_special">Restore Contacts, CallLog, SMS</string>
 </resources>

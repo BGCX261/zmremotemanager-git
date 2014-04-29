@@ -50,11 +50,11 @@ class AppRecord extends Record {
     }
 
     public AppRecord(RecordSet recordSet, boolean installed) {
-	super(recordSet);
-	mInstalled = installed;
-	}
+        super(recordSet);
+        mInstalled = installed;
+    }
 
-	@Override
+    @Override
     public String toString() {
         return "AppContent[" + mPackageName + " has " + mAllPackages.length + " packages]";
     }
@@ -68,7 +68,7 @@ class AppRecord extends Record {
                     ParcelFileDescriptor.MODE_CREATE |
                     ParcelFileDescriptor.MODE_TRUNCATE);
         } catch (FileNotFoundException e) {
-		Log.e(TAG, e.getMessage(), e);
+            Log.e(TAG, e.getMessage(), e);
             return;
         }
         try {
@@ -76,12 +76,12 @@ class AppRecord extends Record {
                     false, false, true, mAllPackages,
                     "aaaa", "aaaa", mFullObserver);
         } catch (RemoteException e) {
-		Log.e(TAG, e.getMessage(), e);
+            Log.e(TAG, e.getMessage(), e);
         }
         try {
             fd.close();
         } catch (IOException e) {
-		Log.e(TAG, e.getMessage(), e);
+            Log.e(TAG, e.getMessage(), e);
         }
     }
 
@@ -90,21 +90,21 @@ class AppRecord extends Record {
         ParcelFileDescriptor fd = null;
         try {
             fd = ParcelFileDescriptor.open(new File(path()),
-			ParcelFileDescriptor.MODE_READ_ONLY);
+            ParcelFileDescriptor.MODE_READ_ONLY);
         } catch (FileNotFoundException e) {
-		Log.e(TAG, e.getMessage(), e);
-		return;
+            Log.e(TAG, e.getMessage(), e);
+            return;
         }
         try {
             Adapter.fullRestoreSilently(mBackupManager, fd,
                     "aaaa", "aaaa", mFullObserver);
         } catch (RemoteException e) {
-		Log.e(TAG, e.getMessage(), e);
+            Log.e(TAG, e.getMessage(), e);
         }
         try {
             fd.close();
         } catch (IOException e) {
-		Log.e(TAG, e.getMessage(), e);
+            Log.e(TAG, e.getMessage(), e);
         }
     }
 
@@ -121,9 +121,9 @@ class AppRecord extends Record {
     private final IFullBackupRestoreObserver.Stub mFullObserver =
             new IFullBackupRestoreObserver.Stub() {
 
-	String prompt() {
-		return mDisplayName + " " + (mSize / 1024) + "Kb";
-	}
+    String prompt() {
+        return mDisplayName + " " + (mSize / 1024) + "Kb";
+    }
 
         @Override
         public void onStartBackup() throws RemoteException {
@@ -164,13 +164,13 @@ class AppRecord extends Record {
         }
     };
 
-	private class PackageSizeFetcher extends IPackageStatsObserver.Stub {
+    private class PackageSizeFetcher extends IPackageStatsObserver.Stub {
         AtomicInteger mCount = new AtomicInteger();
         int mSize;
 
         public synchronized void fetch() {
             for (String pkg : mAllPackages) {
-		mRecordSet.mPackageManager.getPackageSizeInfo(pkg, this);
+                mRecordSet.mPackageManager.getPackageSizeInfo(pkg, this);
             }
             try {
                 while (mCount.get() < mAllPackages.length) {
@@ -197,8 +197,8 @@ class AppRecord extends Record {
     };
 
     int getRoughSize() {
-	PackageSizeFetcher fetcher = new PackageSizeFetcher();
-	fetcher.fetch();
+        PackageSizeFetcher fetcher = new PackageSizeFetcher();
+        fetcher.fetch();
         return fetcher.mSize;
     }
 }

@@ -56,13 +56,13 @@ class RecordSet {
         mManifest.close();
     }
 
-	void readManifest() {
-		mManifest.readFromFile();
-		mManifest.readRoot();
-		mRecords.clear();
-		mManifest.readRecords(this);
-		mManifest.close();
-	}
+    void readManifest() {
+        mManifest.readFromFile();
+        mManifest.readRoot();
+        mRecords.clear();
+        mManifest.readRecords(this);
+        mManifest.close();
+    }
 
     /**
      * prepare.
@@ -84,24 +84,24 @@ class RecordSet {
         return true;
     }
 
-	boolean restoreOne() {
+    boolean restoreOne() {
         if (mTempRecords.size() <= 0) {
             return false;
         }
         Record item = mTempRecords.remove(0);
         item.restore();
         return true;
-	}
+    }
 
     private void gatheringSystemRecords() {
         AppRecord contacts = new AppRecord(this,
                 new String[] {"com.android.contacts",
-			              "com.android.contacts.common"}, false);
+                          "com.android.contacts.common"}, false);
         addSystemPackageInfo(contacts);
 
         AppRecord conversation = new AppRecord(this,
                 new String[] {"com.android.phone",
-			              "com.android.providers.telephony"}, false);
+                          "com.android.providers.telephony"}, false);
         addSystemPackageInfo(conversation);
 
         AppRecord chrome = new AppRecord(this,
@@ -168,37 +168,37 @@ class RecordSet {
         }
     }
 
-	int getSystemAppCount() {
-		int count = 0;
-		for (Record r : mRecords) {
-			if (r instanceof AppRecord && !((AppRecord)r).mInstalled) {
-				count++;
-			}
-		}
-		return count;
-	}
+    int getSystemAppCount() {
+        int count = 0;
+        for (Record r : mRecords) {
+            if (r instanceof AppRecord && !((AppRecord)r).mInstalled) {
+                count++;
+            }
+        }
+        return count;
+    }
 
-	int getInstalledAppCount() {
-		int count = 0;
-		for (Record r : mRecords) {
-			if (r instanceof AppRecord && ((AppRecord)r).mInstalled) {
-				count++;
-			}
-		}
-		return count;
-	}
+    int getInstalledAppCount() {
+        int count = 0;
+        for (Record r : mRecords) {
+            if (r instanceof AppRecord && ((AppRecord)r).mInstalled) {
+                count++;
+            }
+        }
+        return count;
+    }
 
-	int getFilesCount() {
-		int count = 0;
-		for (Record r : mRecords) {
-			if (r instanceof FileRecord) {
-				count += ((FileRecord)r).count();
-			}
-		}
-		return count;
-	}
+    int getFilesCount() {
+        int count = 0;
+        for (Record r : mRecords) {
+            if (r instanceof FileRecord) {
+                count += ((FileRecord)r).count();
+            }
+        }
+        return count;
+    }
 
-	void addRecord(Record r) {
-		mRecords.add(r);
-	}
+    void addRecord(Record r) {
+        mRecords.add(r);
+    }
 }
