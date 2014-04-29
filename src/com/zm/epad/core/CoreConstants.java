@@ -5,6 +5,8 @@ import android.os.Build;
 public interface CoreConstants {
     final static String CONSTANT_SERVER = "server";
     final static String CONSTANT_SERVER_ADDRESS = "114.215.110.230";
+    final static String CONSTANT_REST_CHECKEXIST = "http://114.215.110.230:8080/zmepadconsole/rest/user/qualifyifuserexist";
+    final static String CONSTANT_REST_SIGNON = "http://114.215.110.230:8080/zmepadconsole/rest/user/newdevicebyexistuser";
     final static String CONSTANT_USRNAME = "username";
     final static String CONSTANT_PASSWORD = "password";
     final static String CONSTANT_RESOURCE = "resource";
@@ -26,19 +28,16 @@ public interface CoreConstants {
     final static String CONSTANT_RESULT_DONE_ = "complete:";
     final static String CONSTANT_RESULT_DONE_0 = "complete:0";
 
-    final static int    CONSTANT_INT_LOGTYPE_COMMON = 0;
-    final static int    CONSTANT_INT_LOGTYPE_LOCATION = 1;
-    final static int    CONSTANT_INT_LOGTYPE_APPRUNTIME = 2;
-    final static int    CONSTANT_INT_LOGTYPE_RUNTIME = 3;
-    final static int[]    CONSTANT_INT_LOGTYPE_ARRAYS = {
-        CONSTANT_INT_LOGTYPE_COMMON,
-        CONSTANT_INT_LOGTYPE_LOCATION,
-        CONSTANT_INT_LOGTYPE_APPRUNTIME,
-        CONSTANT_INT_LOGTYPE_RUNTIME
-    };
-    
+    final static int CONSTANT_INT_LOGTYPE_COMMON = 0;
+    final static int CONSTANT_INT_LOGTYPE_LOCATION = 1;
+    final static int CONSTANT_INT_LOGTYPE_APPRUNTIME = 2;
+    final static int CONSTANT_INT_LOGTYPE_RUNTIME = 3;
+    final static int[] CONSTANT_INT_LOGTYPE_ARRAYS = {
+            CONSTANT_INT_LOGTYPE_COMMON, CONSTANT_INT_LOGTYPE_LOCATION,
+            CONSTANT_INT_LOGTYPE_APPRUNTIME, CONSTANT_INT_LOGTYPE_RUNTIME };
+
     final static String CONSTANT_LOGTAG_HEADER = "com.zm.epad.";
-    
+
     final static String CONSTANT_LOGTYPE_COMMON = "common-log";
     final static String CONSTANT_LOGTYPE_LOCATION = "location-log";
     final static String CONSTANT_LOGTYPE_APPRUNTIME = "appruntime-log";

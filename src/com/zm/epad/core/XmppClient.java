@@ -339,14 +339,16 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         if (networkAvailable == 0) {
             LogManager.local(TAG,
                     "handleNetworkAvailable : network is down, need logout");
-            handleLogoutCmd(false);
+            if (Config.getInstance().isAccountInitiated()) {
+                handleLogoutCmd(false);
+            }
         } else if (networkAvailable == 1) {
             try {
                 mStatusLock.lock();
                 LogManager.local(TAG, "handleNetworkAvailable current status:"
                         + mCurrentStatus);
 
-                if (Config.getConfig().isAccountInitiated()) {
+                if (Config.getInstance().isAccountInitiated()) {
                     if (mCurrentStatus == XMPPCLIENT_STATUS_IDLE
                             || mCurrentStatus == XMPPCLIENT_STATUS_ERROR) {
                         // force to start and login
@@ -378,7 +380,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
             mStatusLock.lock();
             int connected = msg.arg1;
             LogManager.local(TAG, "handleConnectionStatus:" + connected);
-            if (!Config.getConfig().isAccountInitiated()) {
+            if (!Config.getInstance().isAccountInitiated()) {
                 LogManager.local(TAG, "No user");
                 return;
             }
@@ -651,7 +653,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     }
 
     private void sendReconnectByError(Exception e) {
-        if (Config.getConfig().isAccountInitiated()) {
+        if (Config.getInstance().isAccountInitiated()) {
             LogManager.local(TAG, "sendReconnectByError:" + e.toString());
             // if failed by error, reconnect after 10 seconds.
             try {

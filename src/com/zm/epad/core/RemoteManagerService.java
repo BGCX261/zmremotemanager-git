@@ -1,12 +1,15 @@
 package com.zm.epad.core;
 
 import com.zm.epad.IRemoteManager;
+import com.zm.epad.RemoteManager;
 import com.zm.xmpp.communication.handler.CommandProcessor;
 
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import com.zm.epad.core.Config;
@@ -22,6 +25,7 @@ public class RemoteManagerService extends Service {
 
     // following are core system components
     private XmppClient mXmppClient = null;
+    private WebServiceClient mWebServiceClient = null;
     private LogManager mLogManager = null;
     private NetworkStatusMonitor mNetworkStatusMonitor = null;
     private NetCmdDispatcher mNetCmdDispatcher = null;
@@ -61,7 +65,7 @@ public class RemoteManagerService extends Service {
 
     void prepareLoginData(Intent intent) {
         mConfig = Config.loadConfig(this);
-        Bundle data = intent == null? null: intent.getExtras();
+        Bundle data = intent == null ? null : intent.getExtras();
         if (data != null) {
             // if intent with login info, use this info
             mLoginBundle.putString(CoreConstants.CONSTANT_SERVER,
@@ -132,6 +136,8 @@ public class RemoteManagerService extends Service {
          * @todo:How to handle the case if we don't know the login info ??????
          * Answer: if username is null, don't login
          */
+        mWebServiceClient = new WebServiceClient(this);
+        mWebServiceClient.start();
         mXmppClient.start();
         // if (mLoginBundle.getString(CoreConstants.CONSTANT_USRNAME) != null) {
         if (mConfig.isAccountInitiated() || mDebugMode == true) {
@@ -148,6 +154,7 @@ public class RemoteManagerService extends Service {
         mNetworkStatusMonitor.stop();
         mLogManager.stop();
         mXmppClient.stop();
+        mWebServiceClient.stop();
         mNetCmdDispatcher.stop();
     }
 
@@ -161,54 +168,50 @@ public class RemoteManagerService extends Service {
 
         private Object mSyncLock = null;
         private boolean mLoginStatus = false;
+        private PendingIntent mLoginIntent = null;
 
         @Override
-        public boolean login(String userName, String password)
-                throws RemoteException {
+        public boolean login(String userName, String password,
+                PendingIntent intent) {
             LogManager.local(TAG, "login:" + userName + ";" + password);
-            boolean bRet = false;
             try {
-                int status = mXmppClient.getStatus();
-                if (mConfig.isAccountInitiated()) {
-                    LogManager.local(TAG, "Already initiated:" + status);
+                if (mLoginIntent != null) {
+                    LogManager.local(TAG, "double call");
                     return false;
                 }
 
-                String defaultUser = mLoginBundle
-                        .getString(CoreConstants.CONSTANT_USRNAME);
-                String resource = mLoginBundle
-                        .getString(CoreConstants.CONSTANT_RESOURCE);
-                LogManager.local(TAG, "XMPP user:" + defaultUser);
+                mLoginIntent = intent;
+                mWebServiceClient.login(userName, password,
+                        new WebServiceClient.Result<String>() {
 
-                mXmppClient.connect(mLoginBundle
-                        .getString(CoreConstants.CONSTANT_SERVER));
-                bRet = mXmppClient.login(defaultUser, password, resource);
-                if (bRet == false) {
-                    return false;
-                }
+                            @Override
+                            public void receiveResult(String result,
+                                    int errorCode) {
+                                try {
+                                    if (result == null) {
+                                        LogManager.local(TAG, "login failed:"
+                                                + errorCode);
+                                        sendIntent(
+                                                mLoginIntent,
+                                                convertErrorCode_WebService(errorCode));
+                                        mLoginIntent = null;
+                                        return;
+                                    }
+                                    Xmpplogin(result);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                    sendIntent(mLoginIntent,
+                                            RemoteManager.RESULT_FAILED);
+                                    mLoginIntent = null;
+                                }
+                            }
 
-                mSyncLock = new Object();
-                synchronized (mSyncLock) {
-                    mSyncLock.wait(5000);
-                    bRet = Boolean.valueOf(mLoginStatus);
-                    LogManager.local(TAG, "Login Done:" + mLoginStatus);
-                    mSyncLock = null;
-                }
-
-                if (bRet) {
-                    // if success, save password
-                    mConfig.setConfig(Config.PASSWORD, password);
-                    mConfig.saveConfig();
-
-                    mLoginBundle.putString(CoreConstants.CONSTANT_PASSWORD,
-                            mConfig.getConfig(Config.PASSWORD));
-                }
+                        });
+                return true;
             } catch (Exception e) {
                 e.printStackTrace();
-                bRet = false;
             }
-
-            return bRet;
+            return false;
         }
 
         @Override
@@ -216,19 +219,79 @@ public class RemoteManagerService extends Service {
             LogManager.local(TAG, "XMPPClientEvent:" + xmppClientEvent);
             switch (xmppClientEvent) {
             case XmppClient.XMPPCLIENT_EVENT_LOGIN:
-                if (args.length > 0 && mSyncLock != null) {
-                    synchronized (mSyncLock) {
-                        mLoginStatus = (Boolean) args[0];
-                        LogManager.local(TAG, "login event:" + mLoginStatus);
-                        mSyncLock.notifyAll();
+                if (args.length > 0 && mLoginIntent != null) {
+                    int result = RemoteManager.RESULT_FAILED;
+                    try {
+                        if ((Boolean) args[0] == true) {
+                            result = RemoteManager.RESULT_OK;
+                            mConfig.setConfig(Config.PASSWORD, mLoginBundle
+                                    .getString(CoreConstants.CONSTANT_PASSWORD));
+                            mConfig.saveConfig();
+                        } else {
+                            mLoginBundle.putString(
+                                    CoreConstants.CONSTANT_PASSWORD, null);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    } finally {
+                        sendIntent(mLoginIntent, result);
+                        mLoginIntent = null;
                     }
                 }
                 break;
             default:
                 break;
-
             }
             return null;
         }
+
+        private void sendIntent(PendingIntent intent, int resultCode) {
+            try {
+                intent.send(resultCode);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        private void Xmpplogin(String password) throws Exception {
+            LogManager.local(TAG, "login: password" + password);
+
+            int status = mXmppClient.getStatus();
+            if (status == mXmppClient.XMPPCLIENT_STATUS_LOGINED) {
+                LogManager.local(TAG, "Already login");
+                mXmppClient.logout();
+            }
+            String defaultUser = Config.getDeviceId();
+            String resource = Config.getInstance().getConfig(Config.RESOURCE);
+            LogManager.local(TAG, "XMPP user:" + defaultUser);
+
+            mXmppClient.connect(Config.getInstance().getConfig(
+                    Config.SERVER_ADDRESS));
+            Boolean bRet = mXmppClient.login(defaultUser, password, resource);
+            if (bRet == false) {
+                throw new Exception("XMPPClient login failed");
+            }
+
+            mLoginBundle.putString(CoreConstants.CONSTANT_PASSWORD, password);
+        }
+    }
+
+    private int convertErrorCode_WebService(int input) {
+        int ret = RemoteManager.RESULT_OK;
+        switch (input) {
+        case WebServiceClient.ERR_NO:
+            ret = RemoteManager.RESULT_OK;
+            break;
+        case WebServiceClient.ERR_NETUNREACH:
+            ret = RemoteManager.RESULT_CONNECT_CLOSE;
+            break;
+        case WebServiceClient.ERR_LOGIN_CHECK:
+            ret = RemoteManager.RESULT_LOGIN_INFO_ERROR;
+            break;
+        default:
+            break;
+        }
+
+        return ret;
     }
 }

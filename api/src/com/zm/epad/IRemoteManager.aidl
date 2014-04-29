@@ -16,7 +16,9 @@
 
 package com.zm.epad;
 
+import android.app.PendingIntent;
+
 interface IRemoteManager
 {
-	boolean login(String userName, String password);
+	boolean login(String userName, String password, in PendingIntent intent);
 }

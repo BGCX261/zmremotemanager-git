@@ -20,6 +20,8 @@ public class Config {
     public static final String USERNAME = "username";
     public static final String PASSWORD = "password";
     public static final String RESOURCE = "resource";
+    public static final String REST_CHECKEXIST = "rest_checkexist";
+    public static final String REST_SIGNON = "rest_signon";
 
     private final String CONFIG = "config.xml";
     private final String CHARSET = "utf-8";
@@ -31,12 +33,19 @@ public class Config {
     private HashMap<String, String> ConfigMap = new HashMap<String, String>();
     private String[] mUnchangableConfigs = { SERVER_ADDRESS, USERNAME };
 
-    public static Config getConfig() {
+    public static Config getInstance() {
         return sInstance;
     }
 
     public static String getDeviceId() {
         if (sInstance != null) {
+            if (sInstance.mDeviceId == null) {
+                String userName = sInstance.getMACAddress();
+                if (userName != null) {
+                    sInstance.ConfigMap.put(USERNAME, userName);
+                    sInstance.mDeviceId = userName;
+                }
+            }
             return sInstance.mDeviceId;
         } else {
             return CoreConstants.CONSTANT_BUILDID;
@@ -176,17 +185,24 @@ public class Config {
     private void setDefaultConfig() {
         ConfigMap.put(SERVER_ADDRESS, CoreConstants.CONSTANT_SERVER_ADDRESS);
 
+        String userName = getMACAddress();
+        if (userName != null) {
+            ConfigMap.put(USERNAME, userName);
+        }
+
+        ConfigMap.put(RESOURCE, CoreConstants.CONSTANT_DEFALT_RESOURCE);
+        ConfigMap.put(REST_CHECKEXIST, CoreConstants.CONSTANT_REST_CHECKEXIST);
+        ConfigMap.put(REST_SIGNON, CoreConstants.CONSTANT_REST_SIGNON);
+    }
+
+    private String getMACAddress() {
         // This function may be called before sub-system start
         // So use WifiManager directly instead of RemoteDeviceManager
         WifiManager wifi = (WifiManager) mContext
                 .getSystemService(Context.WIFI_SERVICE);
         WifiInfo info = wifi.getConnectionInfo();
         String mac = info.getMacAddress();
-        if (mac != null) {
-            String userName = mac.replace(":", "-");
-            ConfigMap.put(USERNAME, userName);
-        }
 
-        ConfigMap.put(RESOURCE, CoreConstants.CONSTANT_DEFALT_RESOURCE);
+        return mac != null ? mac.replace(":", "-") : null;
     }
 }
