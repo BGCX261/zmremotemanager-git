@@ -31,9 +31,12 @@ public abstract class ISpecial {
     protected final static String JSON_ARRAY_PHONE = "phone";
     protected final static String JSON_ARRAY_EVENT = "event";
     protected final static String JSON_ARRAY_ORGANIZATION = "organization";
+    protected final static String JSON_KEY_ID = "id";
     protected final static String JSON_KEY_MAIL = "mail";
     protected final static String JSON_KEY_TYPE = "type";
     protected final static String JSON_KEY_NAME = "name";
+    protected final static String JSON_KEY_NICKNAME = "nickname";
+    protected final static String JSON_KEY_ACCOUNT = "account";
     protected final static String JSON_KEY_FULL = "full";
     protected final static String JSON_KEY_COUNTRY = "country";
     protected final static String JSON_KEY_PROVINCE = "province";
