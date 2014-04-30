@@ -13,6 +13,9 @@ interface IZmBackupManager {
     boolean restoring();
     void backup(IZmObserver observer);
     void restore(IZmObserver observer);
+    void backupSpecial(IZmObserver observer);
+    void restoreSpecial(IZmObserver observer);
     void cancelBackup();
     void cancelRestore();
+    String getBackupPath();
 }

@@ -613,12 +613,20 @@ public class SubSystemFacade {
         mBackupManager.backup(observer);
     }
 
+    public void backupSpecial(IZmObserver observer) {
+        mBackupManager.backupSpecial(observer);
+    }
+
     public boolean restoring() {
         return mBackupManager.restoring();
     }
 
     public void restore(IZmObserver observer) {
         mBackupManager.restore(observer);
+    }
+
+    public void restoreSpecial(IZmObserver observer) {
+        mBackupManager.restoreSpecial(observer);
     }
 
     public boolean running() {

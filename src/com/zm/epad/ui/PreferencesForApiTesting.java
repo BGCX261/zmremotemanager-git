@@ -37,6 +37,8 @@ public class PreferencesForApiTesting extends PreferenceActivity {
     private static final String KEY_BLANK_START = "blank_screen_checkbox_preference";
     private static final String KEY_BACKUP = "backup_preference";
     private static final String KEY_RESTORE = "restore_preference";
+    private static final String KEY_BACKUP_SPECIAL = "backup_special_preference";
+    private static final String KEY_RESTORE_SPECIAL = "restore_special_preference";
 
     // members to test remote desktop
     private SwitchPreference mDesktopPref;
@@ -52,6 +54,8 @@ public class PreferencesForApiTesting extends PreferenceActivity {
     // members to test backup function
     private SwitchPreference mBackupPref;
     private SwitchPreference mRestorePref;
+    private SwitchPreference mBackupSpecialPref;
+    private SwitchPreference mRestoreSpecialPref;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -152,8 +156,25 @@ public class PreferencesForApiTesting extends PreferenceActivity {
         backupPrefCat.addPreference(mRestorePref);
 
         if (!getInstance().supportBackupOrRestore()) {
-            backupPrefCat.setEnabled(false);
+            mBackupPref.setEnabled(false);
+            mRestorePref.setEnabled(false);
         }
+
+        // backup preference
+        mBackupSpecialPref = new SwitchPreference(this);
+        mBackupSpecialPref.setKey(KEY_BACKUP_SPECIAL);
+        mBackupSpecialPref.setTitle(R.string.pfat_backup_special);
+        mBackupSpecialPref.setSummary("idle");
+        mBackupSpecialPref.setOnPreferenceChangeListener(mOnPreferenceChangeListener);
+        backupPrefCat.addPreference(mBackupSpecialPref);
+
+        // Restore preference
+        mRestoreSpecialPref = new SwitchPreference(this);
+        mRestoreSpecialPref.setKey(KEY_RESTORE_SPECIAL);
+        mRestoreSpecialPref.setTitle(R.string.pfat_restore_special);
+        mRestoreSpecialPref.setSummary("idle");
+        mRestoreSpecialPref.setOnPreferenceChangeListener(mOnPreferenceChangeListener);
+        backupPrefCat.addPreference(mRestoreSpecialPref);
 
         return root;
     }
@@ -182,6 +203,10 @@ public class PreferencesForApiTesting extends PreferenceActivity {
                     testBackup(enable);
                 } else if (KEY_RESTORE.equals(preference.getKey())) {
                     testRestore(enable);
+                } else if (KEY_BACKUP_SPECIAL.equals(preference.getKey())) {
+                    testBackupSpecial(enable);
+                } else if (KEY_RESTORE_SPECIAL.equals(preference.getKey())) {
+                    testRestoreSpecial(enable);
                 }
                 return true;
             } else if (preference instanceof ListPreference) {
@@ -353,9 +378,12 @@ public class PreferencesForApiTesting extends PreferenceActivity {
         }
 
         @Override
-        public void onRecordProgress(String name) throws RemoteException {
-            note("backup [" + mBackupOrRestoreCount + "] " + name + "    ..");
-
+        public void onRecordProgress(String name, int index) throws RemoteException {
+            if (index == -1) {
+                note("backup [" + mBackupOrRestoreCount + "] " + name + "    ..");
+            } else {
+                note("backup special " + name + ": " + index);
+            }
         }
 
         @Override
@@ -369,23 +397,33 @@ public class PreferencesForApiTesting extends PreferenceActivity {
             note("backup [" + mBackupOrRestoreCount + "] " + name + "    timeout");
         }
 
-		@Override
-		public void onStart(String path) throws RemoteException {
-			note("start backup at " + path);
-		}
+        @Override
+        public void onStart(String path) throws RemoteException {
+            note("start backup at " + path);
+        }
 
-		@Override
-		public void onEnd(String path, int system, int installed, int file)
-				throws RemoteException {
-			note("backup finished: " + system + " system apps, " + installed +
-					" installed, " + file + " files, at " + path);
-		}
+        @Override
+        public void onEnd(String path, String[] key, int[] stats, boolean special)
+                throws RemoteException {
+            if (!special) {
+                note("backup finished: " + stats[0] + " system apps, " + stats[1] +
+                        " installed, " + stats[2] + " files, at " + path);
+            } else {
+                note("backup special finished: " + key[0] + "(" + stats[0] +
+                        "), " + key[1] + "(" + stats[1] +
+                        "), " + key[2] + "(" + stats[2] + ")");
+            }
+            enableBackup();
+        }
 
         private void note(final String i) {
             mHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    mBackupPref.setSummary(i);
+                    if (mBackupPref.isEnabled())
+                        mBackupPref.setSummary(i);
+                    if (mBackupSpecialPref.isEnabled())
+                        mBackupSpecialPref.setSummary(i);
                 }
             });
         }
@@ -394,7 +432,20 @@ public class PreferencesForApiTesting extends PreferenceActivity {
     private void testBackup(boolean enable) {
         if (enable && !getInstance().running()) {
             mBackupOrRestoreCount = 0;
+            mBackupSpecialPref.setEnabled(false);
+            mRestoreSpecialPref.setEnabled(false);
+            mRestorePref.setEnabled(false);
             getInstance().backup(mBackupObserver);
+        }
+    }
+
+    private void testBackupSpecial(boolean enable) {
+        if (enable && !getInstance().running()) {
+            mBackupOrRestoreCount = 0;
+            mBackupPref.setEnabled(false);
+            mRestoreSpecialPref.setEnabled(false);
+            mRestorePref.setEnabled(false);
+            getInstance().backupSpecial(mBackupObserver);
         }
     }
 
@@ -407,7 +458,7 @@ public class PreferencesForApiTesting extends PreferenceActivity {
         }
 
         @Override
-        public void onRecordProgress(String name) throws RemoteException {
+        public void onRecordProgress(String name, int index) throws RemoteException {
             note("restore [" + mBackupOrRestoreCount + "] " + name + "    ..");
 
         }
@@ -423,32 +474,74 @@ public class PreferencesForApiTesting extends PreferenceActivity {
             note("restore [" + mBackupOrRestoreCount + "] " + name + "    timeout");
         }
 
-		@Override
-		public void onStart(String path) throws RemoteException {
-			note("start restore at " + path);
-		}
+        @Override
+        public void onStart(String path) throws RemoteException {
+            note("start restore at " + path);
+        }
 
-		@Override
-		public void onEnd(String path, int system, int installed, int file)
-				throws RemoteException {
-			note("restore finished: " + system + " system apps, " + installed +
-					" installed, " + file + " files, at " + path);
-		}
+        @Override
+        public void onEnd(String path, String[] key, int[] stats, boolean special)
+                throws RemoteException {
+            if (!special) {
+                note("backup finished: " + stats[0] + " system apps, " + stats[1] +
+                        " installed, " + stats[2] + " files, at " + path);
+            } else {
+                note("backup special finished: " + key[0] + "(" + stats[0] +
+                        "), " + key[1] + "(" + stats[1] +
+                        "), " + key[2] + "(" + stats[2] + ")");
+            }
+            enableBackup();
+        }
 
         private void note(final String i) {
             mHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    mRestorePref.setSummary(i);
+                    if (mRestorePref.isEnabled())
+                        mRestorePref.setSummary(i);
+                    if (mRestoreSpecialPref.isEnabled())
+                        mRestoreSpecialPref.setSummary(i);
                 }
             });
         }
     };
 
-	private void testRestore(boolean enable) {
+    private void testRestore(boolean enable) {
         if (enable && !getInstance().running()) {
             mBackupOrRestoreCount = 0;
+            mBackupPref.setEnabled(false);
+            mBackupSpecialPref.setEnabled(false);
+            mRestoreSpecialPref.setEnabled(false);
             getInstance().backup(mRestoreObserver);
         }
-	}
+    }
+
+    private void testRestoreSpecial(boolean enable) {
+        if (enable && !getInstance().running()) {
+            mBackupOrRestoreCount = 0;
+            mBackupPref.setEnabled(false);
+            mBackupSpecialPref.setEnabled(false);
+            mRestorePref.setEnabled(false);
+            getInstance().backupSpecial(mRestoreObserver);
+        }
+    }
+
+    private void enableBackup() {
+        mHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                mBackupPref.setChecked(false);
+                mRestorePref.setChecked(false);
+                mBackupSpecialPref.setChecked(false);
+                mRestoreSpecialPref.setChecked(false);
+                //
+                mBackupSpecialPref.setEnabled(true);
+                mRestoreSpecialPref.setEnabled(true);
+                if (getInstance().supportBackupOrRestore()) {
+                    mBackupPref.setEnabled(true);
+                    mRestorePref.setEnabled(true);
+                }
+            }
+        });
+    }
 }

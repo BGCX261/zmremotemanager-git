@@ -106,4 +106,20 @@ public class BackupManager {
             e.printStackTrace();
         }
     }
+
+    public void backupSpecial(IZmObserver observer) {
+        try {
+            mBackupManager.backupSpecial(observer);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void restoreSpecial(IZmObserver observer) {
+        try {
+            mBackupManager.restoreSpecial(observer);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
 }

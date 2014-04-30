@@ -8,6 +8,8 @@ import android.os.HandlerThread;
 
 import java.io.File;
 
+import com.zm.epad.plugins.backup.special.ISpecial;
+
 class BackupManager extends IZmBackupManager.Stub {
     public final static String TAG = "ZMBackup";
 
@@ -24,6 +26,7 @@ class BackupManager extends IZmBackupManager.Stub {
 
     private Notifier mBackupNotifier;
     private Notifier mRestoreNotifier;
+
 
     // Status
     private final int STATUS_NONE = 0;
@@ -54,7 +57,7 @@ class BackupManager extends IZmBackupManager.Stub {
         mBackupOrRestoreHandler = new Handler(mHandlerThread.getLooper());
         // base path
         mBackupPath = Environment.getDownloadCacheDirectory().getPath()
-            + File.separator + BACKUP_BASE_DIR;
+                            + File.separator + BACKUP_BASE_DIR;
     }
 
     @Override
@@ -74,7 +77,7 @@ class BackupManager extends IZmBackupManager.Stub {
 
     @Override
     public boolean running() {
-	return mStatus != STATUS_NONE;
+        return mStatus != STATUS_NONE;
     }
 
     @Override
@@ -90,6 +93,20 @@ class BackupManager extends IZmBackupManager.Stub {
     }
 
     @Override
+    public void backupSpecial(IZmObserver observer) {
+        ISpecial[] specials = generateSpecials(new Notifier(mMainHandler, observer, 3));
+        for (ISpecial s: specials) {
+            if (s == null) continue;
+            s.fullBackup();
+        }
+    }
+
+    @Override
+    public void restoreSpecial(IZmObserver observer) {
+        ISpecial[] specials = generateSpecials(new Notifier(mMainHandler, observer, 3));
+    }
+
+    @Override
     public void cancelBackup() {
 
     }
@@ -97,6 +114,19 @@ class BackupManager extends IZmBackupManager.Stub {
     @Override
     public void cancelRestore() {
 
+    }
+
+    @Override
+    public String getBackupPath() {
+        return mBackupPath;
+    }
+
+    private ISpecial[] generateSpecials(Notifier notifier) {
+        ISpecial[] specials = new ISpecial[3];
+        specials[0] = ISpecial.create(mContext, mBackupPath, notifier, ISpecial.CONTACT);
+        specials[1] = ISpecial.create(mContext, mBackupPath, notifier, ISpecial.CALLLOG);
+        specials[2] = ISpecial.create(mContext, mBackupPath, notifier, ISpecial.MMS_SMS);
+        return specials;
     }
 
     private void doBackup(int nextStatus) {
@@ -114,9 +144,9 @@ class BackupManager extends IZmBackupManager.Stub {
         public void run() {
             switch (mStatus) {
                 case STATUS_BACKUP_START:
-			mBackupNotifier.notifyStart(mBackupPath);
-			File file = new File(mBackupPath);
-			Adapter.deleteFiles(file);
+                    mBackupNotifier.notifyStart(mBackupPath);
+                    File file = new File(mBackupPath);
+                    Adapter.deleteFiles(file);
                     mRecordSet = new RecordSet(mBackupPath, mPackageManager,
                             mBackupNotifier);
                     doBackup(STATUS_BACKUP_GATHERING);
@@ -140,14 +170,14 @@ class BackupManager extends IZmBackupManager.Stub {
                 case STATUS_BACKUP_END:
                     mStatus = STATUS_NONE;
                     mBackupNotifier.notifyEnd(mBackupPath,
-				mRecordSet.getSystemAppCount(),
-				mRecordSet.getInstalledAppCount(),
-				mRecordSet.getFilesCount());
+                    mRecordSet.getSystemAppCount(),
+                    mRecordSet.getInstalledAppCount(),
+                    mRecordSet.getFilesCount());
                     mBackupNotifier = null;
                     break;
                 default:
-			mStatus = STATUS_NONE;
-			break;
+                    mStatus = STATUS_NONE;
+                    break;
             }
         }
     };
@@ -157,7 +187,7 @@ class BackupManager extends IZmBackupManager.Stub {
         public void run() {
             switch (mStatus) {
                 case STATUS_RESTORE_START:
-			mBackupNotifier.notifyStart(mBackupPath);
+                    mBackupNotifier.notifyStart(mBackupPath);
                     mRecordSet = new RecordSet(mBackupPath, mPackageManager,
                             mRestoreNotifier);
                     doRestore(STATUS_RESTORE_MANIFEST);
@@ -171,20 +201,20 @@ class BackupManager extends IZmBackupManager.Stub {
                     doRestore(STATUS_RESTORE_ONE_PROGRESS);
                     break;
                 case STATUS_RESTORE_ONE_PROGRESS:
-			doRestore(mRecordSet.restoreOne() ?
-				STATUS_RESTORE_ONE_PROGRESS : STATUS_RESTORE_END);
+                    doRestore(mRecordSet.restoreOne() ?
+                    STATUS_RESTORE_ONE_PROGRESS : STATUS_RESTORE_END);
                     break;
                 case STATUS_RESTORE_END:
                     mStatus = STATUS_NONE;
                     mBackupNotifier.notifyEnd(mBackupPath,
-				mRecordSet.getSystemAppCount(),
-				mRecordSet.getInstalledAppCount(),
-				mRecordSet.getFilesCount());
+                    mRecordSet.getSystemAppCount(),
+                    mRecordSet.getInstalledAppCount(),
+                    mRecordSet.getFilesCount());
                     mBackupNotifier = null;
                     break;
                 default:
-			mStatus = STATUS_NONE;
-			break;
+                    mStatus = STATUS_NONE;
+                    break;
             }
         }
     };

@@ -55,7 +55,7 @@ class Adapter {
                     throws RemoteException {
         try {
             sFullRestoreSilently.invoke(backupManager, fd, curPassword,
-			encPassword, observer);
+            encPassword, observer);
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         } catch (IllegalArgumentException e) {
@@ -70,14 +70,14 @@ class Adapter {
     }
 
     static void deleteFiles(File file) {
-	if (file.exists()) {
-		if (file.isDirectory()) {
-			for (String f : file.list()) {
-				File sub = new File(file.getPath() + File.separator + f);
-				deleteFiles(sub);
-			}
-		}
-		file.delete();
-	}
+        if (file.exists()) {
+            if (file.isDirectory()) {
+                for (String f : file.list()) {
+                    File sub = new File(file.getPath() + File.separator + f);
+                    deleteFiles(sub);
+                }
+            }
+            file.delete();
+        }
     }
 }
