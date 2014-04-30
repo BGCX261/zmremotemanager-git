@@ -42,7 +42,8 @@ public class CommandTask4Report extends PairCommandTask {
     private int mResultCount;
 
     private long APP_DEFAULT_INTERVAL = 5 * 1000;
-    private long POSITION_DEFAULT_INTERVAL = 5 * 1000;
+    private long POSITION_DEFAULT_INTERVAL = 60 * 1000;  //milliseconds
+    private int POSITION_DEFAULT_DISTANCE = 50; //meters
 
     public CommandTask4Report(SubSystemFacade subSystemFacade, Handler handler,
             ResultFactory factory, ZMIQCommand command) {
@@ -90,7 +91,8 @@ public class CommandTask4Report extends PairCommandTask {
         boolean ret = false;
         ret = mSubSystemFacade.startTrackLocation(
                 Settings.Secure.LOCATION_MODE_HIGH_ACCURACY,
-                POSITION_DEFAULT_INTERVAL, 100, new LocationCallback());
+                POSITION_DEFAULT_INTERVAL, POSITION_DEFAULT_DISTANCE,
+                new LocationCallback());
         return ret == true ? SUCCESS : FAILED;
     }
 
