@@ -27,6 +27,7 @@ public class DebugActivityHome extends Activity {
     private Button mDebugBtn = null;
     private Button mAdvancedBtn = null;
     private Button mDesktopBtn = null;
+    private Button mLoginBtn = null;
     private EditText mIpText = null;
     private EditText mNameText = null;
     private EditText mPwdText = null;
@@ -59,6 +60,7 @@ public class DebugActivityHome extends Activity {
         mDebugBtn = (Button) findViewById(R.id.button4);
         mDesktopBtn = (Button) findViewById(R.id.button_api_testing);
         mAdvancedBtn = (Button) findViewById(R.id.button2);
+        mLoginBtn = (Button) findViewById(R.id.button_login_page);
 
         mConnectBtn.setOnClickListener(new OnClickListener() {
 
@@ -131,7 +133,19 @@ public class DebugActivityHome extends Activity {
             }
 
         });
-        
+
+        mLoginBtn.setOnClickListener(new OnClickListener() {
+
+            @Override
+            public void onClick(View arg0) {
+                // TODO Auto-generated method stub
+                LogManager.local(TAG, "login page");
+                Intent intent = new Intent();
+                intent.setClass(mContext, LoginActivity.class);
+                startActivity(intent);
+            }
+
+        });
         setDefaultValue(true);
 
     }
