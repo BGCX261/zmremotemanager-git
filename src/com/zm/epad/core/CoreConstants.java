@@ -7,6 +7,7 @@ public interface CoreConstants {
     final static String CONSTANT_SERVER_ADDRESS = "114.215.110.230";
     final static String CONSTANT_REST_CHECKEXIST = "http://114.215.110.230:8080/zmepadconsole/rest/user/qualifyifuserexist";
     final static String CONSTANT_REST_SIGNON = "http://114.215.110.230:8080/zmepadconsole/rest/user/newdevicebyexistuser";
+    final static String CONSTANT_REST_REGISTER = "http://114.215.110.230:8080/zmepadconsole/rest/user/createnewphoneuser";
     final static String CONSTANT_USRNAME = "username";
     final static String CONSTANT_PASSWORD = "password";
     final static String CONSTANT_RESOURCE = "resource";

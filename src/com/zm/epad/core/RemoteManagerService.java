@@ -269,7 +269,7 @@ public class RemoteManagerService extends Service {
         }
 
         private void Xmpplogin(String password) throws Exception {
-            LogManager.local(TAG, "login: password" + password);
+            LogManager.local(TAG, "login password:" + password);
 
             int status = mXmppClient.getStatus();
             if (status == mXmppClient.XMPPCLIENT_STATUS_LOGINED) {
@@ -292,7 +292,7 @@ public class RemoteManagerService extends Service {
     }
 
     private int convertErrorCode_WebService(int input) {
-        int ret = RemoteManager.RESULT_OK;
+        int ret = RemoteManager.RESULT_FAILED;
         switch (input) {
         case WebServiceClient.ERR_NO:
             ret = RemoteManager.RESULT_OK;
@@ -302,6 +302,9 @@ public class RemoteManagerService extends Service {
             break;
         case WebServiceClient.ERR_LOGIN_CHECK:
             ret = RemoteManager.RESULT_LOGIN_INFO_ERROR;
+            break;
+        case WebServiceClient.ERR_UNKNOWN:
+            ret = RemoteManager.RESULT_FAILED;
             break;
         default:
             break;

@@ -5,8 +5,11 @@ import com.zm.epad.RemoteManager;
 
 import android.app.Activity;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -21,8 +24,8 @@ public class LoginActivity extends Activity {
 
     private static final String TAG = "LoginActivity";
 
-    private final String REGISTER_PAGE = "http://114.215.110.230:8080/zmepadconsole/spring/login"; // temp
     private final int LOGIN_REQUEST_CODE = 1;
+    private final int LOGIN_ERROR_WIFI = RemoteManager.RESULT_USER + 1;
 
     private Button mBtnRegister;
     private Button mBtnLogin;
@@ -63,8 +66,7 @@ public class LoginActivity extends Activity {
             @Override
             public void onClick(View arg0) {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
-                Uri url = Uri.parse(REGISTER_PAGE);
-                intent.setData(url);
+                intent.setClass(getBaseContext(), RegisterActivity.class);;
                 startActivity(intent);
             }
 
@@ -75,6 +77,10 @@ public class LoginActivity extends Activity {
 
             @Override
             public void onClick(View v) {
+                if(!checkIfWifiOpen()) {
+                    handleLoginResult(LOGIN_ERROR_WIFI);
+                    return;
+                }
                 Intent data = new Intent();
                 PendingIntent pi = createPendingResult(LOGIN_REQUEST_CODE,
                         data, 0);
@@ -167,14 +173,24 @@ public class LoginActivity extends Activity {
             error = R.string.login_logginfi;
             showLogFail();
             break;
+        case LOGIN_ERROR_WIFI:
+            error = R.string.login_logginfw;
+            showLogFail();
+            break;
         default:
+            showLogFail();
             break;
         }
         if (error > 0) {
-            int duration = Toast.LENGTH_SHORT;
+            int duration = Toast.LENGTH_LONG;
             Toast t = Toast.makeText(this, error, duration);
             t.setMargin(0, 0.4f);
             t.show();
         }
+    }
+
+    private boolean checkIfWifiOpen() {
+        WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        return wifi.isWifiEnabled();
     }
 }

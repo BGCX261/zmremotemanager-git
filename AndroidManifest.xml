@@ -169,6 +169,12 @@
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
         </activity>
+        <activity android:name=".ui.RegisterActivity"
+            android:process="com.zm.login" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+            </intent-filter>
+        </activity>
 
         <service android:name="com.zm.epad.plugins.backup.ZMBackupManagerService"
                 android:exported="false"

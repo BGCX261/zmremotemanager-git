@@ -29,10 +29,11 @@ import com.zm.epad.IRemoteManager.Stub;
 
 public class RemoteManager {
     public static final int RESULT_OK = Activity.RESULT_OK;
-    public static final int RESULT_USER = Activity.RESULT_FIRST_USER;
-    public static final int RESULT_FAILED = RESULT_USER;
-    public static final int RESULT_NETWORK_ERROR = RESULT_USER + 1;
-    public static final int RESULT_LOGIN_INFO_ERROR = RESULT_USER + 2;
+    public static final int RESULT_BASE = Activity.RESULT_FIRST_USER;
+    public static final int RESULT_FAILED = RESULT_BASE;
+    public static final int RESULT_NETWORK_ERROR = RESULT_BASE + 1;
+    public static final int RESULT_LOGIN_INFO_ERROR = RESULT_BASE + 2;
+    public static final int RESULT_USER = RESULT_BASE + 8000;
 
     public RemoteManager() {
         mService = IRemoteManager.Stub.asInterface(ServiceManager

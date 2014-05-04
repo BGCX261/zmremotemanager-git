@@ -26,10 +26,11 @@ public class WebServiceClient {
     private static final String TAG = "WebServiceClient";
 
     public static final int ERR_NO = 0;
-    public static final int ERR_NETUNREACH = 1;
-    public static final int ERR_LOGIN_CHECK = 2;
+    public static final int ERR_UNKNOWN = 1;
+    public static final int ERR_NETUNREACH = 2;
+    public static final int ERR_LOGIN_CHECK = 3;
 
-    private final String USERNAME_AVAILABLE = "Y";
+    private final String YES = "Y";
     private final String CHARSET = "UTF-8";
     private final String PARM_LOGIN_USERNAME = "username";
     private final String PARM_LOGIN_PASSWORD = "pwd";
@@ -114,6 +115,8 @@ public class WebServiceClient {
                     e.printStackTrace();
                     if (e instanceof ConnectException) {
                         errorCode = ERR_NETUNREACH;
+                    } else {
+                        errorCode = ERR_UNKNOWN;
                     }
                 } finally {
                     if (mResult != null) {
@@ -130,9 +133,10 @@ public class WebServiceClient {
     private boolean _checkIfUserNameAvailable(String username) throws Exception {
 
         RestClient rest = new RestClient();
-        String ret = rest.get(Config.getInstance().getConfig(
-                Config.REST_CHECKEXIST));
-        return ret.equals(USERNAME_AVAILABLE);
+        String url = Config.getInstance().getConfig(Config.REST_CHECKEXIST)
+                + "?username=" + username;
+        String ret = rest.get(url);
+        return ret.equals(YES);
     }
 
     private String _login(String username, String password) throws Exception {
