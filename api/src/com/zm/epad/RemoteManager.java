@@ -31,7 +31,7 @@ public class RemoteManager {
     public static final int RESULT_OK = Activity.RESULT_OK;
     public static final int RESULT_USER = Activity.RESULT_FIRST_USER;
     public static final int RESULT_FAILED = RESULT_USER;
-    public static final int RESULT_CONNECT_CLOSE = RESULT_USER + 1;
+    public static final int RESULT_NETWORK_ERROR = RESULT_USER + 1;
     public static final int RESULT_LOGIN_INFO_ERROR = RESULT_USER + 2;
 
     public RemoteManager() {
@@ -41,6 +41,16 @@ public class RemoteManager {
 
     public void setHandler(Handler handler) {
         mHandler = handler;
+    }
+
+    public boolean isLogined() {
+        try {
+            return mService.isLogined();
+        } catch (RemoteException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return true;
     }
 
     public boolean login(String userName, String password, PendingIntent intent) {

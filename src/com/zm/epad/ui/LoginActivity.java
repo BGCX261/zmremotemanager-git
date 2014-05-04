@@ -26,6 +26,7 @@ public class LoginActivity extends Activity {
 
     private Button mBtnRegister;
     private Button mBtnLogin;
+    private Button mBtnDone;
     private EditText mUsername;
     private EditText mPassword;
     private TextView mLogging;
@@ -80,11 +81,21 @@ public class LoginActivity extends Activity {
                 String username = mUsername.getText().toString();
                 String password = mPassword.getText().toString();
                 boolean ret = mRm.login(username, password, pi);
-                if(ret) {
+                if (ret) {
                     showLogging();
                 } else {
-                    Log.w(TAG,"login false");
+                    Log.w(TAG, "login false");
                 }
+            }
+
+        });
+
+        mBtnDone = (Button) findViewById(R.id.login_done);
+        mBtnDone.setOnClickListener(new OnClickListener() {
+
+            @Override
+            public void onClick(View arg0) {
+                finish();
             }
 
         });
@@ -99,6 +110,9 @@ public class LoginActivity extends Activity {
     protected void onResume() {
         // TODO Auto-generated method stub
         super.onResume();
+        if (mRm.isLogined()) {
+            showAlreadyLogin();
+        }
     }
 
     private void showLogging() {
@@ -130,10 +144,13 @@ public class LoginActivity extends Activity {
         mLogging.setVisibility(View.INVISIBLE);
         mLoggingBar.setVisibility(View.INVISIBLE);
         mLoginF.setVisibility(View.INVISIBLE);
+        mBtnRegister.setVisibility(View.INVISIBLE);
+        mBtnLogin.setVisibility(View.INVISIBLE);
 
         TextView already = (TextView) findViewById(R.id.login_alreadylogin);
         already.setVisibility(View.VISIBLE);
         mLoginS.setVisibility(View.VISIBLE);
+        mBtnDone.setVisibility(View.VISIBLE);
     }
 
     private void handleLoginResult(int resultCode) {
@@ -142,7 +159,7 @@ public class LoginActivity extends Activity {
         case RemoteManager.RESULT_OK:
             showAlreadyLogin();
             break;
-        case RemoteManager.RESULT_CONNECT_CLOSE:
+        case RemoteManager.RESULT_NETWORK_ERROR:
             error = R.string.login_logginfn;
             showLogFail();
             break;

@@ -13,6 +13,7 @@ import android.os.Looper;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import com.zm.epad.core.Config;
+import com.zm.epad.ui.LoginActivity;
 
 /**
  * Core Service.
@@ -147,6 +148,11 @@ public class RemoteManagerService extends Service {
                     mLoginBundle.getString(CoreConstants.CONSTANT_USRNAME),
                     mLoginBundle.getString(CoreConstants.CONSTANT_PASSWORD),
                     mLoginBundle.getString(CoreConstants.CONSTANT_RESOURCE));
+        } else {
+            Intent intent = new Intent();
+            intent.setClass(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
         }
     }
 
@@ -175,6 +181,10 @@ public class RemoteManagerService extends Service {
                 PendingIntent intent) {
             LogManager.local(TAG, "login:" + userName + ";" + password);
             try {
+                if(Config.getInstance().isAccountInitiated()) {
+                    LogManager.local(TAG, "already logined");
+                    return false;
+                }
                 if (mLoginIntent != null) {
                     LogManager.local(TAG, "double call");
                     return false;
@@ -212,6 +222,11 @@ public class RemoteManagerService extends Service {
                 e.printStackTrace();
             }
             return false;
+        }
+
+        @Override
+        public boolean isLogined() {
+            return Config.getInstance().isAccountInitiated();
         }
 
         @Override
@@ -283,7 +298,7 @@ public class RemoteManagerService extends Service {
             ret = RemoteManager.RESULT_OK;
             break;
         case WebServiceClient.ERR_NETUNREACH:
-            ret = RemoteManager.RESULT_CONNECT_CLOSE;
+            ret = RemoteManager.RESULT_NETWORK_ERROR;
             break;
         case WebServiceClient.ERR_LOGIN_CHECK:
             ret = RemoteManager.RESULT_LOGIN_INFO_ERROR;

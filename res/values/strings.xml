@@ -13,6 +13,7 @@
     <string name="login_logginfn">网络连接失败，请检查网络</string>
     <string name="login_register">注册</string>
     <string name="login_login">登录</string>
+    <string name="login_done">完成</string>
     <string name="login_already">! 您的设备已经在云端登录</string>
 
     <!-- Manifest strings -->
@@ -148,7 +149,7 @@
     <string name="debug_logs">Logs</string>
 
     <!-- Strings used by zmtech_authenticator -->
-    <string name="acc_label">ZMTech Account Authenticator</string>
+    <string name="acc_label">智墨向导</string>
     <string name="acc_title_fmt">ZMTech Account Format</string>
     
     <string name="app_name">智墨向导</string>

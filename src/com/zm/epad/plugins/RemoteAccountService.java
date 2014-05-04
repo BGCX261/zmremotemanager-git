@@ -74,8 +74,11 @@ public class RemoteAccountService extends Service {
             } else {
                 Bundle bundle = new Bundle();
                 Intent inputAccountInfo = new Intent();
+                // inputAccountInfo.setComponent(new
+                // ComponentName("com.zm.epad",
+                // "com.zm.epad.ui.DebugActivityHome"));
                 inputAccountInfo.setComponent(new ComponentName("com.zm.epad",
-                        "com.zm.epad.ui.DebugActivityHome"));
+                        "com.zm.epad.ui.LoginActivity"));
                 inputAccountInfo.putExtra(
                         AccountManager.KEY_ACCOUNT_MANAGER_RESPONSE, response);
                 bundle.putParcelable(AccountManager.KEY_INTENT,
