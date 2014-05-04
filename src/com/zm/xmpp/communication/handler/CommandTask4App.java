@@ -71,6 +71,10 @@ public class CommandTask4App extends CommandTask {
         if (mSubSystemFacade
                 .isNewPackage(cmd.getAppName(), cmd.getAppVersion())) {
             LogManager.local(TAG, "download new APK");
+            IResult ack = mResultFactory.getNormalResult(mIQCommand.getCommand(),
+                    Constants.RESULT_ACK, null);
+            postResult(ack);
+
             int install = mSubSystemFacade.installPkgForUser(cmd.getAppUrl(),
                     cmd.getUserId(),
                     new RemotePackageManager.installCallback() {

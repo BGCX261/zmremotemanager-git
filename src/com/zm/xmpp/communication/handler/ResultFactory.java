@@ -188,6 +188,14 @@ public class ResultFactory {
         return result;
     }
 
+    public IResult getNormalResult(ICommand command, String status,
+            String errorCode) {
+        IResult result = getResult(RESULT_NORMAL, command.getId(), status,
+                command.getAction(), null, null);
+        result.setErrorCode(errorCode);
+        return result;
+    }
+
     public IResult getAppResult(ICommand4App command, boolean success,
             String errorCode) {
         ResultApp result = (ResultApp) getEmptyResult(RESULT_APP,
