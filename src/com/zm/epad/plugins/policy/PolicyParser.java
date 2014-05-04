@@ -111,6 +111,10 @@ public class PolicyParser {
             SwitchPolicy policy = (SwitchPolicy) mManager.addPolicy(
                     PolicyConstants.TYPE_SWITCH, start, null);
             policy.setCallback(new AppUsageRunnable());
+        } else if (action.equals(PolicyConstants.ACTION_POSITION)) {
+            TimeSlotPolicy policy = (TimeSlotPolicy) mManager.addPolicy(
+                    PolicyConstants.TYPE_SWITCH, start, end);
+            policy.setCallback(new LocationTrackTimeSlot());
         }
     }
 

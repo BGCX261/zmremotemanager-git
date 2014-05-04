@@ -46,6 +46,9 @@ public class SystemNotifyTask extends CommandTask implements NotifyListener {
         case SubSystemFacade.NOTIFY_APP_USAGE:
             handleAppUsage(obj);
             break;
+        case SubSystemFacade.NOTIFY_POSITION:
+            handleLocationTrack(obj);
+            break;
         default:
             break;
         }
@@ -80,6 +83,12 @@ public class SystemNotifyTask extends CommandTask implements NotifyListener {
                 ResultFactory.RESULT_APPUSAGE, null, obj);
         // AppUsage info is always saved in log.
         // No need to send result even when network is available
+        saveResult(result);
+    }
+
+    private void handleLocationTrack(Object obj) {
+        IResult result = mResultFactory.getResult(
+                ResultFactory.RESULT_POSITION, null, (Object) obj);
         saveResult(result);
     }
 }
