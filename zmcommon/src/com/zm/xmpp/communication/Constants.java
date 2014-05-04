@@ -14,6 +14,7 @@ public class Constants {
     static public final String RESULT_DONE = "done";
     static public final String RESULT_ERR = "err";
     static public final String RESULT_SLEEP = "sleep";
+    static public final String RESULT_ACK = "ack";
 
     static public final String ERRORCODE_SUCCESS = "0";
 
