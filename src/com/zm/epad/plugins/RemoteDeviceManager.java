@@ -5,8 +5,11 @@ import android.app.ActivityManagerNative;
 import android.app.NotificationManager;
 import android.app.WallpaperManager;
 import android.bluetooth.BluetoothAdapter;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -22,12 +25,15 @@ import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.nfc.NfcAdapter;
+import android.os.BatteryManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.provider.Settings;
+import android.telephony.TelephonyManager;
 import android.text.format.Time;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -597,7 +603,11 @@ public class RemoteDeviceManager {
     }
 
     public String getMobileNetwork() {
-        // not support mobile network currently
+        TelephonyManager tm = (TelephonyManager) mContext
+                .getSystemService(Context.TELEPHONY_SERVICE);
+        if (tm != null) {
+            return tm.getNetworkOperatorName();
+        }
         return null;
     }
 
@@ -619,6 +629,26 @@ public class RemoteDeviceManager {
         return String.valueOf(Settings.Global.getInt(
                 mContext.getContentResolver(),
                 Settings.Global.AIRPLANE_MODE_ON, 0) != 0);
+    }
+
+    public String getDeviceManufacturer() {
+        return Build.MANUFACTURER;
+    }
+
+    public String getDeviceBrand() {
+        return Build.BRAND;
+    }
+
+    public String getDeviceModel() {
+        return Build.MODEL;
+    }
+
+    public String getOSVersion() {
+        return "Android " + Build.VERSION.RELEASE;
+    }
+
+    public long getElapsedTime() {
+        return SystemClock.elapsedRealtime();
     }
 
     public boolean isScreenOn() {
@@ -780,13 +810,33 @@ public class RemoteDeviceManager {
         mPowerMgr.releaseWakeLock(tag);
     }
 
+    public String getBatteryPercentage() {
+        return mPowerMgr.getBatteryPercentage();
+    }
+
     private class RemotePowerManager {
         PowerManager mPm;
+        BroadcastReceiver mBatterReceiver;
+        String mBatterPercentage;
         HashMap<String, PowerManager.WakeLock> mWakeLockMap = new HashMap<String, PowerManager.WakeLock>();
 
         public RemotePowerManager() {
             mPm = (PowerManager) mContext
                     .getSystemService(Context.POWER_SERVICE);
+            mBatterReceiver = new BroadcastReceiver() {
+
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    String action = intent.getAction();
+                    if (Intent.ACTION_BATTERY_CHANGED.equals(action)) {
+                        mBatterPercentage = getBatteryPercentage(intent);
+                        LogManager.local(TAG, "battery:" + mBatterPercentage);
+                    }
+                }
+            };
+            IntentFilter filter = new IntentFilter();
+            filter.addAction(Intent.ACTION_BATTERY_CHANGED);
+            mContext.registerReceiver(mBatterReceiver, filter);
         }
 
         public void acquireWakeLock(int levelAndFlags, String tag) {
@@ -819,7 +869,18 @@ public class RemoteDeviceManager {
             }
             mWakeLockMap.clear();
         }
+
+        public String getBatteryPercentage() {
+            return mBatterPercentage;
+        }
+
+        private String getBatteryPercentage(Intent intent) {
+            int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, 0);
+            int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
+            return String.valueOf(level * 100 / scale) + "%";
+        }
     }
+
 }
 
 /*

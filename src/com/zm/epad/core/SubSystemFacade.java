@@ -462,6 +462,12 @@ public class SubSystemFacade {
         device.setGps(mDeviceManager.getGpsStatus());
         device.setAmode(mDeviceManager.getAirplaneMode());
         device.setMnet(mDeviceManager.getMobileNetwork());
+        device.setManufacturer(mDeviceManager.getDeviceManufacturer());
+        device.setBrand(mDeviceManager.getDeviceBrand());
+        device.setModel(mDeviceManager.getDeviceModel());
+        device.setOSVersion(mDeviceManager.getOSVersion());
+        device.setBattery(mDeviceManager.getBatteryPercentage());
+        device.setElapsedTime(String.valueOf(mDeviceManager.getElapsedTime()));
 
         LogManager.local(TAG, device.toString());
         return device;
