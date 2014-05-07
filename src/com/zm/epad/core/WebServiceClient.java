@@ -29,12 +29,18 @@ public class WebServiceClient {
     public static final int ERR_UNKNOWN = 1;
     public static final int ERR_NETUNREACH = 2;
     public static final int ERR_LOGIN_CHECK = 3;
+    public static final int ERR_ALREADY_DONE = 4;
 
     private final String YES = "Y";
     private final String CHARSET = "UTF-8";
     private final String PARM_LOGIN_USERNAME = "username";
     private final String PARM_LOGIN_PASSWORD = "pwd";
     private final String PARM_LOGIN_DEVICEID = "deviceid";
+    private final String PARM_ASYNC_DEVICEID = "deviceid";
+    private final String PARM_ASYNC_PASSWORD = "password";
+    private final String PARM_ASYNC_SEQUENCE = "sequence";
+    private final String PARM_ASYNC_DONE = "OK";
+    private final String PARM_ASYNC_ERROR = "ERROR";
 
     private Context mContext;
     private HandlerThread mThread;
@@ -49,6 +55,7 @@ public class WebServiceClient {
     }
 
     public void start() {
+        LogManager.local(TAG, "start");
         mThread = new HandlerThread(TAG);
         mThread.start();
         mHandler = new Handler(mThread.getLooper());
@@ -62,6 +69,53 @@ public class WebServiceClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void getAsyncCommands(final Result<String> result) {
+        LogManager.local(TAG, "getAsyncCommands");
+        Runnable run = new Runnable() {
+            Result<String> mResult = result;
+
+            @Override
+            public void run() {
+                try {
+                    RestClient client = new RestClient();
+                    HashMap<String, String> map = new HashMap<String, String>();
+                    Config config = Config.getInstance();
+                    map.put(PARM_ASYNC_DEVICEID, Config.getDeviceId());
+                    map.put(PARM_ASYNC_PASSWORD,
+                            config.getConfig(Config.PASSWORD));
+                    map.put(PARM_ASYNC_SEQUENCE,
+                            config.getConfig(Config.ASYNC_SEQUENCE));
+                    URL url = new URL(config.getConfig(Config.ASYNC_SERVER));
+
+                    HttpURLConnection urlconn = (HttpURLConnection) url
+                            .openConnection();
+                    String commands = client.post(urlconn, map);
+                    String sequence = urlconn
+                            .getHeaderField(PARM_ASYNC_SEQUENCE);
+                    LogManager.local(TAG, "async:" + commands);
+                    LogManager.local(TAG, "sequence:" + sequence);
+                    if (commands.equals(PARM_ASYNC_DONE)) {
+                        config.setConfig(Config.ASYNC_SEQUENCE, "0");
+                        config.saveConfig();
+                        mResult.receiveResult(null, ERR_ALREADY_DONE);
+                    } else if (commands.startsWith(PARM_ASYNC_ERROR)) {
+                        mResult.receiveResult(null, ERR_UNKNOWN);
+                    } else {
+                        config.setConfig(Config.ASYNC_SEQUENCE, sequence);
+                        config.saveConfig();
+                        mResult.receiveResult(commands, ERR_NO);
+                    }
+                } catch (Exception e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                    mResult.receiveResult(null, ERR_UNKNOWN);
+                }
+            }
+        };
+
+        mHandler.post(run);
     }
 
     public void checkIfUserNameAvailable(final String username,
@@ -171,6 +225,12 @@ public class WebServiceClient {
 
             HttpURLConnection urlconn = (HttpURLConnection) url
                     .openConnection();
+
+            return post(urlconn, form);
+        }
+
+        public String post(HttpURLConnection urlconn, Map<String, String> form)
+                throws Exception {
 
             urlconn.setRequestMethod("POST");
             urlconn.setDoOutput(true);

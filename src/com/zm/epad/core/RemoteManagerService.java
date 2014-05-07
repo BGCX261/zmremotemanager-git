@@ -139,6 +139,9 @@ public class RemoteManagerService extends Service {
          */
         mWebServiceClient = new WebServiceClient(this);
         mWebServiceClient.start();
+        mRemoteCmdProcessor.addWebServiceClient(mWebServiceClient);
+        mXmppClient.addXmppClientCallback(mRemoteCmdProcessor);
+
         mXmppClient.start();
         // if (mLoginBundle.getString(CoreConstants.CONSTANT_USRNAME) != null) {
         if (mConfig.isAccountInitiated() || mDebugMode == true) {

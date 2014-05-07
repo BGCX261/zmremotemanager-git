@@ -22,6 +22,8 @@ public class Config {
     public static final String RESOURCE = "resource";
     public static final String REST_CHECKEXIST = "rest_checkexist";
     public static final String REST_SIGNON = "rest_signon";
+    public static final String ASYNC_SERVER = "async_server";
+    public static final String ASYNC_SEQUENCE = "async_sequence";
 
     private final String CONFIG = "config.xml";
     private final String CHARSET = "utf-8";
@@ -167,15 +169,7 @@ public class Config {
         while (!done) {
             int eventType = parser.next();
             if (eventType == XmlPullParser.START_TAG) {
-                if (parser.getName().equals(SERVER_ADDRESS)) {
-                    ConfigMap.put(SERVER_ADDRESS, parser.nextText());
-                } else if (parser.getName().equals(USERNAME)) {
-                    ConfigMap.put(USERNAME, parser.nextText());
-                } else if (parser.getName().equals(PASSWORD)) {
-                    ConfigMap.put(PASSWORD, parser.nextText());
-                } else if (parser.getName().equals(RESOURCE)) {
-                    ConfigMap.put(RESOURCE, parser.nextText());
-                }
+                ConfigMap.put(parser.getName(), parser.nextText());
             } else if (eventType == XmlPullParser.END_DOCUMENT) {
                 done = true;
             }
@@ -193,6 +187,8 @@ public class Config {
         ConfigMap.put(RESOURCE, CoreConstants.CONSTANT_DEFALT_RESOURCE);
         ConfigMap.put(REST_CHECKEXIST, CoreConstants.CONSTANT_REST_CHECKEXIST);
         ConfigMap.put(REST_SIGNON, CoreConstants.CONSTANT_REST_SIGNON);
+        ConfigMap.put(ASYNC_SERVER, CoreConstants.CONSTANT_ASYNC_SERVER);
+        ConfigMap.put(ASYNC_SEQUENCE, "0");
     }
 
     private String getMACAddress() {

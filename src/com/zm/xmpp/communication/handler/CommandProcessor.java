@@ -4,6 +4,7 @@ import com.zm.epad.core.CoreConstants;
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.NetCmdDispatcher.CmdDispatchInfo;
 import com.zm.epad.core.SubSystemFacade;
+import com.zm.epad.core.WebServiceClient;
 import com.zm.epad.core.XmppClient;
 import com.zm.xmpp.communication.Constants;
 import com.zm.xmpp.communication.client.ZMIQCommand;
@@ -27,12 +28,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class CommandProcessor extends CmdDispatchInfo {
+public class CommandProcessor extends CmdDispatchInfo implements
+        XmppClient.XmppClientCallback {
     private static final String TAG = "CommandProcessor";
 
     private final int EVT_CHECK_RESULT_ERROR = 1;
+    private final int EVT_ASYNC_COMMANDS = 2;
     private Context mContext;
     private XmppClient mXmppClient;
+    private WebServiceClient mWebServiceClient;
     private ZMIQCommandProvider mZMIQProvider;
     private SubSystemFacade mSubSystemFacade;
 
@@ -133,6 +137,9 @@ public class CommandProcessor extends CmdDispatchInfo {
             case EVT_CHECK_RESULT_ERROR:
                 CheckResultError((IQ) msg.obj);
                 break;
+            case EVT_ASYNC_COMMANDS:
+                handleAsyncCommands();
+                break;
             default:
                 break;
             }
@@ -161,6 +168,22 @@ public class CommandProcessor extends CmdDispatchInfo {
             return postIQCommand((ZMIQCommand) packet);
         }
         return false;
+    }
+
+    @Override
+    public Object reportXMPPClientEvent(int xmppClientEvent, Object... args) {
+        if (xmppClientEvent == XmppClient.XMPPCLIENT_EVENT_LOGIN) {
+            if (args.length > 0 && (Boolean) args[0] == true) {
+                LogManager.local(TAG, "xmpp logined");
+                Message msg = mHandler.obtainMessage(EVT_ASYNC_COMMANDS);
+                mHandler.sendMessage(msg);
+            }
+        }
+        return null;
+    }
+
+    public void addWebServiceClient(WebServiceClient client) {
+        mWebServiceClient = client;
     }
 
     private String getCommandType(ZMIQCommand cmd) {
@@ -315,5 +338,34 @@ public class CommandProcessor extends CmdDispatchInfo {
         }
         LogManager.getInstance().addLog(
                 CoreConstants.CONSTANT_INT_LOGTYPE_COMMON, result.toXML());
+    }
+
+    private void handleAsyncCommands() {
+        WebServiceClient.Result<String> resultCb = new WebServiceClient.Result<String>() {
+
+            @Override
+            public void receiveResult(String result, int errorCode) {
+
+                try {
+                    LogManager.local(TAG, "handleAsyncCommands");
+                    if (errorCode != WebServiceClient.ERR_NO) {
+                        return;
+                    }
+                    ZMIQCommandProvider provider = new ZMIQCommandProvider();
+                    List<IQ> iqs = provider.parseCommands(result);
+                    for (IQ iq : iqs) {
+                        if (iq instanceof ZMIQCommand) {
+                            postIQCommand((ZMIQCommand) iq);
+                        }
+                    }
+                } catch (Exception e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+
+            }
+
+        };
+        mWebServiceClient.getAsyncCommands(resultCb);
     }
 }

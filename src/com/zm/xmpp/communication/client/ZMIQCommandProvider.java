@@ -1,5 +1,9 @@
 package com.zm.xmpp.communication.client;
 
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.zm.epad.core.LogManager;
 import com.zm.xmpp.communication.command.ICommand;
 import com.zm.xmpp.communication.Constants;
@@ -7,6 +11,7 @@ import com.zm.xmpp.communication.Constants;
 import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.provider.IQProvider;
 import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserFactory;
 
 public class ZMIQCommandProvider implements IQProvider {
 
@@ -53,6 +58,41 @@ public class ZMIQCommandProvider implements IQProvider {
         }
 
         return iq;
+    }
+
+    public List<IQ> parseCommands(String commands) throws Exception {
+        List<IQ> list = new ArrayList<IQ>();
+
+        XmlPullParser parser = XmlPullParserFactory.newInstance()
+                .newPullParser();
+        StringReader in = new StringReader(commands);
+        parser.setInput(in);
+        boolean done = false;
+        while (!done) {
+            int eventType = parser.next();
+            if (eventType == XmlPullParser.START_TAG) {
+                if (parser.getName().equals("iq")) {
+                    String id = parser.getAttributeValue("", "id");
+                    String to = parser.getAttributeValue("", "to");
+                    String from = parser.getAttributeValue("", "from");
+
+                    parser.next();
+                    IQ iq = parseIQ(parser);
+
+                    iq.setPacketID(id);
+                    iq.setTo(to);
+                    iq.setFrom(from);
+                    list.add(iq);
+                }
+            } else if (eventType == XmlPullParser.END_TAG) {
+                if (parser.getName().equals("iq")) {
+                    continue;
+                }
+            } else if (eventType == XmlPullParser.END_DOCUMENT) {
+                done = true;
+            }
+        }
+        return list;
     }
 
     private int getIQCategory(String type) {
