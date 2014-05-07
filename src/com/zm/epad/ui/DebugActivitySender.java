@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.Calendar;
 
+import com.zm.epad.core.Config;
 import com.zm.epad.core.CoreConstants;
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.SubSystemFacade;
@@ -13,6 +14,7 @@ import com.zm.xmpp.communication.client.ZMStringCommand;
 import com.zm.xmpp.communication.command.Command4App;
 import com.zm.xmpp.communication.command.Command4Query;
 import com.zm.xmpp.communication.command.Command4Report;
+import com.zm.xmpp.communication.command.ICommand;
 
 import org.jivesoftware.smack.XMPPConnection;
 
@@ -67,7 +69,8 @@ public class DebugActivitySender extends Activity {
         setContentView(R.layout.activity_sender);
         mContext = this;
 
-        IP = getIntent().getExtras().getString("ServerIP");
+        // IP = getIntent().getExtras().getString("ServerIP");
+        IP = Config.getInstance().getConfig(Config.SERVER_ADDRESS);
 
         testConnectionOn();
         mDeviceAdmin = (Button) findViewById(R.id.button0);
@@ -302,7 +305,7 @@ public class DebugActivitySender extends Activity {
                 try {
                     testConnection = new XMPPConnection(IP, null);
                     testConnection.connect();
-                    testConnection.login("test", "test", "zhimotech");
+                    testConnection.login("test", "test", "default");
                 } catch (Exception e) {
                     LogManager.local(TAG, "testConnection" + e.toString());
                 }
@@ -352,13 +355,8 @@ public class DebugActivitySender extends Activity {
                 null);
         LogManager.local(TAG, "##Command4App##\n" + Command.toXML());
 
-        ZMIQCommand cmdIQ = new ZMIQCommand();
-        cmdIQ.setCommand(Command);
-        cmdIQ.setTo("dengfanping@com.zm.communication/" + Build.SERIAL);
-        cmdIQ.setFrom("test@com.zm.communication/zhimotech");
-        cmdIQ.setPacketID("xyzzd");
-        testConnection.sendPacket(cmdIQ);
-        LogManager.local(TAG, "##IQ##\n" + cmdIQ.toXML());
+        testConnection.sendPacket(getIQCommand(Command));
+        LogManager.local(TAG, "##IQ##\n" + Command.toXML());
     }
 
     void sendTestCommand4Query(String action) {
@@ -366,26 +364,16 @@ public class DebugActivitySender extends Activity {
                 Constants.XMPP_NAMESPACE_CENTER, "9528", action, "time2014");
         LogManager.local(TAG, "##Command4Query##\n" + Command.toXML());
 
-        ZMIQCommand cmdIQ = new ZMIQCommand();
-        cmdIQ.setCommand(Command);
-        cmdIQ.setTo("dengfanping@com.zm.communication/" + Build.SERIAL);
-        cmdIQ.setFrom("test@com.zm.communication/zhimotech");
-        cmdIQ.setPacketID("xyzzd");
-        testConnection.sendPacket(cmdIQ);
-        LogManager.local(TAG, "##IQ##\n" + cmdIQ.toXML());
+        testConnection.sendPacket(getIQCommand(Command));
+        LogManager.local(TAG, "##IQ##\n" + Command.toXML());
     }
 
     void sendTestCommand4Report(String report, String action) {
         Command4Report Command = new Command4Report(
                 Constants.XMPP_NAMESPACE_CENTER, "9529", report, action, "2014");
 
-        ZMIQCommand cmdIQ = new ZMIQCommand();
-        cmdIQ.setCommand(Command);
-        cmdIQ.setTo("dengfanping@com.zm.communication/" + Build.SERIAL);
-        cmdIQ.setFrom("test@com.zm.communication/zhimotech");
-        cmdIQ.setPacketID("xyzzd");
-        testConnection.sendPacket(cmdIQ);
-        LogManager.local(TAG, "##IQ##\n" + cmdIQ.toXML());
+        testConnection.sendPacket(getIQCommand(Command));
+        LogManager.local(TAG, "##IQ##\n" + Command.toXML());
     }
 
     void sendTestCommand4Policy() {
@@ -404,15 +392,19 @@ public class DebugActivitySender extends Activity {
             Command.setType("policy");
             Command.setContent(policy);
 
-            ZMIQCommand cmdIQ = new ZMIQCommand();
-            cmdIQ.setCommand(Command);
-            cmdIQ.setTo("dengfanping@com.zm.communication/" + Build.SERIAL);
-            cmdIQ.setFrom("test@com.zm.communication/zhimotech");
-            cmdIQ.setPacketID("xyzzd");
-            testConnection.sendPacket(cmdIQ);
+            testConnection.sendPacket(getIQCommand(Command));
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    ZMIQCommand getIQCommand(ICommand command) {
+        ZMIQCommand cmdIQ = new ZMIQCommand();
+        cmdIQ.setCommand(command);
+        String target = Config.getDeviceId() + "@com.zm.communication/"
+                + Config.getInstance().getConfig(Config.RESOURCE);
+        cmdIQ.setTo(target);
+        return cmdIQ;
     }
 
     @Override
