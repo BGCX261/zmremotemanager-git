@@ -18,10 +18,13 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 
 import com.zm.epad.R;
+import com.zm.epad.RemoteManager;
 import com.zm.epad.core.CoreConstants;
 
 import android.app.Activity;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
@@ -41,6 +44,7 @@ public class RegisterActivity extends Activity {
     private final String CHARSET = "UTF-8";
     private final String PARM_LOGIN_USERNAME = "username";
     private final String PARM_LOGIN_PASSWORD = "pwd";
+    private final int LOGIN_REQUEST_CODE = 1;
 
     private Button mBtnRegister;
     private Button mBtnBack;
@@ -69,7 +73,9 @@ public class RegisterActivity extends Activity {
 
             @Override
             public void onClick(View arg0) {
-                register();
+                if(register()) {
+                    login();
+                }
             }
 
         });
@@ -85,7 +91,21 @@ public class RegisterActivity extends Activity {
         });
     }
 
-    private void register() {
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+        case LOGIN_REQUEST_CODE:
+            if (resultCode != RemoteManager.RESULT_OK) {
+                showLoginFail();
+            }
+            finish();
+            break;
+        default:
+            break;
+        }
+    }
+
+    private boolean register() {
         String error = null;
 
         try {
@@ -101,7 +121,7 @@ public class RegisterActivity extends Activity {
                 error = getString(R.string.login_registerp);
                 throw new Exception("different password");
             }
-            registerUser();
+            return registerUser();
         } catch (Exception e) {
             Log.d(TAG, "register fail:" + e.getMessage());
             showRegisterFail();
@@ -109,6 +129,19 @@ public class RegisterActivity extends Activity {
             Toast t = Toast.makeText(this, error, duration);
             t.setMargin(0, 0.4f);
             t.show();
+        }
+        return false;
+    }
+
+    private void login() {
+        RemoteManager rm = new RemoteManager();
+        Intent data = new Intent();
+        PendingIntent pi = createPendingResult(LOGIN_REQUEST_CODE, data, 0);
+        String username = mUsername.getText().toString();
+        String password = mPassword.getText().toString();
+        boolean ret = rm.login(username, password, pi);
+        if (ret) {
+            showLoginFail();
         }
     }
 
@@ -154,7 +187,8 @@ public class RegisterActivity extends Activity {
                 .equals(mConfirm.getText().toString());
     }
 
-    private void registerUser() {
+    private boolean registerUser() {
+        boolean ret = false;
         mResult = null;
         Thread t = new Thread(new Runnable() {
 
@@ -183,6 +217,7 @@ public class RegisterActivity extends Activity {
             t.start();
             t.join();
             if (mResult != null && mResult.equals(YES)) {
+                ret = true;
                 showRegisterSuccess();
             } else {
                 showRegisterFail();
@@ -191,12 +226,16 @@ public class RegisterActivity extends Activity {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-
+        return ret;
     }
 
     private void showRegisterSuccess() {
         mLoginF.setVisibility(View.INVISIBLE);
-        mLoginS.setVisibility(View.VISIBLE);
+        // mLoginS.setVisibility(View.VISIBLE);
+        int duration = Toast.LENGTH_SHORT;
+        Toast t = Toast.makeText(this, R.string.login_registers, duration);
+        t.setMargin(0, 0.5f);
+        t.show();
     }
 
     private void showRegisterFail() {
@@ -204,11 +243,14 @@ public class RegisterActivity extends Activity {
         mLoginF.setVisibility(View.VISIBLE);
     }
 
-    private class RestClient {
+    private void showLoginFail() {
+        int duration = Toast.LENGTH_LONG;
+        Toast t = Toast.makeText(this, R.string.login_logginf, duration);
+        t.setMargin(0, 0.4f);
+        t.show();
+    }
 
-        private final String PARM_LOGIN_USERNAME = "username";
-        private final String PARM_LOGIN_PASSWORD = "pwd";
-        private final String PARM_LOGIN_DEVICEID = "deviceid";
+    private class RestClient {
 
         public String get(String url) throws Exception {
 
