@@ -4,6 +4,7 @@ import android.app.ActivityManager.RunningAppProcessInfo;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageInfo;
+import android.content.pm.ResolveInfo;
 import android.content.pm.UserInfo;
 import android.os.Bundle;
 import android.os.Looper;
@@ -396,6 +397,10 @@ public class SubSystemFacade {
         }
 
         return ret;
+    }
+
+    public List<ResolveInfo> getHomeActivities() {
+        return mPackageManager.getHomeActivities();
     }
 
     public int getCurrentUserId() {

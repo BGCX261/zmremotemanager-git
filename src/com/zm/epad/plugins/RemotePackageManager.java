@@ -710,4 +710,16 @@ public class RemotePackageManager {
         }
         return null;
     }
+
+    public List<ResolveInfo> getHomeActivities() {
+        try {
+            ArrayList<ResolveInfo> homeActivities = new ArrayList<ResolveInfo>();
+            mPm.getHomeActivities(homeActivities);
+            return homeActivities;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
 }

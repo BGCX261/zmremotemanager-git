@@ -1,7 +1,9 @@
 package com.zm.xmpp.communication.handler;
 
+import android.content.ComponentName;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
+import android.content.pm.ResolveInfo;
 import android.content.pm.UserInfo;
 import android.os.Build;
 import android.os.Bundle;
@@ -449,6 +451,7 @@ public class ResultFactory {
             mLastUsageUser = CurrentUser;
             mLastUsage = null;
         }
+
         PkgUsageStats[] usage = (PkgUsageStats[]) obj;
         ResultAppUsage result = new ResultAppUsage();
         long currentTime = System.currentTimeMillis();
@@ -458,7 +461,22 @@ public class ResultFactory {
         List<PkgUsageStats> nowlist = Arrays.asList(usage);
         RemotePackageManager pkgManager = mSubSystemFacade
                 .getRemotePackageManager();
+
+        List<ResolveInfo> homes = mSubSystemFacade.getHomeActivities();
+
         for (PkgUsageStats now : nowlist) {
+            boolean ignore = false;
+            for (ResolveInfo h : homes) {
+                if (h.activityInfo.packageName.equals(now.packageName)) {
+                    // ignore home app
+                    ignore = true;
+                    break;
+                }
+            }
+            if (ignore) {
+                continue;
+            }
+
             if (mLastUsage != null) {
                 // calculate the time increment of each app
                 for (PkgUsageStats last : mLastUsage) {
