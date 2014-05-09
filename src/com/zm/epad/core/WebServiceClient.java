@@ -19,6 +19,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 
 import android.content.Context;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 
@@ -36,6 +37,8 @@ public class WebServiceClient {
     private final String PARM_LOGIN_USERNAME = "username";
     private final String PARM_LOGIN_PASSWORD = "pwd";
     private final String PARM_LOGIN_DEVICEID = "deviceid";
+    private final String PARM_LOGIN_BRAND = "brand";
+    private final String PARM_LOGIN_MODEL = "model";
     private final String PARM_ASYNC_DEVICEID = "deviceid";
     private final String PARM_ASYNC_PASSWORD = "password";
     private final String PARM_ASYNC_SEQUENCE = "sequence";
@@ -169,7 +172,7 @@ public class WebServiceClient {
                     e.printStackTrace();
                     if (e instanceof ConnectException) {
                         errorCode = ERR_NETUNREACH;
-                    } else {
+                    } else if(errorCode == ERR_NO){
                         errorCode = ERR_UNKNOWN;
                     }
                 } finally {
@@ -200,6 +203,8 @@ public class WebServiceClient {
         map.put(PARM_LOGIN_USERNAME, username);
         map.put(PARM_LOGIN_PASSWORD, password);
         map.put(PARM_LOGIN_DEVICEID, Config.getDeviceId());
+        map.put(PARM_LOGIN_BRAND, Build.BRAND);
+        map.put(PARM_LOGIN_MODEL, Build.MODEL);
         return rest.post(Config.getInstance().getConfig(Config.REST_SIGNON),
                 map);
 
@@ -241,6 +246,7 @@ public class WebServiceClient {
             urlconn.setRequestProperty("Charset", "UTF-8");
 
             String content = transfermap(form);
+            LogManager.local(TAG, "content:" + content);
             OutputStream outs = urlconn.getOutputStream();
             outs.write(content.toString().getBytes(CHARSET));
             outs.close();
