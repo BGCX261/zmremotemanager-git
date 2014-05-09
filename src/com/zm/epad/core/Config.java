@@ -33,7 +33,7 @@ public class Config {
     private String mDeviceId = null;
 
     private HashMap<String, String> ConfigMap = new HashMap<String, String>();
-    private String[] mUnchangableConfigs = { SERVER_ADDRESS, USERNAME };
+    private String[] mUnchangableConfigs = { USERNAME };
 
     public static Config getInstance() {
         return sInstance;
