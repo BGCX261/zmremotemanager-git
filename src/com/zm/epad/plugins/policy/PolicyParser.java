@@ -3,6 +3,8 @@ package com.zm.epad.plugins.policy;
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.SubSystemFacade;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
@@ -104,9 +106,17 @@ public class PolicyParser {
                     PolicyConstants.TYPE_SWITCH, start, end);
             policy.setCallback(new EnableUserTimeSlot());
         } else if (action.equals(PolicyConstants.ACTION_START_APP)) {
-            SwitchPolicy policy = (SwitchPolicy) mManager.addPolicy(
-                    PolicyConstants.TYPE_SWITCH, start, null);
-            policy.setCallback(new StartAppRunnable(mContext, param));
+            try {
+                JSONObject json = new JSONObject(param);
+                String name = json.getString(PolicyConstants.PARAM_NAME);
+                SwitchPolicy policy = (SwitchPolicy) mManager.addPolicy(
+                        PolicyConstants.TYPE_SWITCH, start, null);
+                policy.setCallback(new StartAppRunnable(mContext, name));
+            } catch (JSONException e) {
+                LogManager.local(TAG, "wrong param for startapp policy:"
+                        + param);
+                e.printStackTrace();
+            }
         } else if (action.equals(PolicyConstants.ACTION_APP_USAGE)) {
             SwitchPolicy policy = (SwitchPolicy) mManager.addPolicy(
                     PolicyConstants.TYPE_SWITCH, start, null);
@@ -115,6 +125,17 @@ public class PolicyParser {
             TimeSlotPolicy policy = (TimeSlotPolicy) mManager.addPolicy(
                     PolicyConstants.TYPE_SWITCH, start, end);
             policy.setCallback(new LocationTrackTimeSlot());
+        } else if (action.equals(PolicyConstants.ACTION_LOG_UPLOAD)) {
+            try {
+                JSONObject json = new JSONObject(param);
+                String url = json.getString(PolicyConstants.PARAM_URL);
+                SwitchPolicy policy = (SwitchPolicy) mManager.addPolicy(
+                        PolicyConstants.TYPE_SWITCH, start, null);
+                policy.setCallback(new LogUploadRunnable(url));
+            } catch (JSONException e) {
+                LogManager.local(TAG, "wrong param for log policy:" + param);
+                e.printStackTrace();
+            }
         }
     }
 
@@ -148,13 +169,21 @@ public class PolicyParser {
         LogManager.local(TAG, "handleAccumulatePolicy: act:" + action
                 + ";param:" + param);
         if (action.equals(PolicyConstants.ACTION_EYE)) {
-            int devide = param.indexOf(TAG_COMMA);
-            String accumulate = param.substring(0, devide);
-            String closeTime = param.substring(devide + 1);
-            AccumulatePolicy policy = (AccumulatePolicy) mManager.addPolicy(
-                    PolicyConstants.TYPE_ACCUMULATE, accumulate, null);
-            policy.setCallbck(new Accumulate4Eye(mContext, Long
-                    .valueOf(closeTime)));
+            try {
+                JSONObject json = new JSONObject(param);
+                String interval = json
+                        .getString(PolicyConstants.PARAM_INTERVAL);
+                String duration = json
+                        .getString(PolicyConstants.PARAM_INTERVAL);
+                AccumulatePolicy policy = (AccumulatePolicy) mManager
+                        .addPolicy(PolicyConstants.TYPE_ACCUMULATE, interval,
+                                null);
+                policy.setCallbck(new Accumulate4Eye(mContext, Long
+                        .valueOf(duration)));
+            } catch (JSONException e) {
+                LogManager.local(TAG, "wrong param for eye policy" + param);
+                e.printStackTrace();
+            }
         }
     }
 

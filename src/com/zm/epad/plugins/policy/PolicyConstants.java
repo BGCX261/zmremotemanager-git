@@ -15,5 +15,10 @@ public class PolicyConstants {
     public static final String ACTION_START_APP = "startapp";
     public static final String ACTION_APP_USAGE = "appusage";
     public static final String ACTION_POSITION = "position";
+    public static final String ACTION_LOG_UPLOAD = "log";
     public static final String ACTION_EYE = "eye";
+    public static final String PARAM_URL = "url";
+    public static final String PARAM_NAME = "name";
+    public static final String PARAM_INTERVAL = "interval";
+    public static final String PARAM_DURATION = "duration";
 }
