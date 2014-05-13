@@ -242,6 +242,7 @@ public class PolicyParser {
             try {
                 String name = names.getString(i);
                 config.setConfig(name, json.getString(name));
+                config.saveConfig();
             } catch (Exception e) {
                 LogManager.local(TAG, "set error:" + e.toString());
             }
