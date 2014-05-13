@@ -14,6 +14,7 @@ import org.xmlpull.v1.XmlPullParserFactory;
 import android.content.Context;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import com.zm.xmpp.communication.Constants;
 
 public class Config {
     public static final String SERVER_ADDRESS = "server_address";
@@ -24,6 +25,7 @@ public class Config {
     public static final String REST_SIGNON = "rest_signon";
     public static final String ASYNC_SERVER = "async_server";
     public static final String ASYNC_SEQUENCE = "async_sequence";
+    public static final String XMPP_DOMAIN = "xmpp_domain";
 
     private final String CONFIG = "config.xml";
     private final String CHARSET = "utf-8";
@@ -189,6 +191,7 @@ public class Config {
         ConfigMap.put(REST_SIGNON, CoreConstants.CONSTANT_REST_SIGNON);
         ConfigMap.put(ASYNC_SERVER, CoreConstants.CONSTANT_ASYNC_SERVER);
         ConfigMap.put(ASYNC_SEQUENCE, "0");
+        ConfigMap.put(XMPP_DOMAIN, Constants.XMPP_DOMAIN);
     }
 
     private String getMACAddress() {

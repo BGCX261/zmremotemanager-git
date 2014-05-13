@@ -55,6 +55,10 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
 
     static final String[] XMPPCLIENT_STATUS_STRINGS = { " idle ", " starting ",
             " started ", " logining ", " logined ", " error " };
+    private final long PING_INTERVAL = 22 * 1000;
+    private final String XMPP_DOMAIN = Config.getInstance() != null ? Config
+            .getInstance().getConfig(Config.XMPP_DOMAIN)
+            : "com.zm.communication";
 
     private ReentrantLock mStatusLock = new ReentrantLock();
 
@@ -66,6 +70,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     private Bundle mConnectionInfo = null;
     private XMPPConnectionListener mXmppConnectionListener = null;
     private PingManager mPingManager = null;
+    private int mPingAlarmId = -1;
 
     public interface XmppClientCallback {
         public Object reportXMPPClientEvent(int xmppClientEvent, Object... args);
@@ -246,6 +251,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
 
             // use ping manager to handle ping
             mPingManager = PingManager.getInstanceFor(mXmppConnection);
+            startPing();
 
             transitionToStatusLocked(XMPPCLIENT_STATUS_STARTED);
 
@@ -309,6 +315,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     private void handleLogoutCmd(boolean bNetworkConnect) {
         try {
             mStatusLock.lock();
+            stopPing();
             mXmppConnection.disconnect();
             if (bNetworkConnect)
                 transitionToStatusLocked(XMPPCLIENT_STATUS_IDLE);
@@ -323,6 +330,7 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
     private void handleQuitCmd() {
         try {
             mStatusLock.lock();
+            stopPing();
             mXmppConnection.disconnect();
             LogManager.local(TAG, "disconnect by handleQuitCmd");
             mPrevStatus = mCurrentStatus = XMPPCLIENT_STATUS_IDLE;
@@ -706,9 +714,11 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
                 mXmppConnection = new XMPPConnection(config);
                 mXmppConnectionListener = new XMPPConnectionListener();
                 mXmppConnection.addConnectionListener(mXmppConnectionListener);
-                mPingManager = PingManager.getInstanceFor(mXmppConnection);
             }
             mXmppConnection.connect();
+            mPingManager = PingManager.getInstanceFor(mXmppConnection);
+            startPing();
+
             dispatchXmppClientEvent(XMPPCLIENT_EVENT_CONNECT, 1,
                     mXmppConnection, ProviderManager.getInstance());
 
@@ -735,6 +745,31 @@ public class XmppClient implements NetworkStatusMonitor.NetworkStatusReport {
         } finally {
             SubSystemFacade.getInstance().releaseWakeLock(TAG);
             mStatusLock.unlock();
+        }
+    }
+
+    private void startPing() {
+        try {
+            mPingAlarmId = SubSystemFacade.getInstance().setAlarm(
+                    System.currentTimeMillis() + PING_INTERVAL,
+                    new RemoteAlarmManager.AlarmCallback() {
+
+                        @Override
+                        public void wakeUp() {
+                            LogManager.local(TAG, "ping server");
+                            mPingManager.ping(XMPP_DOMAIN);
+                            startPing();
+                        }
+                    });
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
+    private void stopPing() {
+        if (mPingAlarmId >= 0) {
+            SubSystemFacade.getInstance().cancelAlarm(mPingAlarmId);
         }
     }
 }
