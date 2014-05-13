@@ -13,17 +13,27 @@ public class LocationTrackTimeSlot implements TimeSlotListener {
 
     private static final String TAG = "LocationTrackTimeSlot";
 
-    private long POSITION_DEFAULT_INTERVAL = 60 * 1000; // milliseconds
-    private int POSITION_DEFAULT_DISTANCE = 50; // meters
+    private static final long POSITION_DEFAULT_INTERVAL = 5 * 60 * 1000; // milliseconds
+    private static final int POSITION_DEFAULT_DISTANCE = 50; // meters
+    private long mInterval;
+    private int mDistance;
+
+    public LocationTrackTimeSlot() {
+        this(POSITION_DEFAULT_INTERVAL, POSITION_DEFAULT_DISTANCE);
+    }
+
+    public LocationTrackTimeSlot(long interval, int distance) {
+        mInterval = interval;
+        mDistance = distance;
+    }
 
     @Override
     public void onStart(TimeSlotPolicy policy) {
         // TODO Auto-generated method stub
         LogManager.local(TAG, "location track start:" + policy.getId());
         SubSystemFacade.getInstance().startTrackLocation(
-                Settings.Secure.LOCATION_MODE_HIGH_ACCURACY,
-                POSITION_DEFAULT_INTERVAL, POSITION_DEFAULT_DISTANCE,
-                new LocationCallback());
+                Settings.Secure.LOCATION_MODE_HIGH_ACCURACY, mInterval,
+                mDistance, new LocationCallback());
     }
 
     @Override

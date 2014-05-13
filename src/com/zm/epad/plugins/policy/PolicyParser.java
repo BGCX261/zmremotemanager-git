@@ -1,21 +1,20 @@
 package com.zm.epad.plugins.policy;
 
+import com.zm.epad.core.Config;
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.SubSystemFacade;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.Intent;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.HashMap;
 
 public class PolicyParser {
     private static final String TAG = "PolicyParser";
@@ -24,7 +23,6 @@ public class PolicyParser {
     private XmlPullParser mParser;
     private final String TAG_POLICY = "policy";
     private final String TAG_COMMAND = "command";
-    private final String TAG_COMMA = ",";
 
     public PolicyParser(Context context, String policyForm)
             throws XmlPullParserException {
@@ -47,6 +45,8 @@ public class PolicyParser {
                         parseSwitchPolicy(mParser);
                     } else if (type.equals(PolicyConstants.TYPE_ACCUMULATE)) {
                         parseAccumulatePolicy(mParser);
+                    } else if (type.equals(PolicyConstants.TYPE_SET)) {
+                        parseSetPolicy(mParser);
                     }
                 }
             } else if (eventType == XmlPullParser.END_TAG) {
@@ -122,9 +122,26 @@ public class PolicyParser {
                     PolicyConstants.TYPE_SWITCH, start, null);
             policy.setCallback(new AppUsageRunnable());
         } else if (action.equals(PolicyConstants.ACTION_POSITION)) {
-            TimeSlotPolicy policy = (TimeSlotPolicy) mManager.addPolicy(
-                    PolicyConstants.TYPE_SWITCH, start, end);
-            policy.setCallback(new LocationTrackTimeSlot());
+            try {
+                if (param != null) {
+                    JSONObject json = new JSONObject(param);
+                    String time = json.getString(PolicyConstants.PARAM_TIME);
+                    String distance = json
+                            .getString(PolicyConstants.PARAM_DISTANCE);
+                    TimeSlotPolicy policy = (TimeSlotPolicy) mManager
+                            .addPolicy(PolicyConstants.TYPE_SWITCH, start, end);
+                    policy.setCallback(new LocationTrackTimeSlot(Long
+                            .valueOf(time), Integer.valueOf(distance)));
+                } else {
+                    TimeSlotPolicy policy = (TimeSlotPolicy) mManager
+                            .addPolicy(PolicyConstants.TYPE_SWITCH, start, end);
+                    policy.setCallback(new LocationTrackTimeSlot());
+                }
+            } catch (JSONException e) {
+                LogManager.local(TAG, "wrong param for position policy:"
+                        + param);
+                e.printStackTrace();
+            }
         } else if (action.equals(PolicyConstants.ACTION_LOG_UPLOAD)) {
             try {
                 JSONObject json = new JSONObject(param);
@@ -187,4 +204,47 @@ public class PolicyParser {
         }
     }
 
+    private void parseSetPolicy(XmlPullParser parser)
+            throws XmlPullParserException, IOException {
+        boolean done = false;
+        String param = null;
+
+        while (!done) {
+            int eventType = parser.next();
+            if (eventType == XmlPullParser.START_TAG) {
+                if (parser.getName().equals(PolicyConstants.SET_PARAM)) {
+                    param = parser.nextText();
+                }
+            } else if (eventType == XmlPullParser.END_TAG) {
+                if (parser.getName().equals(TAG_POLICY)) {
+                    done = true;
+                }
+            } else if (eventType == XmlPullParser.END_DOCUMENT) {
+                done = true;
+            }
+        }
+        handleSetPolicy(param);
+    }
+
+    private void handleSetPolicy(String param) {
+        JSONObject json;
+        try {
+            json = new JSONObject(param);
+        } catch (JSONException e1) {
+            e1.printStackTrace();
+            LogManager.local(TAG, "handleSetPolicy failed");
+            return;
+        }
+
+        JSONArray names = json.names();
+        Config config = Config.getInstance();
+        for (int i = 0; i < names.length(); i++) {
+            try {
+                String name = names.getString(i);
+                config.setConfig(name, json.getString(name));
+            } catch (Exception e) {
+                LogManager.local(TAG, "set error:" + e.toString());
+            }
+        }
+    }
 }
