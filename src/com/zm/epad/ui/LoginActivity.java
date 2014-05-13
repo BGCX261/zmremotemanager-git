@@ -145,6 +145,8 @@ public class LoginActivity extends Activity {
     private void showAlreadyLogin() {
         TextView notice = (TextView) findViewById(R.id.login_notice);
         notice.setVisibility(View.INVISIBLE);
+        TextView bind = (TextView) findViewById(R.id.login_bind);
+        bind.setVisibility(View.INVISIBLE);
         mUsername.setVisibility(View.INVISIBLE);
         mPassword.setVisibility(View.INVISIBLE);
         mLogging.setVisibility(View.INVISIBLE);

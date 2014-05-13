@@ -163,6 +163,12 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".ui.WelcomeActivity"
+            android:process="com.zm.login" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+            </intent-filter>
+        </activity>
         <activity android:name=".ui.LoginActivity"
             android:process="com.zm.login" >
             <intent-filter>

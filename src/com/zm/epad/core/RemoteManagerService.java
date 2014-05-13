@@ -13,7 +13,7 @@ import android.os.Looper;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import com.zm.epad.core.Config;
-import com.zm.epad.ui.LoginActivity;
+import com.zm.epad.ui.WelcomeActivity;
 
 /**
  * Core Service.
@@ -153,7 +153,7 @@ public class RemoteManagerService extends Service {
                     mLoginBundle.getString(CoreConstants.CONSTANT_RESOURCE));
         } else {
             Intent intent = new Intent();
-            intent.setClass(this, LoginActivity.class);
+            intent.setClass(this, WelcomeActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
         }

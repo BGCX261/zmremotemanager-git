@@ -3,10 +3,11 @@
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 
     <!-- feature activity strings -->
-    <string name="login_notice">! 注意，登录时请开启WIFI并连接网络</string>
-    <string name="login_register_notice">请填写您的注册信息</string>
-    <string name="login_username">用户名:</string>
-    <string name="login_password">密码:</string>
+    <string name="login_bind">请将您的设备与家庭云绑定</string>
+    <string name="login_notice">提示:绑定时请开启WIFI并连接网络</string>
+    <string name="login_register_notice">请填写您家庭的注册信息</string>
+    <string name="login_username">家庭ID:</string>
+    <string name="login_password">密\t\t码:</string>
     <string name="login_confirm">确认密码:</string>
     <string name="login_logging">登录中</string>
     <string name="login_loggins">登录成功，您的设备已在云端登录</string>
@@ -18,12 +19,17 @@
     <string name="login_registerf">注册失败，请检查注册信息</string>
     <string name="login_registern">该用户名已经被注册</string>
     <string name="login_registerp">输入的密码不一致，请重新输入</string>
-    <string name="login_register">注册</string>
-    <string name="login_login">登录</string>
+    <string name="login_register">新家庭注册</string>
+    <string name="login_login">家庭云绑定</string>
     <string name="login_done">完成</string>
-    <string name="login_back">返回</string>
+    <string name="login_back">返\t\t回</string>
+    <string name="login_next">下一步</string>
     <string name="login_already">! 您的设备已经在云端登录</string>
-
+    <string name="login_welcome">欢迎使用智墨平安家庭</string>
+    <string name="login_welcome_content">\t\t\t\t您正在使用智墨平安家庭云服务。您可以将您的设备登录到家庭云端，
+        从而让该设备处于家庭云的呵护之下。该服务需要使用一些网络流量，并取得一些必要的设备信息。
+        \n\t\t\t\t如果您已经有家庭ID，请点击“下一步”，并在下一页中输入家庭ID和密码，然后点击“家庭云绑定”。
+        如果没有家庭ID，请在点击“下一步”后选择“新家庭注册”。</string>
 
 
     <!-- Manifest strings -->
@@ -162,7 +168,7 @@
     <string name="acc_label">智墨向导</string>
     <string name="acc_title_fmt">ZMTech Account Format</string>
     
-    <string name="app_name">智墨向导</string>
+    <string name="app_name">智墨平安家庭</string>
     <string name="disablescreen">请休息一会儿\n您的设备已被锁定，需要解锁请与管理员联系</string>
 
     <!-- Strings for Api Testing Preferences -->

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/wall" >
+
+    <TextView
+        android:id="@+id/welcome_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/login_margin_left"
+        android:layout_marginTop="@dimen/login_margin_top"
+        android:text="@string/login_welcome"
+        android:textColor="#006600"
+        android:textSize="24dp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/welcome_content"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/welcome_title"
+        android:layout_below="@+id/welcome_title"
+        android:layout_marginRight="@dimen/login_margin_left"
+        android:layout_marginTop="@dimen/login_margin_top"
+        android:padding="@dimen/login_padding"
+        android:text="@string/login_welcome_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:textColor="#008800" />
+
+    <TextView
+        android:id="@+id/welcome_alreadylogin"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/welcome_title"
+        android:layout_below="@+id/welcome_title"
+        android:layout_marginRight="@dimen/login_margin_left"
+        android:layout_marginTop="@dimen/login_margin_top"
+        android:text="@string/login_already"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textColor="#ff0000"
+        android:visibility="invisible" />
+
+    <Button
+        android:id="@+id/welcome_back"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/welcome_content"
+        android:layout_below="@+id/welcome_content"
+        android:layout_marginTop="30dp"
+        android:text="@string/login_back" />
+
+    <Button
+        android:id="@+id/welcome_next"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/welcome_back"
+        android:layout_alignBottom="@+id/welcome_back"
+        android:layout_alignRight="@+id/welcome_content"
+        android:text="@string/login_next" />
+
+    <Button
+        android:id="@+id/welcome_done"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/welcome_back"
+        android:layout_alignBottom="@+id/welcome_back"
+        android:layout_centerHorizontal="true"
+        android:text="@string/login_done"
+        android:visibility="invisible" />
+
+</RelativeLayout>

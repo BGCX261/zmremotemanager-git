@@ -141,7 +141,7 @@ public class DebugActivityHome extends Activity {
                 // TODO Auto-generated method stub
                 LogManager.local(TAG, "login page");
                 Intent intent = new Intent();
-                intent.setClass(mContext, LoginActivity.class);
+                intent.setClass(mContext, WelcomeActivity.class);
                 startActivity(intent);
             }
 
