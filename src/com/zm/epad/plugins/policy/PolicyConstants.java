@@ -2,6 +2,8 @@ package com.zm.epad.plugins.policy;
 
 public class PolicyConstants {
     public static final String ATTR_TYPE = "type";
+    public static final String ATTR_PUBLISHER = "publisher";
+    public static final String ATTR_USERID = " userid";
     public static final String TYPE_SWITCH = "switch";
     public static final String TYPE_ACCUMULATE = "accumulate";
     public static final String TYPE_SET = "set";
@@ -18,6 +20,7 @@ public class PolicyConstants {
     public static final String ACTION_APP_USAGE = "appusage";
     public static final String ACTION_POSITION = "locate";
     public static final String ACTION_LOG_UPLOAD = "log";
+    public static final String ACTION_LOG_DEBUG_UPLOAD = "debuglog";
     public static final String ACTION_EYE = "eye";
     public static final String PARAM_URL = "url";
     public static final String PARAM_NAME = "name";

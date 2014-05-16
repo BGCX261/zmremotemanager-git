@@ -1,23 +1,23 @@
 package com.zm.epad.plugins.policy;
 
-import com.zm.epad.core.CoreConstants;
 import com.zm.epad.core.LogManager;
 
 public class LogUploadRunnable implements Runnable {
 
     private String mUrl;
+    private int mType;
 
-    public LogUploadRunnable(String url) {
+    public LogUploadRunnable(String url, int type) {
         mUrl = url;
+        mType = type;
     }
 
     @Override
     public void run() {
         LogManager logMgr = LogManager.getInstance();
-        int type = CoreConstants.CONSTANT_INT_LOGTYPE_COMMON;
-        String[] logs = logMgr.listLogFiles(type);
+        String[] logs = logMgr.listLogFiles(mType);
         for (String filename : logs) {
-            logMgr.uploadLog(mUrl, type, filename);
+            logMgr.uploadLog(mUrl, mType, filename);
         }
     }
 

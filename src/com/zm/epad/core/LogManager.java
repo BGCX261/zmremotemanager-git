@@ -56,9 +56,11 @@ public class LogManager {
     public static void server(String tag, String msg) {
         String tagWrapper = local(tag, msg);
         // right now, do nothing here.
-        String content = getCurrentTimeAsFormat() + " : " +msg;
-        gLogManager.addLog(CoreConstants.CONSTANT_INT_LOGTYPE_RUNTIME,
-                tagWrapper + content);
+        String content = tagWrapper + getCurrentTimeAsFormat() + " : " + msg;
+        if (gLogManager != null) {
+            gLogManager.addLog(CoreConstants.CONSTANT_INT_LOGTYPE_RUNTIME,
+                    content);
+        }
     }
 
     private LogManager(Context context) {

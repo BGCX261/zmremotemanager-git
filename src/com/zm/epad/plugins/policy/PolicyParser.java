@@ -1,6 +1,7 @@
 package com.zm.epad.plugins.policy;
 
 import com.zm.epad.core.Config;
+import com.zm.epad.core.CoreConstants;
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.SubSystemFacade;
 
@@ -37,16 +38,32 @@ public class PolicyParser {
         boolean done = false;
         while (!done) {
             int eventType = mParser.next();
+            Policy policy = null;
             if (eventType == XmlPullParser.START_TAG) {
                 if (mParser.getName().equals(TAG_POLICY)) {
                     String type = mParser.getAttributeValue(null,
                             PolicyConstants.ATTR_TYPE);
+                    String publisher = mParser.getAttributeValue(null,
+                            PolicyConstants.ATTR_PUBLISHER);
+                    String userId = mParser.getAttributeValue(null,
+                            PolicyConstants.ATTR_PUBLISHER);
                     if (type.equals(PolicyConstants.TYPE_SWITCH)) {
-                        parseSwitchPolicy(mParser);
+                        policy = parseSwitchPolicy(mParser);
                     } else if (type.equals(PolicyConstants.TYPE_ACCUMULATE)) {
-                        parseAccumulatePolicy(mParser);
+                        policy = parseAccumulatePolicy(mParser);
                     } else if (type.equals(PolicyConstants.TYPE_SET)) {
                         parseSetPolicy(mParser);
+                        policy = null;
+                    }
+                    if (policy != null) {
+                        policy.setPublisher(publisher);
+                        try {
+                            policy.setUserId(Integer.valueOf(userId));
+                        } catch (Exception e) {
+                            LogManager.local(TAG, e.toString() + "/setUser:"
+                                    + userId);
+                            policy.setUserId(-1);
+                        }
                     }
                 }
             } else if (eventType == XmlPullParser.END_TAG) {
@@ -59,7 +76,7 @@ public class PolicyParser {
         }
     }
 
-    private void parseSwitchPolicy(XmlPullParser parser)
+    private Policy parseSwitchPolicy(XmlPullParser parser)
             throws XmlPullParserException, IOException {
         boolean done = false;
         String action = null;
@@ -89,22 +106,24 @@ public class PolicyParser {
                 done = true;
             }
         }
-        handleSwitchPolicy(action, param, start, end);
+        return handleSwitchPolicy(action, param, start, end);
     }
 
-    private void handleSwitchPolicy(String action, String param, String start,
+    private Policy handleSwitchPolicy(String action, String param, String start,
             String end) {
         LogManager.local(TAG, "parseSwitchPolicy: act:" + action + ";param:"
                 + param);
-
+        Policy ret = null;
         if (action.equals(PolicyConstants.ACTION_DISABLE_USER)) {
             TimeSlotPolicy policy = (TimeSlotPolicy) mManager.addPolicy(
                     PolicyConstants.TYPE_SWITCH, start, end);
             policy.setCallback(new DisableUserTimeSlot());
+            ret = policy;
         } else if (action.equals(PolicyConstants.ACTION_ENABLE_USER)) {
             TimeSlotPolicy policy = (TimeSlotPolicy) mManager.addPolicy(
                     PolicyConstants.TYPE_SWITCH, start, end);
             policy.setCallback(new EnableUserTimeSlot());
+            ret = policy;
         } else if (action.equals(PolicyConstants.ACTION_START_APP)) {
             try {
                 JSONObject json = new JSONObject(param);
@@ -112,6 +131,7 @@ public class PolicyParser {
                 SwitchPolicy policy = (SwitchPolicy) mManager.addPolicy(
                         PolicyConstants.TYPE_SWITCH, start, null);
                 policy.setCallback(new StartAppRunnable(mContext, name));
+                ret = policy;
             } catch (JSONException e) {
                 LogManager.local(TAG, "wrong param for startapp policy:"
                         + param);
@@ -121,6 +141,7 @@ public class PolicyParser {
             SwitchPolicy policy = (SwitchPolicy) mManager.addPolicy(
                     PolicyConstants.TYPE_SWITCH, start, null);
             policy.setCallback(new AppUsageRunnable());
+            ret = policy;
         } else if (action.equals(PolicyConstants.ACTION_POSITION)) {
             try {
                 if (param != null) {
@@ -132,10 +153,12 @@ public class PolicyParser {
                             .addPolicy(PolicyConstants.TYPE_SWITCH, start, end);
                     policy.setCallback(new LocationTrackTimeSlot(Long
                             .valueOf(time), Integer.valueOf(distance)));
+                    ret = policy;
                 } else {
                     TimeSlotPolicy policy = (TimeSlotPolicy) mManager
                             .addPolicy(PolicyConstants.TYPE_SWITCH, start, end);
                     policy.setCallback(new LocationTrackTimeSlot());
+                    ret = policy;
                 }
             } catch (JSONException e) {
                 LogManager.local(TAG, "wrong param for position policy:"
@@ -148,15 +171,31 @@ public class PolicyParser {
                 String url = json.getString(PolicyConstants.PARAM_URL);
                 SwitchPolicy policy = (SwitchPolicy) mManager.addPolicy(
                         PolicyConstants.TYPE_SWITCH, start, null);
-                policy.setCallback(new LogUploadRunnable(url));
+                policy.setCallback(new LogUploadRunnable(url,
+                        CoreConstants.CONSTANT_INT_LOGTYPE_COMMON));
+                ret = policy;
+            } catch (JSONException e) {
+                LogManager.local(TAG, "wrong param for log policy:" + param);
+                e.printStackTrace();
+            }
+        } else if (action.equals(PolicyConstants.ACTION_LOG_DEBUG_UPLOAD)) {
+            try {
+                JSONObject json = new JSONObject(param);
+                String url = json.getString(PolicyConstants.PARAM_URL);
+                SwitchPolicy policy = (SwitchPolicy) mManager.addPolicy(
+                        PolicyConstants.TYPE_SWITCH, start, null);
+                policy.setCallback(new LogUploadRunnable(url,
+                        CoreConstants.CONSTANT_INT_LOGTYPE_RUNTIME));
+                ret = policy;
             } catch (JSONException e) {
                 LogManager.local(TAG, "wrong param for log policy:" + param);
                 e.printStackTrace();
             }
         }
+        return ret;
     }
 
-    private void parseAccumulatePolicy(XmlPullParser parser)
+    private Policy parseAccumulatePolicy(XmlPullParser parser)
             throws XmlPullParserException, IOException {
         boolean done = false;
         String action = null;
@@ -179,12 +218,13 @@ public class PolicyParser {
                 done = true;
             }
         }
-        handleAccumulatePolicy(action, param);
+        return handleAccumulatePolicy(action, param);
     }
 
-    private void handleAccumulatePolicy(String action, String param) {
+    private Policy handleAccumulatePolicy(String action, String param) {
         LogManager.local(TAG, "handleAccumulatePolicy: act:" + action
                 + ";param:" + param);
+        Policy ret = null;
         if (action.equals(PolicyConstants.ACTION_EYE)) {
             try {
                 JSONObject json = new JSONObject(param);
@@ -197,11 +237,13 @@ public class PolicyParser {
                                 null);
                 policy.setCallbck(new Accumulate4Eye(mContext, Long
                         .valueOf(duration)));
+                ret = policy;
             } catch (JSONException e) {
                 LogManager.local(TAG, "wrong param for eye policy" + param);
                 e.printStackTrace();
             }
         }
+        return ret;
     }
 
     private void parseSetPolicy(XmlPullParser parser)
