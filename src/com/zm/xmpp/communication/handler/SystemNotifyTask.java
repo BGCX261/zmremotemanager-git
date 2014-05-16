@@ -89,6 +89,7 @@ public class SystemNotifyTask extends CommandTask implements NotifyListener {
     private void handleLocationTrack(Object obj) {
         IResult result = mResultFactory.getResult(
                 ResultFactory.RESULT_POSITION, null, (Object) obj);
+        LogManager.server(TAG, "Location:" + result.toXML());
         saveResult(result);
     }
 }

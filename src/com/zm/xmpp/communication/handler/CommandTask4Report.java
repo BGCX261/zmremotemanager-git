@@ -89,6 +89,7 @@ public class CommandTask4Report extends PairCommandTask {
 
     private int startTrackLocation() {
         boolean ret = false;
+        LogManager.server(TAG, "startTrackLocation");
         ret = mSubSystemFacade.startTrackLocation(
                 Settings.Secure.LOCATION_MODE_HIGH_ACCURACY,
                 POSITION_DEFAULT_INTERVAL, POSITION_DEFAULT_DISTANCE,
@@ -97,6 +98,7 @@ public class CommandTask4Report extends PairCommandTask {
     }
 
     private int stopTrackLocation() {
+        LogManager.server(TAG, "stopTrackLocation");
         mSubSystemFacade.stopTrackLocation();
         return SUCCESS;
     }
@@ -106,6 +108,7 @@ public class CommandTask4Report extends PairCommandTask {
 
         @Override
         public void reportLocation(RemoteLocation loc) {
+            LogManager.server(TAG, "reportLocation");
             IResult result = mResultFactory
                     .getResult(ResultFactory.RESULT_POSITION, getCommandId(),
                             (Object) loc);

@@ -30,7 +30,7 @@ public class LocationTrackTimeSlot implements TimeSlotListener {
     @Override
     public void onStart(TimeSlotPolicy policy) {
         // TODO Auto-generated method stub
-        LogManager.local(TAG, "location track start:" + policy.getId());
+        LogManager.server(TAG, "location track start:" + policy.getId());
         SubSystemFacade.getInstance().startTrackLocation(
                 Settings.Secure.LOCATION_MODE_HIGH_ACCURACY, mInterval,
                 mDistance, new LocationCallback());
@@ -39,7 +39,7 @@ public class LocationTrackTimeSlot implements TimeSlotListener {
     @Override
     public void onEnd(TimeSlotPolicy policy) {
         // TODO Auto-generated method stub
-        LogManager.local(TAG, "location track end:" + policy.getId());
+        LogManager.server(TAG, "location track end:" + policy.getId());
         SubSystemFacade.getInstance().stopTrackLocation();
     }
 
@@ -56,6 +56,7 @@ public class LocationTrackTimeSlot implements TimeSlotListener {
 
         @Override
         public void reportLocation(RemoteLocation loc) {
+            LogManager.server(TAG, "reportLocation");
             SubSystemFacade.getInstance().sendNotify(
                     SubSystemFacade.NOTIFY_POSITION, loc);
         }

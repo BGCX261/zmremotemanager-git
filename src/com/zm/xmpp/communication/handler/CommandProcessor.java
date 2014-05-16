@@ -191,7 +191,7 @@ public class CommandProcessor extends CmdDispatchInfo implements
     }
 
     private boolean postIQCommand(ZMIQCommand iq) {
-        LogManager.local(TAG, "postIQCommand:" + getCommandType(iq));
+        LogManager.server(TAG, "postIQCommand:" + iq.toXML());
         boolean ret = true;
         try {
             Class<?> taskClass = mTaskMap.get(getCommandType(iq));
@@ -287,9 +287,10 @@ public class CommandProcessor extends CmdDispatchInfo implements
                 type = zmresult.getType();
             }
 
+            LogManager.server(TAG, "handleResult:" + zmresult.toXML());
             if (mXmppClient.getStatus() == XmppClient.XMPPCLIENT_STATUS_LOGINED) {
                 // when login, send result
-                LogManager.local(TAG, "send result:" + type);
+                LogManager.server(TAG, "send result:" + type);
                 ret = mXmppClient.sendPacketAsync((Packet) result, 0);
                 // check if error after 2 seconds because error could return
                 // asynchronously
@@ -298,7 +299,7 @@ public class CommandProcessor extends CmdDispatchInfo implements
                 mHandler.sendMessageDelayed(msg, 2000);
             } else {
                 // when offline, save result
-                LogManager.local(TAG, "save result:" + type);
+                LogManager.server(TAG, "save result:" + type);
                 saveLog(zmresult);
             }
         }

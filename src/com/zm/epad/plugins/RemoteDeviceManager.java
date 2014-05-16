@@ -389,7 +389,7 @@ public class RemoteDeviceManager {
                 mRemoteLocs = new LinkedList<RemoteLocation>();
             if (setLocationTrackMode(mode) == false)
                 return false;
-            LogManager.local(TAG, "startLocationTrack using mode " + mode);
+            LogManager.server(TAG, "startLocationTrack using mode " + mode);
 
             mCallback = callback;
             mMinTime = minTime;
@@ -405,10 +405,10 @@ public class RemoteDeviceManager {
 
                 mLocationManager.requestLocationUpdates(minTime, minDistance,
                         criteria, this, null);
-                LogManager.local(TAG, "requestLocationUpdates succeed ");
+                LogManager.server(TAG, "requestLocationUpdates succeed ");
                 return true;
             } catch (Exception e) {
-                LogManager.local(TAG,
+                LogManager.server(TAG,
                         "requestLocationUpdates fail " + e.getMessage());
                 return false;
             }
@@ -419,7 +419,7 @@ public class RemoteDeviceManager {
                 mLocationManager.removeUpdates(this);
             }
             setLocationTrackMode(LOCATION_TRACK_OFF);
-            LogManager.local(TAG, "stopLocationTrack");
+            LogManager.server(TAG, "stopLocationTrack");
             mLocationManager = null;
         }
 
@@ -446,6 +446,10 @@ public class RemoteDeviceManager {
 
         @Override
         public void onLocationChanged(Location location) {
+            LogManager.server(TAG, "Provider:" + location.getProvider());
+            LogManager.server(TAG, "Longitude:" + location.getLongitude());
+            LogManager.server(TAG, "Latitude:" + location.getLatitude());
+            LogManager.server(TAG, "Time:" + location.getTime());
             RemoteLocation remoteLoc = new RemoteLocation(location);
             addHistoryLoc(remoteLoc);
             if (mCallback != null)
