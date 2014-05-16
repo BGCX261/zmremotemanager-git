@@ -3,6 +3,7 @@ package com.zm.xmpp.communication.handler;
 import android.os.Handler;
 import android.os.Message;
 
+import com.zm.epad.core.Config;
 import com.zm.epad.core.CoreConstants;
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.SubSystemFacade;
@@ -15,12 +16,13 @@ public class SystemNotifyTask extends CommandTask implements NotifyListener {
 
     private static final String TAG = "SystemNotifyTask";
 
-    private final String DEFAULT_SERVER = "dummy";
+    private final String DEFAULT_SERVER;
 
     public SystemNotifyTask(SubSystemFacade subSystemFacade, Handler handler,
             ResultFactory factory) {
         super(subSystemFacade, handler, factory, null);
         mSubSystemFacade.setListener(this);
+        DEFAULT_SERVER = Config.getInstance().getConfig(Config.XMPP_CENTER);
     }
 
     @Override
@@ -90,6 +92,6 @@ public class SystemNotifyTask extends CommandTask implements NotifyListener {
         IResult result = mResultFactory.getResult(
                 ResultFactory.RESULT_POSITION, null, (Object) obj);
         LogManager.server(TAG, "Location:" + result.toXML());
-        saveResult(result);
+        postResult(result);
     }
 }

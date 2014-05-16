@@ -26,6 +26,7 @@ public class Config {
     public static final String ASYNC_SERVER = "async_server";
     public static final String ASYNC_SEQUENCE = "async_sequence";
     public static final String XMPP_DOMAIN = "xmpp_domain";
+    public static final String XMPP_CENTER = "xmpp_center";
 
     private final String CONFIG = "config.xml";
     private final String CHARSET = "utf-8";
@@ -192,6 +193,7 @@ public class Config {
         ConfigMap.put(ASYNC_SERVER, CoreConstants.CONSTANT_ASYNC_SERVER);
         ConfigMap.put(ASYNC_SEQUENCE, "0");
         ConfigMap.put(XMPP_DOMAIN, Constants.XMPP_DOMAIN);
+        ConfigMap.put(XMPP_CENTER, "ay1404121302138810eez@com.zm.communication");
     }
 
     private String getMACAddress() {
