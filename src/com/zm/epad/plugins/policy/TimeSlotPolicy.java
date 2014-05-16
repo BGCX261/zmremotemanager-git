@@ -105,4 +105,12 @@ public class TimeSlotPolicy extends SwitchPolicy {
         return Integer.valueOf(smh[2]) * 3600 + Integer.valueOf(smh[1])
                 * 60 + Integer.valueOf(smh[0]);
     }
+
+    @Override
+    void cancel() {
+        super.cancel();
+        if (mCallback != null) {
+            mCallback.onEnd(this);
+        }
+    }
 }
