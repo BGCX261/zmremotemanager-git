@@ -31,6 +31,7 @@ public class LocationTrackTimeSlot implements TimeSlotListener {
     public void onStart(TimeSlotPolicy policy) {
         // TODO Auto-generated method stub
         LogManager.server(TAG, "location track start:" + policy.getId());
+        SubSystemFacade.getInstance().acquireWakeLock(TAG);
         SubSystemFacade.getInstance().startTrackLocation(
                 Settings.Secure.LOCATION_MODE_HIGH_ACCURACY, mInterval,
                 mDistance, new LocationCallback());
@@ -40,6 +41,7 @@ public class LocationTrackTimeSlot implements TimeSlotListener {
     public void onEnd(TimeSlotPolicy policy) {
         // TODO Auto-generated method stub
         LogManager.server(TAG, "location track end:" + policy.getId());
+        SubSystemFacade.getInstance().releaseWakeLock(TAG);
         SubSystemFacade.getInstance().stopTrackLocation();
     }
 

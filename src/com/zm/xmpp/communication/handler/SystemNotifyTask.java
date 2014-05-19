@@ -17,6 +17,7 @@ public class SystemNotifyTask extends CommandTask implements NotifyListener {
     private static final String TAG = "SystemNotifyTask";
 
     private final String DEFAULT_SERVER;
+    private String mCommandId = "dummy";
 
     public SystemNotifyTask(SubSystemFacade subSystemFacade, Handler handler,
             ResultFactory factory) {
@@ -82,7 +83,7 @@ public class SystemNotifyTask extends CommandTask implements NotifyListener {
 
     private void handleAppUsage(Object obj) {
         IResult result = mResultFactory.getResult(
-                ResultFactory.RESULT_APPUSAGE, null, obj);
+                ResultFactory.RESULT_APPUSAGE, mCommandId, obj);
         // AppUsage info is always saved in log.
         // No need to send result even when network is available
         saveResult(result);
