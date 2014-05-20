@@ -7,6 +7,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.provider.Settings;
 
+import com.zm.epad.core.Config;
 import com.zm.epad.core.CoreConstants;
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.SubSystemFacade;
@@ -90,9 +91,20 @@ public class CommandTask4Report extends PairCommandTask {
     private int startTrackLocation() {
         boolean ret = false;
         LogManager.server(TAG, "startTrackLocation");
+        long time = POSITION_DEFAULT_INTERVAL;
+        int distance = POSITION_DEFAULT_DISTANCE;
+        try {
+            Config config = Config.getInstance();
+            time = Long.valueOf(config.getConfig(Config.LOCATION_MIN_TIME));
+            distance = Integer.valueOf(config
+                    .getConfig(Config.LOCATION_MIN_DISTANCE));
+        } catch (Exception e) {
+            LogManager.server(TAG, e.toString());
+        }
+        LogManager.server(TAG, "minTime:" + time + "/minDistance:" + distance);
+
         ret = mSubSystemFacade.startTrackLocation(
-                Settings.Secure.LOCATION_MODE_HIGH_ACCURACY,
-                POSITION_DEFAULT_INTERVAL, POSITION_DEFAULT_DISTANCE,
+                Settings.Secure.LOCATION_MODE_HIGH_ACCURACY, time, distance,
                 new LocationCallback());
         return ret == true ? SUCCESS : FAILED;
     }
