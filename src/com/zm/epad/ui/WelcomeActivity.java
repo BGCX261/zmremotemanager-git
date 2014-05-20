@@ -5,6 +5,9 @@ import com.zm.epad.RemoteManager;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -18,11 +21,17 @@ public class WelcomeActivity extends Activity {
     Button mBtnBack;
     Button mBtnNext;
     Button mBtnDone;
+    TextView mVersion;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.welcome);
+
+        mVersion = (TextView) findViewById(R.id.welcome_version);
+        String version = getAppVersion();
+        mVersion.setText(version);
+
         mBtnBack = (Button) findViewById(R.id.welcome_back);
         mBtnBack.setOnClickListener(new OnClickListener() {
 
@@ -77,5 +86,15 @@ public class WelcomeActivity extends Activity {
         TextView already = (TextView) findViewById(R.id.welcome_alreadylogin);
         already.setVisibility(View.VISIBLE);
         mBtnDone.setVisibility(View.VISIBLE);
+    }
+
+    private String getAppVersion() {
+        try {
+            String pkgName = this.getApplicationInfo().packageName;
+            return getPackageManager().getPackageInfo(pkgName, 0).versionName;
+        } catch (NameNotFoundException e) {
+            e.printStackTrace();
+        }
+        return "dummy";
     }
 }

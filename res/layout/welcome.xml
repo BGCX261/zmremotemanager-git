@@ -69,4 +69,12 @@
         android:text="@string/login_done"
         android:visibility="invisible" />
 
+    <TextView
+        android:id="@+id/welcome_version"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/welcome_title"
+        android:layout_below="@+id/welcome_title"
+        android:textAppearance="?android:attr/textAppearanceSmall" />
+
 </RelativeLayout>
