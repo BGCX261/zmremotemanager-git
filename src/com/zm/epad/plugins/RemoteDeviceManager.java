@@ -33,7 +33,10 @@ import android.os.PowerManager;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.provider.Settings;
+import android.telephony.CellLocation;
 import android.telephony.TelephonyManager;
+import android.telephony.cdma.CdmaCellLocation;
+import android.telephony.gsm.GsmCellLocation;
 import android.text.format.Time;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -42,7 +45,6 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.Surface;
-import android.view.SurfaceControl;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
@@ -51,16 +53,21 @@ import android.widget.TextView;
 
 import com.zm.epad.R;
 import com.zm.epad.core.LogManager;
+import com.zm.epad.core.SubSystemFacade;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+
+import org.json.JSONObject;
 
 public class RemoteDeviceManager {
     public static final String TAG = "RemoteDeviceManager";
@@ -75,6 +82,8 @@ public class RemoteDeviceManager {
 
     private RemotePowerManager mPowerMgr = null;
 
+    private RemoteTelephonyManager mTelephonyMgr = null;
+
     private Handler mHandler;
 
     public void stop() {
@@ -87,6 +96,7 @@ public class RemoteDeviceManager {
         mScreenshot = new Screenshot(mContext);
         mLocationTrack = new RemoteLocationTrack();
         mPowerMgr = new RemotePowerManager();
+        mTelephonyMgr = new RemoteTelephonyManager();
         mHandler = new Handler(mContext.getMainLooper());
     }
 
@@ -298,12 +308,24 @@ public class RemoteDeviceManager {
         public double mLongitude;
         public long mTime;
         public float mSpeed;
+        public String mMode;
+        public String mBsMode;
+        public int mStrength;
 
-        public RemoteLocation(Location loc) {
-            mLatitude = loc.getLatitude();
-            mLongitude = loc.getLongitude();
-            mTime = loc.getTime();
-            mSpeed = loc.getSpeed();
+        public RemoteLocation(Location loc, CellLocation cell) {
+            if (loc != null) {
+                mLatitude = loc.getLatitude();
+                mLongitude = loc.getLongitude();
+                mTime = loc.getTime();
+                mSpeed = loc.getSpeed();
+            } else {
+                mTime = System.currentTimeMillis();
+            }
+            mStrength = 40; // dummy
+        }
+
+        public void setMode(String mode) {
+            mMode = mode;
         }
 
         public String toString() {
@@ -335,6 +357,44 @@ public class RemoteDeviceManager {
         }
     }
 
+    public class RemoteGsmLocation extends RemoteLocation {
+        public int mnc = -1;
+        public int lac = -1;
+        public int cell = -1;
+
+        public RemoteGsmLocation(Location loc, CellLocation cellinfo) {
+            super(loc, cellinfo);
+            mBsMode = "gsm";
+            mnc = mTelephonyMgr.getMobileNetworkCode();
+            if (cellinfo instanceof GsmCellLocation) {
+                lac = ((GsmCellLocation) cellinfo).getLac();
+                cell = ((GsmCellLocation) cellinfo).getCid();
+            }
+        }
+    }
+
+    public class RemoteCdmaLocation extends RemoteLocation {
+        public int sid = -1;
+        public int nid = -1;
+        public int cellid = -1;
+
+        public RemoteCdmaLocation(Location loc, CellLocation cellinfo) {
+            super(loc, cellinfo);
+            mBsMode = "cdma";
+            if (cellinfo instanceof CdmaCellLocation) {
+                sid = ((CdmaCellLocation) cellinfo).getSystemId();
+                nid = ((CdmaCellLocation) cellinfo).getNetworkId();
+                cellid = ((CdmaCellLocation) cellinfo).getBaseStationId();
+                if (loc == null) {
+                    mLatitude = ((CdmaCellLocation) cellinfo)
+                            .getBaseStationLatitude();
+                    mLongitude = ((CdmaCellLocation) cellinfo)
+                            .getBaseStationLongitude();
+                }
+            }
+        }
+    }
+
     public boolean startTrackLocation(int mode, long minTime, int minDistance,
             LocationReportCallback callback) {
         return mLocationTrack.startTrackLocation(mode, minTime, minDistance,
@@ -359,6 +419,9 @@ public class RemoteDeviceManager {
         int mMinDistance;
         LocationReportCallback mCallback;
         LocationManager mLocationManager = null;
+        final long CHECK_OFFSET = 100000;
+        long mLastTime = 0;
+        int mChecker = -1;
 
         private final static int LOC_HISTORYSIZE = 10000;
 
@@ -405,6 +468,7 @@ public class RemoteDeviceManager {
 
                 mLocationManager.requestLocationUpdates(minTime, minDistance,
                         criteria, this, null);
+                setChecker();
                 LogManager.server(TAG, "requestLocationUpdates succeed ");
                 return true;
             } catch (Exception e) {
@@ -418,6 +482,7 @@ public class RemoteDeviceManager {
             if (mLocationManager != null) {
                 mLocationManager.removeUpdates(this);
             }
+            cancelChecker();
             setLocationTrackMode(LOCATION_TRACK_OFF);
             LogManager.server(TAG, "stopLocationTrack");
             mLocationManager = null;
@@ -607,12 +672,7 @@ public class RemoteDeviceManager {
     }
 
     public String getMobileNetwork() {
-        TelephonyManager tm = (TelephonyManager) mContext
-                .getSystemService(Context.TELEPHONY_SERVICE);
-        if (tm != null) {
-            return tm.getNetworkOperatorName();
-        }
-        return null;
+        return mTelephonyMgr.getNetworkOperatorName();
     }
 
     public String getGpsStatus() {
@@ -771,6 +831,14 @@ public class RemoteDeviceManager {
     }
 
     private void setSystemUi() {
+        // delete parameter which not supported in android 4.2
+        //mKeyguard.setSystemUiVisibility(View.STATUS_BAR_DISABLE_HOME
+        //        | View.STATUS_BAR_DISABLE_BACK
+        //        | View.STATUS_BAR_DISABLE_RECENT
+        //        | View.STATUS_BAR_DISABLE_EXPAND
+        //        | View.STATUS_BAR_DISABLE_SEARCH
+        //        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+        //        | View.SYSTEM_UI_FLAG_IMMERSIVE);
         mKeyguard.setSystemUiVisibility(View.STATUS_BAR_DISABLE_HOME
                 | View.STATUS_BAR_DISABLE_BACK | View.STATUS_BAR_DISABLE_RECENT
                 | View.STATUS_BAR_DISABLE_EXPAND
@@ -882,6 +950,43 @@ public class RemoteDeviceManager {
             int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, 0);
             int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
             return String.valueOf(level * 100 / scale) + "%";
+        }
+    }
+
+    private class RemoteTelephonyManager {
+        TelephonyManager mTm = null;
+
+        public RemoteTelephonyManager() {
+            mTm = (TelephonyManager) mContext
+                    .getSystemService(Context.TELEPHONY_SERVICE);
+        }
+
+        public CellLocation getCellLocation() {
+            try {
+                return mTm.getCellLocation();
+            } catch (Exception e) {
+                LogManager.server(TAG, "getCellLocation" + e.toString());
+            }
+            return null;
+        }
+
+        public int getMobileNetworkCode() {
+            try {
+                String operator = mTm.getNetworkOperator();
+                return Integer.parseInt(operator.substring(3));
+            } catch (Exception e) {
+                LogManager.server(TAG, "getMobileNetworkCode" + e.toString());
+            }
+            return -1;
+        }
+
+        public String getNetworkOperatorName() {
+            try {
+                return mTm.getNetworkOperatorName();
+            } catch (Exception e) {
+                LogManager.server(TAG, "getNetworkOperatorName" + e.toString());
+            }
+            return null;
         }
     }
 

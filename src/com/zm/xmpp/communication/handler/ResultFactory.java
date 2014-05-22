@@ -8,6 +8,8 @@ import android.content.pm.UserInfo;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.UserManager;
+import android.telephony.CellLocation;
+import android.telephony.gsm.GsmCellLocation;
 import android.text.format.Time;
 
 import com.android.internal.os.PkgUsageStats;
@@ -17,6 +19,8 @@ import com.zm.epad.core.CoreConstants;
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.SubSystemFacade;
 import com.zm.epad.plugins.RemoteDeviceManager;
+import com.zm.epad.plugins.RemoteDeviceManager.RemoteCdmaLocation;
+import com.zm.epad.plugins.RemoteDeviceManager.RemoteGsmLocation;
 import com.zm.epad.plugins.RemoteWebManager;
 import com.zm.epad.plugins.RemoteDeviceManager.RemoteLocation;
 import com.zm.epad.plugins.RemotePackageManager;
@@ -33,7 +37,11 @@ import android.app.ActivityManager.RunningAppProcessInfo;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import org.json.JSONObject;
 
 public class ResultFactory {
     public static final String TAG = "ClientResultFactory";
@@ -504,9 +512,46 @@ public class ResultFactory {
     private IResult getPositionResult(Object obj) {
         RemoteLocation location = (RemoteLocation) obj;
         ResultDeviceReport result = new ResultDeviceReport();
-        result.setLongitude(String.valueOf(location.mLongitude));
-        result.setLatitude(String.valueOf(location.mLatitude));
-        result.setLoctime(location.mTime);
+        try {
+            result.setMode(location.mMode);
+            if (!location.mMode.equals("bs")) {
+                result.setLongitude(String.valueOf(location.mLongitude));
+                result.setLatitude(String.valueOf(location.mLatitude));
+            }
+            result.setLoctime(location.mTime);
+            if (location instanceof RemoteGsmLocation) {
+                result.setBaseStationType("gsm");
+                HashMap<String, String> map = new HashMap<String, String>();
+                map.put("type", "main");
+                map.put("mnc",
+                        String.valueOf(((RemoteGsmLocation) location).mnc));
+                map.put("lac",
+                        String.valueOf(((RemoteGsmLocation) location).lac));
+                map.put("cell",
+                        String.valueOf(((RemoteGsmLocation) location).cell));
+                map.put("strengh", String
+                        .valueOf(((RemoteGsmLocation) location).mStrength));
+                JSONObject json = new JSONObject(map);
+                result.setBaseStationInfo(json.toString());
+            } else if (location instanceof RemoteCdmaLocation) {
+                result.setBaseStationType("cdma");
+                HashMap<String, String> map = new HashMap<String, String>();
+                map.put("type", "main");
+                map.put("sid",
+                        String.valueOf(((RemoteCdmaLocation) location).sid));
+                map.put("nid",
+                        String.valueOf(((RemoteCdmaLocation) location).nid));
+                map.put("cellid",
+                        String.valueOf(((RemoteCdmaLocation) location).cellid));
+                map.put("strengh", String
+                        .valueOf(((RemoteCdmaLocation) location).mStrength));
+                JSONObject json = new JSONObject(map);
+                result.setBaseStationInfo(json.toString());
+            }
+        } catch (Exception e) {
+            LogManager.server(TAG, "getPositionResult" + e.toString());
+            e.printStackTrace();
+        }
 
         return result;
     }
