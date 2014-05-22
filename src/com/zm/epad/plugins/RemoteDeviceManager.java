@@ -132,7 +132,7 @@ public class RemoteDeviceManager {
     }
 
     private class Screenshot {
-        final float REMOTE_LONG_EDGE_F = 640f;
+        final float REMOTE_LONG_EDGE_F = 300f;
         WindowManager mWindowManager;
         Display mDisplay;
         DisplayMetrics mDisplayMetrics;
@@ -221,7 +221,9 @@ public class RemoteDeviceManager {
                 ByteArrayOutputStream out = new ByteArrayOutputStream(
                         screenBitmap.getByteCount());
                 screenBitmap.compress(Bitmap.CompressFormat.PNG, 0, out);
+                //screenBitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
                 res = out.toByteArray();
+                LogManager.local(TAG,"size:" + res.length);
                 out.close();
             } catch (Exception e) {
                 // TODO: handle exception
