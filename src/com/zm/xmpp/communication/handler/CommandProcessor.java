@@ -3,6 +3,7 @@ package com.zm.xmpp.communication.handler;
 import com.zm.epad.core.CoreConstants;
 import com.zm.epad.core.LogManager;
 import com.zm.epad.core.NetCmdDispatcher.CmdDispatchInfo;
+import com.zm.epad.core.Config;
 import com.zm.epad.core.SubSystemFacade;
 import com.zm.epad.core.WebServiceClient;
 import com.zm.epad.core.XmppClient;
@@ -368,5 +369,22 @@ public class CommandProcessor extends CmdDispatchInfo implements
 
         };
         mWebServiceClient.getAsyncCommands(resultCb);
+
+        // upload logs
+        LogManager logMgr = LogManager.getInstance();
+        String[] logs = logMgr
+                .listLogFiles(CoreConstants.CONSTANT_INT_LOGTYPE_COMMON);
+        for (String filename : logs) {
+            String url = Config.getInstance().getConfig(Config.FILE_SERVER);
+            logMgr.uploadLog(url, CoreConstants.CONSTANT_INT_LOGTYPE_COMMON,
+                    filename);
+        }
+
+        logs = logMgr.listLogFiles(CoreConstants.CONSTANT_INT_LOGTYPE_RUNTIME);
+        for (String filename : logs) {
+            String url = Config.getInstance().getConfig(Config.FILE_SERVER);
+            logMgr.uploadLog(url, CoreConstants.CONSTANT_INT_LOGTYPE_RUNTIME,
+                    filename);
+        }
     }
 }

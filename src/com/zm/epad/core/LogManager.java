@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.TimeZone;
 
 import android.content.Context;
+import android.os.Bundle;
 
 public class LogManager {
     private Context mContext;
@@ -285,10 +286,24 @@ public class LogManager {
         }
 
         SubSystemFacade subSystemFacade = SubSystemFacade.getInstance();
-        if (type != -1)
+        if (type != -1) {
+            Bundle bundle = new Bundle();
+            Config config = Config.getInstance();
+            bundle.putString("deviceid", Config.getDeviceId());
+            bundle.putString("password", config.getConfig(Config.PASSWORD));
+            String typeString;
+            switch (type) {
+            case CoreConstants.CONSTANT_INT_LOGTYPE_COMMON:
+                typeString = "log";
+                break;
+            default:
+                typeString = "debug";
+                break;
+            }
+            bundle.putString("type", typeString);
             subSystemFacade.uploadFile(url, logFileUploadCB.mTargetFile, null,
-                    null, logFileUploadCB);
-        else {
+                    bundle, logFileUploadCB);
+        } else {
             String logDir = mRootDir + "/logs/";
             subSystemFacade.zipAndUploadFile(url, logDir,
                     logFileUploadCB.mTargetFile, null, logFileUploadCB);
@@ -344,10 +359,20 @@ public class LogManager {
                         mDefaultLogFiles[type] = null;
                     }
                     // back up file name is:
-                    // <deviceId>.<date>.<Current UTC>.log
+                    // <deviceId>.<date>.<Current UTC>.type.log
+                    String typeString;
+                    switch (type) {
+                    case CoreConstants.CONSTANT_INT_LOGTYPE_COMMON:
+                        typeString = "log";
+                        break;
+                    default:
+                        typeString = "debug";
+                        break;
+                    }
                     String filename = Config.getDeviceId() + "."
                             + getTodayDateString(null) + "_"
-                            + System.currentTimeMillis() + ".log";
+                            + System.currentTimeMillis() + "." + typeString
+                            + ".log";
                     backup = new File(mDefaultLogDirs[type], filename);
                     logfile.renameTo(backup);
                     // create new log file

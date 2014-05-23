@@ -29,6 +29,7 @@ public class Config {
     public static final String XMPP_CENTER = "xmpp_center";
     public static final String LOCATION_MIN_TIME = "loc_time";
     public static final String LOCATION_MIN_DISTANCE = "loc_distance";
+    public static final String FILE_SERVER = "file_server";
 
     private final String CONFIG = "config.xml";
     private final String CHARSET = "utf-8";
@@ -198,7 +199,8 @@ public class Config {
         ConfigMap.put(XMPP_CENTER, "ay1404121302138810eez@com.zm.communication");
         ConfigMap.put(LOCATION_MIN_TIME, "30000");
         ConfigMap.put(LOCATION_MIN_DISTANCE, "0");
-    }
+        ConfigMap.put(FILE_SERVER, "http://114.215.110.230:8080/LogUpload/fileupload");    
+}
 
     private String getMACAddress() {
         // This function may be called before sub-system start

@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.zip.ZipFile;
@@ -271,28 +272,19 @@ public class RemoteFileManager {
 
                 if (info != null) {
                     // write command id
-                    writeHeadInfo(sb, CoreConstants.CONSTANT_COMMANDID,
-                            info.getString(CoreConstants.CONSTANT_COMMANDID),
-                            Boundary, dos);
+                    Set<String> keys = info.keySet();
+                    for (String k : keys) {
+                        if (k.equals(CoreConstants.CONSTANT_MIME))
+                            continue;
 
-                    // write command id
-                    writeHeadInfo(sb, CoreConstants.CONSTANT_COMMANDID,
-                            info.getString(CoreConstants.CONSTANT_COMMANDID),
-                            Boundary, dos);
-
-                    // write type
-                    writeHeadInfo(sb, CoreConstants.CONSTANT_TYPE,
-                            info.getString(CoreConstants.CONSTANT_TYPE),
-                            Boundary, dos);
-
-                    // write action
-                    writeHeadInfo(sb, CoreConstants.CONSTANT_ACTION,
-                            info.getString(CoreConstants.CONSTANT_ACTION),
-                            Boundary, dos);
+                        writeHeadInfo(sb, k, info.getString(k), Boundary, dos);
+                    }
 
                     // write upload file info
+                    String mime = info.getString(CoreConstants.CONSTANT_MIME);
                     writeFileHeadInfo(sb, CoreConstants.CONSTANT_UPLOAD,
-                            info.getString(CoreConstants.CONSTANT_MIME),
+                            mime != null ? mime
+                                    : CoreConstants.CONSTANT_MIME_DEFAULT,
                             filename, Boundary, dos);
                 } else {
                     // write upload file info with default mime
