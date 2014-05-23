@@ -69,10 +69,11 @@ public class CommandTask4App extends CommandTask {
     private int handleCommand4AppInstall(ICommand4App cmd) {
 
         if (mSubSystemFacade
-                .isNewPackage(cmd.getAppName(), cmd.getAppVersion())) {
+                .isNewPackage(cmd.getAppName(), cmd.getAppVersion())
+                || cmd.getAppName().equals("com.zm.epad")) {
             LogManager.local(TAG, "download new APK");
-            IResult ack = mResultFactory.getNormalResult(mIQCommand.getCommand(),
-                    Constants.RESULT_ACK, null);
+            IResult ack = mResultFactory.getNormalResult(
+                    mIQCommand.getCommand(), Constants.RESULT_ACK, null);
             postResult(ack);
 
             int install = mSubSystemFacade.installPkgForUser(cmd.getAppUrl(),
